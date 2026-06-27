@@ -1,0 +1,10 @@
+[project]
+name = "clawly"
+version = "0.1.0"
+description = "Multi-agent matchmaking prototype that fights loneliness by finding people their people."
+requires-python = ">=3.11"
+
+[tool.pytest.ini_options]
+# source lives in src/, tests + the fake client live in tests/
+pythonpath = ["src", "tests"]
+testpaths = ["tests"]

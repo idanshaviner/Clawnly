@@ -1,4 +1,4 @@
-# Clawly — Product Requirements Document
+# Clawnly — Product Requirements Document
 
 **Status:** v0.3 (Draft) · **Date:** 2026-06-20 · **Owner:** Idan Shaviner
 **Related:** [SPEC.md](SPEC.md) — technical spec for Phase 1 (the matching PoC)
@@ -25,7 +25,7 @@ matcher hits all four on varied pools (§6a) is the entire purpose of Phase 1.
 
 ## 1. TL;DR
 
-Clawly fights loneliness by giving every person an AI agent — a **Claw** — that learns who they
+Clawnly fights loneliness by giving every person an AI agent — a **Claw** — that learns who they
 are and finds them *their people*: small groups of compatible humans to meet in real life. A
 **Master Claw** orchestrator reasons across everyone's Claws to form groups that genuinely fit, and
 proposes a concrete meetup.
@@ -55,7 +55,7 @@ unstructured exposure that busy adult life rarely provides.
   shallow and opaque — users can't see *why* they were grouped, and the signal is whatever a
   one-time quiz captured.
 - **The gap:** nobody uses a per-user conversational agent that can be *interviewed* and can reason
-  about fit in natural language, grounded in rich, evolving personal context. That is Clawly's
+  about fit in natural language, grounded in rich, evolving personal context. That is Clawnly's
   wedge — and it's newly feasible with current LLMs.
 
 **Opportunity.** Be the first matchmaker whose matching is (a) **deep** (reasons over real, evolving
@@ -215,7 +215,7 @@ the per-dimension scorecard, the chosen group with its reason, and the why-not. 
 meetup card. (SPEC §7.)
 
 **Phase 2+ (target app, indicative):**
-1. **Effortless onboarding** — connect a source or two; Clawly learns; minimal questions.
+1. **Effortless onboarding** — connect a source or two; Clawnly learns; minimal questions.
 2. **The proposal** — a meetup card with *who, what, where, when,* and a clear **"why you four"**.
 3. **Opt-in & coordinate** — accept, light pre-meetup chat / icebreaker.
 4. **After** — quick rating that improves future matches.
@@ -239,7 +239,7 @@ meetup card. (SPEC §7.)
 The moment real personal data and real strangers enter, these become first-class requirements
 (currently **out of PoC scope**, owned here for the roadmap):
 - **Consent & data handling** — explicit, revocable consent per source; minimal collection; clear
-  retention; user-visible "what Clawly knows about me."
+  retention; user-visible "what Clawnly knows about me."
 - **Safety for IRL** — identity verification, reporting/blocking, moderation, public-venue defaults.
 - **Transparency** — the "why" extends to "why we used this data."
 

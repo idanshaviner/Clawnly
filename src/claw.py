@@ -99,6 +99,17 @@ class Claw:
         a2 = await self.describe(q2)
         return (a1, a2)
 
+    async def react(self, pitch):
+        # react IN CHARACTER to a proposed group activity (used by the real
+        # negotiation). Short and honest -- if it doesn't fit, say so.
+        prompt = (
+            "Your group is planning a meetup. Someone proposes this:\n\n"
+            + pitch +
+            "\n\nReact as yourself in 1-2 sentences -- are you into it? "
+            "Be honest: if the activity, vibe, or timing doesn't work for you, say so plainly."
+        )
+        return await self._ask([{"role": "user", "content": prompt}], config.MODEL_INTERVIEW)
+
     async def chat(self, message, history=None):
         # free-style, multi-turn conversation on the richer model (quality matters
         # for the interactive surface). history is a list of prior

@@ -74,6 +74,29 @@ def test_chat_uses_richer_model():
     assert fake.calls[0][1]["model"] == config.MODEL_CLAW   # Sonnet for chat
 
 
+def test_chat_includes_history():
+    fake = FakeClient(interview_text="sure, sounds good")
+    claw = Claw(find("u01"), client=fake)
+    history = [
+        {"role": "user", "content": "hey Maya"},
+        {"role": "assistant", "content": "hi there!"},
+    ]
+    reply = run(claw.chat("want to grab coffee?", history))
+    assert reply == "sure, sounds good"
+    _, kwargs = fake.calls[0]
+    sent = kwargs["messages"]
+    assert len(sent) == 3                       # history + the new message
+    assert sent[-1]["content"] == "want to grab coffee?"
+
+
+def test_chat_does_not_mutate_history():
+    fake = FakeClient(interview_text="ok")
+    claw = Claw(find("u01"), client=fake)
+    history = []
+    run(claw.chat("hello", history))
+    assert history == []                        # caller's history left untouched
+
+
 def test_system_prompt_embeds_full_profile():
     user = find("u01")
     claw = Claw(user, client=FakeClient())

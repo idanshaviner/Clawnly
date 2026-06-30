@@ -24,8 +24,43 @@ MODEL_POPUP = "claude-sonnet-4-6"
 TEMP_PERSONA = 0.8
 TEMP_POPUP = 0.7
 
+# effort for the Opus match call (speed/cost lever). "medium" is much faster and
+# cheaper than the default "high" and is plenty for choosing a group from 12
+# short profiles. Bump to "high" if you want maximum matching rigor.
+MATCH_EFFORT = "medium"
+
+
+def resolve_api_key():
+    # 1) the environment variable (works when launched from a terminal export).
+    key = os.environ.get("ANTHROPIC_API_KEY")
+    if key:
+        return key
+    # 2) a .env file at the project root (so the double-click launcher can do
+    #    live mode without an export). The file is gitignored; one line:
+    #       ANTHROPIC_API_KEY=sk-ant-...
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    env_path = os.path.join(root, ".env")
+    if os.path.exists(env_path):
+        with open(env_path) as handle:
+            lines = handle.read().splitlines()
+        i = 0
+        while i < len(lines):
+            line = lines[i].strip()
+            if line.startswith("ANTHROPIC_API_KEY="):
+                value = line[len("ANTHROPIC_API_KEY="):].strip().strip('"').strip("'")
+                if len(value) > 0:
+                    return value
+            i += 1
+    return None
+
 
 def get_client():
-    # reads the key from ANTHROPIC_API_KEY in the environment.
-    key = os.environ.get("ANTHROPIC_API_KEY")
-    return AsyncAnthropic(api_key=key)
+    key = resolve_api_key()
+    if not key:
+        raise ValueError(
+            "No Anthropic API key found. Switch to Demo mode (free), OR set "
+            "ANTHROPIC_API_KEY in your terminal, OR add a line "
+            "ANTHROPIC_API_KEY=sk-ant-... to a file named .env in the project folder."
+        )
+    # a per-request timeout so a hung call fails instead of freezing the app.
+    return AsyncAnthropic(api_key=key, timeout=120.0)

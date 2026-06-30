@@ -1,4 +1,4 @@
-# Clawly — Matchmaker Prototype (PoC)
+# Clawnly — Matchmaker Prototype (PoC)
 
 Multi-agent matchmaking that fights loneliness by finding people "their people."
 Each user has a **Claw** (an AI agent that embodies them); a **Master Claw**
@@ -10,7 +10,7 @@ real user data is ever connected. See [docs/SPEC.md](docs/SPEC.md) and
 ## Project layout
 
 ```
-Clawly/
+Clawnly/
 ├── README.md            ← you are here
 ├── requirements.txt
 ├── pyproject.toml        ← project + test config
@@ -25,14 +25,14 @@ Clawly/
 │   ├── master_claw.py    ← interviews + matching + validator        (orchestrator)
 │   ├── negotiation.py    ← parent agent brokers common ground + plan (negotiation)
 │   ├── popup.py          ← group → concrete meetup card            (output)
+│   ├── app.py            ← web app backend (FastAPI)               (browser UI)
+│   ├── web/index.html    ← the single-page front end (chat, edit, run, ask)
+│   ├── explain.py        ← Master Claw explains its decisions      (explainability)
 │   ├── main.py           ← runs the full pipeline, prints stages   (entry point)
-│   ├── chat.py           ← free-style chat with any persona        (interactive)
 │   ├── persona_gen.py    ← AI-generate a fresh cast of users       (generator)
 │   ├── eval.py           ← quality harness: prove it's "legit"     (evaluation)
 │   └── demo.py           ← free offline run, scripted AI           (demo)
-└── tests/                ← the test suite
-    ├── conftest.py       ← FakeClient mock (no real API calls)
-    └── test_*.py         ← 52 tests
+└── tests/                ← the test suite (run: python -m pytest)
 ```
 
 ## Setup
@@ -46,16 +46,15 @@ export ANTHROPIC_API_KEY=sk-ant-...
 ## Run
 
 ```bash
+.venv/bin/python src/app.py         # the app (or double-click Clawnly.command) — http://127.0.0.1:8000
 .venv/bin/python src/demo.py        # FREE: full pipeline offline with scripted AI (no API, no cost)
 .venv/bin/python src/users.py       # FREE: print the 12 simulated users as JSON
 .venv/bin/python src/main.py        # COSTS ~cents: interview -> match -> negotiate -> popup, real Claude
-.venv/bin/python src/chat.py        # COSTS ~cents: chat free-style with any of the 12 personas
-.venv/bin/python src/persona_gen.py # COSTS ~cents: AI-generate a fresh cast of users
 .venv/bin/python src/eval.py        # COSTS ~cents: evaluation harness across many pools
 ```
 
-`demo.py` and `users.py` are free. The rest make live API calls and need
-`ANTHROPIC_API_KEY`.
+The app's **Demo mode** is free; chatting with people and editing them live needs
+`ANTHROPIC_API_KEY` (paste it into the app, or use a `.env` file).
 
 ## Test
 

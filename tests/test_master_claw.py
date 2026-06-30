@@ -100,6 +100,42 @@ def test_match_call_uses_strong_model():
     assert "temperature" not in match_kwargs
 
 
+def test_find_all_matches_partitions_pool_no_overlap():
+    a = json_body(valid_match_obj(["u01", "u04", "u10"]))
+    b = json_body(valid_match_obj(["u03", "u09", "u11"]))
+    refuse = json_body({"group": [], "reason": "no more viable groups", "scores": {}, "why_not": []})
+    fake = FakeClient(match_queue=[a, b, refuse])
+    mc = MasterClaw(USERS, client=fake)
+    out = run(mc.find_all_matches(run(mc.interview_claws())))
+    assert len(out["groups"]) == 2
+    assert out["groups"][0]["group"] == ["u01", "u04", "u10"]
+    assert out["groups"][1]["group"] == ["u03", "u09", "u11"]
+    g1 = set(out["groups"][0]["group"])
+    g2 = set(out["groups"][1]["group"])
+    assert g1.isdisjoint(g2)                       # non-overlapping
+    assert len(out["unmatched"]) == 6              # the rest are left over
+
+
+def test_past_feedback_is_injected_into_match_prompt():
+    fb = [{"members": ["Ethan", "Sofia"], "rating": "down", "note": "too loud for them"}]
+    fake = FakeClient(match_queue=[json_body(valid_match_obj())])
+    mc = MasterClaw(USERS, client=fake, feedback=fb)
+    run(mc.find_matches(run(mc.interview_claws())))
+    payload = [kw for kind, kw in fake.calls if kind == "match"][0]["messages"][0]["content"]
+    assert "PAST FEEDBACK" in payload
+    assert "too loud for them" in payload and "Ethan" in payload
+    assert "[BAD]" in payload                         # a thumbs-down is marked BAD
+
+
+def test_find_all_matches_stops_when_no_group():
+    refuse = json_body({"group": [], "reason": "none", "scores": {}, "why_not": []})
+    fake = FakeClient(match_queue=[refuse])
+    mc = MasterClaw(USERS, client=fake)
+    out = run(mc.find_all_matches(run(mc.interview_claws())))
+    assert out["groups"] == []
+    assert len(out["unmatched"]) == 12             # nobody matched
+
+
 def test_why_not_capped_at_three():
     obj = valid_match_obj()
     obj["why_not"] = [{"id": "u0" + str(i), "reason": "r"} for i in range(2, 8)]

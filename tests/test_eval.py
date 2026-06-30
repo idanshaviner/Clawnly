@@ -96,6 +96,38 @@ def test_aggregate_pass_bars():
     assert report["pass_full_refusal"] is True
 
 
+def test_is_solvable_true_for_seed_false_for_impossible():
+    from users import USERS
+    assert evalmod.is_solvable(USERS) is True
+    imp = evalmod._impossible_pool("x", [3, 5])["users"]
+    assert evalmod.is_solvable(imp) is False
+
+
+def test_evaluate_records_solvability():
+    valid = json_body({"group": ["u01", "u04", "u10"], "reason": "r", "scores": {}, "why_not": []})
+    refusal = json_body({"group": [], "reason": "no", "scores": {}, "why_not": []})
+    fake = FakeClient(match_queue=[valid, refusal])
+    records = run(evalmod.evaluate(controlled_pools(), fake))
+    assert records[0]["solvable"] is True          # the workable trio
+    assert records[1]["solvable"] is False         # the impossible pool
+
+
+def test_feedback_does_not_flag_a_correct_refusal():
+    # refused on an UNSOLVABLE pool -> GOOD, not a false CONCERN (the A6 fix).
+    recs = [{"kind": "normal", "matched": [], "size": 0, "reason": "r", "scores": {}, "why_not": [],
+             "violations": [], "baseline_violations": [], "refused": True, "solvable": False}]
+    joined = " ".join(evalmod.feedback(recs))
+    assert "Correctly refused" in joined
+    assert "CONCERN" not in joined
+
+
+def test_feedback_flags_a_real_over_refusal():
+    # refused on a SOLVABLE pool -> genuine CONCERN.
+    recs = [{"kind": "normal", "matched": [], "size": 0, "reason": "r", "scores": {}, "why_not": [],
+             "violations": [], "baseline_violations": [], "refused": True, "solvable": True}]
+    assert any("CONCERN" in n for n in evalmod.feedback(recs))
+
+
 def test_blind_review_hides_matcher_but_keeps_key():
     records = [{
         "pool_id": "p1",

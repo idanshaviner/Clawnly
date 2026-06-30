@@ -12,10 +12,11 @@ from llm_io import join_text, extract_json
 
 def _popup_system_prompt():
     lines = [
-        "You plan a single real-world meetup for a small group in Washington DC.",
-        "Use the people's hobbies, neighborhoods, and availability to pick something they'd all enjoy.",
+        "You plan 2-3 real-world meetup OPTIONS for a small group in Washington DC, so they can pick.",
+        "Use the people's hobbies, neighborhoods, and availability. Give the options some variety",
+        "(different vibes or venues), and put the best one first.",
         "",
-        "Rules:",
+        "Rules for EVERY option:",
         "- Pick a SPECIFIC, real-sounding DC venue or park (not a generic 'a cafe').",
         "- The day and time must fit the group's shared availability windows.",
         "- The reason must be ONE sentence, personal and specific to these people,",
@@ -23,16 +24,31 @@ def _popup_system_prompt():
         "",
         "Return ONLY a JSON object, exactly:",
         "{",
-        '  "event_name": "...",',
-        '  "activity": "...",',
-        '  "location": "specific DC venue or park",',
-        '  "time": "day of week + time of day",',
-        '  "matched_users": ["Name", "Name"],',
-        '  "reason": "one specific, personal sentence"',
+        '  "options": [',
+        '    {"event_name": "...", "activity": "...", "location": "specific DC venue or park",',
+        '     "time": "day of week + time of day", "reason": "one specific, personal sentence"}',
+        "  ]",
         "}",
-        "Respond with the JSON object ONLY -- no markdown code fences, no text before or after it.",
+        "Include 2 or 3 options. Respond with the JSON object ONLY -- no code fences, nothing else.",
     ]
     return "\n".join(lines)
+
+
+def _fallback_option(match_reason):
+    return {"event_name": "Meetup", "activity": "casual hangout", "location": "a spot in DC",
+            "time": "this weekend", "reason": match_reason}
+
+
+def _shared_windows(matched_users):
+    # the availability windows EVERY member shares (intersection).
+    if len(matched_users) == 0:
+        return []
+    common = set(matched_users[0]["availability"])
+    i = 1
+    while i < len(matched_users):
+        common = common & set(matched_users[i]["availability"])
+        i += 1
+    return list(common)
 
 
 def _popup_payload(matched_users, match_reason, suggested_activity):
@@ -40,6 +56,10 @@ def _popup_payload(matched_users, match_reason, suggested_activity):
     if suggested_activity is not None and len(suggested_activity) > 0:
         parts.append("The group already agreed on this activity -- build the meetup around it: "
                      + suggested_activity)
+    shared = _shared_windows(matched_users)
+    if len(shared) > 0:
+        parts.append("The group is ONLY free during these windows: " + ", ".join(shared)
+                     + ". The day + time of the meetup MUST fall in one of them.")
     parts.append("")
     parts.append("Group:")
     i = 0
@@ -77,19 +97,24 @@ async def generate_popup(matched_users, match_reason, suggested_activity=None, c
             {"role": "user", "content": _popup_payload(matched_users, match_reason, suggested_activity)},
         ],
     )
-    popup = extract_json(join_text(message))
+    parsed = extract_json(join_text(message))
 
-    # safe fallback so the pipeline never crashes on a bad reply.
-    if popup is None:
-        popup = {
-            "event_name": "Meetup",
-            "activity": "casual hangout",
-            "location": "a spot in DC",
-            "time": "this weekend",
-            "matched_users": _names(matched_users),
-            "reason": match_reason,
-        }
+    # normalize to a list of 2-3 options; fall back safely on a bad reply.
+    options = None
+    if parsed is not None and isinstance(parsed.get("options"), list) and len(parsed["options"]) > 0:
+        options = parsed["options"][:3]
+    if options is None:
+        options = [_fallback_option(match_reason)]
 
-    # always anchor the attendee list to the real matched names.
-    popup["matched_users"] = _names(matched_users)
-    return popup
+    first = options[0]
+    # keep the first option flattened at the top level for back-compat, plus the
+    # full options list and the real attendee names.
+    return {
+        "options": options,
+        "matched_users": _names(matched_users),
+        "event_name": first.get("event_name", ""),
+        "activity": first.get("activity", ""),
+        "location": first.get("location", ""),
+        "time": first.get("time", ""),
+        "reason": first.get("reason", ""),
+    }

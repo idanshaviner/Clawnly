@@ -12,14 +12,13 @@ def group(ids):
 
 
 def sample_popup():
-    return {
-        "event_name": "Weekday Wind-Down",
-        "activity": "board games and drinks",
-        "location": "Board Room DC, Dupont Circle",
-        "time": "Wednesday evening",
-        "matched_users": ["WILL_BE_OVERWRITTEN"],
-        "reason": "You three all unwind on weekday evenings and love a good strategy game.",
-    }
+    return {"options": [
+        {"event_name": "Weekday Wind-Down", "activity": "board games and drinks",
+         "location": "Board Room DC, Dupont Circle", "time": "Wednesday evening",
+         "reason": "You three all unwind on weekday evenings and love a good strategy game."},
+        {"event_name": "Coffee & Chess", "activity": "casual chess", "location": "Compass Coffee",
+         "time": "Tuesday evening", "reason": "A quieter alternative for a calm evening."},
+    ]}
 
 
 def test_generate_popup_returns_required_keys():
@@ -27,6 +26,14 @@ def test_generate_popup_returns_required_keys():
     out = run(generate_popup(group(["u01", "u04", "u10"]), "they share weekday evenings", client=fake))
     for key in ["event_name", "activity", "location", "time", "matched_users", "reason"]:
         assert key in out
+
+
+def test_generate_popup_returns_multiple_options():
+    fake = FakeClient(popup_queue=[json_body(sample_popup())])
+    out = run(generate_popup(group(["u01", "u04", "u10"]), "reason", client=fake))
+    assert len(out["options"]) == 2
+    assert out["event_name"] == "Weekday Wind-Down"          # first option flattened to top level
+    assert out["options"][1]["event_name"] == "Coffee & Chess"
 
 
 def test_matched_users_anchored_to_real_names():

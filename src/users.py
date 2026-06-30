@@ -1,4 +1,4 @@
-"""Simulated user profiles for the Clawly matchmaker PoC.
+"""Simulated user profiles for the Clawnly matchmaker PoC.
 
 Defines the 12 seed users plus the two closed vocabularies the rest of the
 system validates against (hobby categories and availability windows). Adding

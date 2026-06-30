@@ -50,12 +50,22 @@ class FakeMessages:
             if "Separate your two answers" in content:
                 return text_response(answer + "\n===\n" + answer)
             return text_response(answer)
-        if kwargs.get("model") == config.MODEL_MATCH:
+        if kwargs.get("model") == config.MODEL_MATCH or "form one meetup" in low:
+            # route the match by model OR its unique marker (fast mode uses Sonnet)
             outer.calls.append(("match", kwargs))
             return text_response(outer.match_queue.pop(0))
-        if "facilitator" in low:
-            outer.calls.append(("negotiation", kwargs))
-            return text_response(outer.negotiation_queue.pop(0))
+        if "joint activity" in low:
+            outer.calls.append(("propose", kwargs))
+            return text_response(outer.propose_queue.pop(0))
+        if "on board" in low:
+            outer.calls.append(("assess", kwargs))
+            return text_response(outer.assess_queue.pop(0))
+        if "just ran this matching" in low:
+            outer.calls.append(("explain", kwargs))
+            return text_response(outer.explain_queue.pop(0))
+        if "revise a person's profile" in low:
+            outer.calls.append(("nudge", kwargs))
+            return text_response(outer.nudge_queue.pop(0))
         if "generate simulated user" in low:
             outer.calls.append(("generation", kwargs))
             return text_response(outer.generation_queue.pop(0))
@@ -66,22 +76,26 @@ class FakeMessages:
 class FakeClient:
     """Configurable stand-in for AsyncAnthropic.
 
-    - interview_text / interview_fn: what Claws return when interviewed
-    - match_queue / popup_queue / negotiation_queue / generation_queue:
+    - interview_text / interview_fn: what Claws return when interviewed / reacting
+    - match_queue / popup_queue / propose_queue / assess_queue / generation_queue:
       FIFO canned replies for those call types
     - fail_names: persona names whose interview call should raise
     - calls: every call recorded as (kind, kwargs) for assertions
     """
 
     def __init__(self, interview_text="canned interview answer", interview_fn=None,
-                 match_queue=None, popup_queue=None, negotiation_queue=None,
-                 generation_queue=None, fail_names=None):
+                 match_queue=None, popup_queue=None, propose_queue=None,
+                 assess_queue=None, explain_queue=None, generation_queue=None,
+                 nudge_queue=None, fail_names=None):
         self.interview_text = interview_text
         self.interview_fn = interview_fn
         self.match_queue = list(match_queue or [])
         self.popup_queue = list(popup_queue or [])
-        self.negotiation_queue = list(negotiation_queue or [])
+        self.propose_queue = list(propose_queue or [])
+        self.assess_queue = list(assess_queue or [])
+        self.explain_queue = list(explain_queue or [])
         self.generation_queue = list(generation_queue or [])
+        self.nudge_queue = list(nudge_queue or [])
         self.fail_names = set(fail_names or [])
         self.calls = []
         self.messages = FakeMessages(self)

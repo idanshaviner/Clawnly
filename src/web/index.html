@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Clawnly</title>
+<style>
+  :root {
+    --bg:#f7f6f3; --card:#fff; --ink:#1d1d1f; --muted:#6b6b70; --line:#e4e2dd;
+    --accent:#6c5ce7; --accent-soft:#efedfd; --green:#2f9e6e; --amber:#c98a2b; --master:#2b2b30;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); line-height:1.5;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }
+  .wrap { max-width:920px; margin:0 auto; padding:26px 20px 90px; }
+  header { display:flex; align-items:flex-end; justify-content:space-between; gap:16px; flex-wrap:wrap; }
+  h1 { font-size:30px; margin:0; letter-spacing:-.5px; }
+  .tagline { color:var(--muted); margin:4px 0 0; font-size:14px; }
+  .controls { display:flex; gap:10px; align-items:center; }
+  select,button,input,textarea { font:inherit; }
+  select,button { border-radius:10px; border:1px solid var(--line); padding:9px 13px; background:var(--card); }
+  button.run { background:var(--accent); color:#fff; border:none; font-weight:600; cursor:pointer; }
+  button:disabled { opacity:.55; cursor:default; }
+  .mini { padding:5px 10px; font-size:12.5px; border-radius:8px; cursor:pointer; }
+  .status { margin:18px 0; color:var(--muted); font-size:14px; min-height:18px; }
+  .section { margin-top:26px; }
+  .section h2 { font-size:13px; text-transform:uppercase; letter-spacing:1px; color:var(--muted); margin:0 0 12px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:15px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:12px; }
+  .nm { font-weight:700; }
+  .traits { color:var(--muted); font-size:12.5px; margin-top:4px; }
+  .lbl { color:var(--muted); font-size:11px; text-transform:uppercase; letter-spacing:.5px; margin-top:8px; }
+  .rowbtns { display:flex; gap:8px; margin-top:11px; }
+  .panel { margin-top:11px; border-top:1px solid var(--line); padding-top:11px; display:none; }
+  .panel.open { display:block; }
+  .field { margin-top:8px; }
+  .field label { display:block; font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; margin-bottom:3px; }
+  .field input[type=text], .field textarea, .field select { width:100%; border:1px solid var(--line); border-radius:8px; padding:7px 9px; }
+  .checks { display:flex; flex-wrap:wrap; gap:10px; font-size:13px; }
+  .thread { max-height:230px; overflow-y:auto; padding:4px 0; }
+  .msg { border-radius:12px; padding:8px 11px; margin:6px 0; max-width:88%; font-size:13.5px; }
+  .m-you { background:var(--accent-soft); margin-left:auto; }
+  .m-them { background:#f1efe9; margin-right:auto; }
+  .chatrow { display:flex; gap:8px; margin-top:8px; }
+  .chatrow input { flex:1; border:1px solid var(--line); border-radius:8px; padding:8px 10px; }
+  /* results */
+  .chips { display:flex; flex-wrap:wrap; gap:8px; }
+  .chip { background:var(--accent-soft); color:var(--accent); border-radius:999px; padding:6px 12px; font-weight:600; font-size:13px; }
+  .scores { display:flex; gap:14px; flex-wrap:wrap; margin:14px 0; }
+  .score { text-align:center; } .score .n { font-size:22px; font-weight:700; } .score .k { font-size:11px; color:var(--muted); text-transform:uppercase; }
+  .reason { margin-top:6px; } .whynot { margin-top:12px; font-size:13.5px; color:var(--muted); } .whynot b { color:var(--ink); }
+  .round-tag { font-size:12px; color:var(--muted); margin:16px 0 6px; font-weight:600; }
+  .bubble { border-radius:14px; padding:10px 13px; margin:7px 0; max-width:82%; font-size:14px; }
+  .b-master { background:var(--master); color:#fff; margin-right:auto; } .b-master .act { font-weight:700; margin-bottom:3px; }
+  .b-person { background:#f0eef9; margin-left:auto; } .b-person .who { font-weight:700; font-size:12px; color:var(--accent); margin-bottom:2px; }
+  .verdict { font-size:13px; font-weight:600; margin:8px 0; } .v-yes { color:var(--green); } .v-no { color:var(--amber); }
+  .popup { border:2px solid var(--accent); } .popup .ev { font-size:19px; font-weight:700; } .popup .row { margin-top:6px; font-size:14px; } .popup .row b { color:var(--muted); }
+  .err { color:#b3261e; } .whisper { color:var(--muted); font-size:12.5px; }
+  .compat { border-collapse:collapse; font-size:11px; }
+  .compat th, .compat td { width:30px; height:26px; text-align:center; border:1px solid var(--line); color:#1d1d1f; }
+  .compat th { color:var(--muted); font-weight:600; }
+  .compat td.self { background:#eee; }
+  .compat .lab { text-align:right; padding-right:6px; color:var(--muted); white-space:nowrap; width:auto; }
+  .keybar { margin-top:16px; padding:10px 14px; border:1px solid var(--line); border-radius:10px; background:var(--card); font-size:13.5px; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .keybar input { flex:1; min-width:200px; border:1px solid var(--line); border-radius:8px; padding:7px 10px; }
+  .keybar .ok { color:var(--green); font-weight:600; }
+  .keybar .warn { color:var(--amber); font-weight:600; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Clawnly 🐾</h1>
+      <p class="tagline">Edit the people, chat with them, run the match, watch them negotiate, then ask the Master Claw why.</p>
+    </div>
+    <div class="controls">
+      <select id="mode">
+        <option value="demo">Demo (free, offline)</option>
+        <option value="live">Live (real AI · costs cents)</option>
+      </select>
+      <button class="run" id="runBtn">Run the matchmaker ▶</button>
+    </div>
+  </header>
+
+  <div class="keybar" id="keybar"></div>
+  <div class="status" id="status"></div>
+  <div class="whisper" id="lessons" style="margin:-8px 0 8px"></div>
+
+  <div class="section">
+    <h2>The 12 people — edit or chat with anyone</h2>
+    <div class="rowbtns" style="margin-bottom:12px">
+      <button class="mini" id="genBtn" onclick="generateCast()">🎲 Generate new random cast (Live)</button>
+      <button class="mini" onclick="resetCast()">↺ Reset to defaults</button>
+      <button class="mini" onclick="toggleCompat()">🔗 Compatibility map</button>
+      <span class="whisper" id="genStatus"></span>
+    </div>
+    <div id="compat" style="margin-bottom:12px"></div>
+    <div class="grid" id="cast"></div>
+  </div>
+
+  <div id="results"></div>
+</div>
+
+<script>
+const modeEl = () => document.getElementById("mode").value;
+const statusEl = document.getElementById("status");
+const resultsEl = document.getElementById("results");
+const castEl = document.getElementById("cast");
+document.getElementById("runBtn").addEventListener("click", run);
+
+let WINDOWS = [];
+const chatHist = {};      // per-person chat history
+let masterHist = [];
+const groupMembers = {};  // index -> member names, for feedback
+
+loadCast();
+loadKeyStatus();
+loadLessons();
+
+async function loadKeyStatus() {
+  try {
+    const s = await (await fetch("/api/key-status")).json();
+    renderKeyBar(s.configured);
+  } catch(e) { renderKeyBar(false); }
+}
+
+function renderKeyBar(configured) {
+  const bar = document.getElementById("keybar");
+  if (configured) {
+    bar.innerHTML = `<span class="ok">🔑 API key set ✓</span> <span class="whisper">Live mode is ready. Demo mode is always free.</span> <button class="mini" onclick="showKeyInput()">Change</button>`;
+  } else {
+    bar.innerHTML = `<span class="warn">🔑 No API key.</span> <span class="whisper">Demo mode works free. To use Live, paste your Anthropic key:</span>
+      <input id="keyin" type="password" placeholder="sk-ant-api03-…"/>
+      <button class="mini run" onclick="saveKey()">Save key</button>`;
+  }
+}
+
+function showKeyInput() { renderKeyBar(false); }
+
+async function saveKey() {
+  const v = document.getElementById("keyin").value.trim();
+  if (!v) return;
+  const r = await fetch("/api/key", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({key:v})});
+  if (r.ok) { renderKeyBar(true); }
+  else { const d = await r.json(); alert(d.error || "Could not save key"); }
+}
+
+async function loadCast() {
+  const data = await (await fetch("/api/users")).json();
+  WINDOWS = data.availability_windows;
+  castEl.innerHTML = data.users.map(personCard).join("");
+}
+
+async function resetCast() {
+  if (!confirm("Reset all 12 people back to the originals? This discards your edits.")) return;
+  const data = await (await fetch("/api/reset", {method:"POST"})).json();
+  WINDOWS = WINDOWS.length ? WINDOWS : data.availability_windows;
+  castEl.innerHTML = data.users.map(personCard).join("");
+  document.getElementById("compat").innerHTML = ""; compatShown = false;
+}
+
+let compatShown = false;
+async function toggleCompat() {
+  const box = document.getElementById("compat");
+  if (compatShown) { box.innerHTML = ""; compatShown = false; return; }
+  const d = await (await fetch("/api/compatibility")).json();
+  box.innerHTML = renderCompat(d);
+  compatShown = true;
+}
+function compatColor(s) {
+  if (s === null) return "#eee";
+  const colors = ["#e8a0a0","#efe2c0","#dfe7bf","#aedaa0","#7cc483"]; // 0..4
+  return colors[s] || "#fff";
+}
+function renderCompat(d) {
+  const n = d.names.length;
+  let head = "<tr><th></th>";
+  for (let j=0;j<n;j++) head += "<th>"+esc(d.names[j].slice(0,3))+"</th>";
+  head += "</tr>";
+  let rows = "";
+  for (let i=0;i<n;i++) {
+    rows += '<tr><td class="lab">'+esc(d.names[i])+"</td>";
+    for (let j=0;j<n;j++) {
+      const s = d.matrix[i][j];
+      const cls = (s===null) ? "self" : "";
+      const txt = (s===null) ? "" : String(s);
+      const tip = (s===null) ? "self" : esc(d.names[i])+" ↔ "+esc(d.names[j])+": "+s+"/4";
+      rows += '<td class="'+cls+'" style="background:'+compatColor(s)+'" title="'+tip+'">'+txt+"</td>";
+    }
+    rows += "</tr>";
+  }
+  return '<div class="card"><div class="whisper" style="margin-bottom:6px">Who clicks with whom — 0 = can never meet (no shared time), 4 = strong fit. Hover a cell for the pair.</div><table class="compat">'+head+rows+"</table></div>";
+}
+
+async function generateCast() {
+  const btn = document.getElementById("genBtn");
+  const gs = document.getElementById("genStatus");
+  btn.disabled = true; gs.textContent = "Inventing 12 new people with AI…";
+  try {
+    const r = await fetch("/api/generate-cast", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({mode:modeEl()})});
+    const data = await r.json();
+    if (data.error) { gs.innerHTML = '<span class="err">'+esc(data.error)+'</span>'; return; }
+    WINDOWS = WINDOWS.length ? WINDOWS : ["weekday_daytime","weekday_evening","weekend_daytime","weekend_evening"];
+    castEl.innerHTML = data.users.map(personCard).join("");
+    resultsEl.innerHTML = "";
+    gs.textContent = "Fresh cast ready ✓ — hit Run.";
+  } catch(e) { gs.innerHTML = '<span class="err">'+esc(String(e))+'</span>'; }
+  finally { btn.disabled = false; }
+}
+
+function personCard(u) {
+  const id = u.id;
+  return `<div class="card" id="card-${id}">
+    <div class="nm">${esc(u.name)} <span class="whisper">· ${u.age}</span></div>
+    <div class="traits" id="traits-${id}">${traitLine(u)}</div>
+    <div class="rowbtns">
+      <button class="mini" onclick="toggle('edit-${id}')">✏️ Edit</button>
+      <button class="mini" onclick="toggle('chat-${id}')">💬 Chat</button>
+    </div>
+    <div class="panel" id="edit-${id}">${editForm(u)}</div>
+    <div class="panel" id="chat-${id}">
+      <div class="thread" id="thread-${id}"></div>
+      <div class="chatrow">
+        <input id="cin-${id}" placeholder="Say something to ${esc(u.name)}…" onkeydown="if(event.key==='Enter')sendChat('${id}')"/>
+        <button class="mini" onclick="sendChat('${id}')">Send</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function traitLine(u) {
+  const size = Array.isArray(u.preferred_group_size) ? u.preferred_group_size.join("–") : u.preferred_group_size;
+  return `${esc(u.personality)} · ${esc(u.occupation)} · likes ${esc(u.hobbies.join(", "))} · free ${esc(u.availability.join(", "))} · group ${esc(size)}`;
+}
+
+function editForm(u) {
+  const opt = (v, cur) => `<option value="${v}" ${v===cur?"selected":""}>${v}</option>`;
+  const checks = WINDOWS.map(w =>
+    `<label><input type="checkbox" value="${w}" ${u.availability.includes(w)?"checked":""}/> ${w}</label>`).join("");
+  const size = Array.isArray(u.preferred_group_size) ? u.preferred_group_size.join(",") : "no preference";
+  return `
+    <div class="field"><label>Personality</label><select id="f-personality-${u.id}">
+      ${opt("introverted",u.personality)}${opt("extroverted",u.personality)}${opt("mixed",u.personality)}</select></div>
+    <div class="field"><label>Occupation</label><select id="f-occupation-${u.id}">
+      ${opt("student",u.occupation)}${opt("working professional",u.occupation)}${opt("freelancer",u.occupation)}</select></div>
+    <div class="field"><label>Availability</label><div class="checks" id="f-avail-${u.id}">${checks}</div></div>
+    <div class="field"><label>Hobbies (comma separated)</label><input type="text" id="f-hobbies-${u.id}" value="${esc(u.hobbies.join(", "))}"/></div>
+    <div class="field"><label>Preferred group size ("2,3" or "no preference")</label><input type="text" id="f-size-${u.id}" value="${esc(size)}"/></div>
+    <div class="field"><label>Bio</label><textarea id="f-bio-${u.id}" rows="3">${esc(u.bio)}</textarea></div>
+    <div class="rowbtns"><button class="mini run" onclick="saveEdit('${u.id}')">Save</button>
+      <span class="whisper" id="saved-${u.id}"></span></div>
+    <div class="field"><label>Or change with AI (Live)</label>
+      <div class="rowbtns">
+        <input type="text" id="f-nudge-${u.id}" placeholder="make them more outgoing…" style="flex:1" onkeydown="if(event.key==='Enter')nudge('${u.id}')"/>
+        <button class="mini" onclick="nudge('${u.id}')">✨ Apply</button>
+      </div>
+      <span class="whisper" id="nudged-${u.id}"></span></div>`;
+}
+
+function toggle(panelId) { document.getElementById(panelId).classList.toggle("open"); }
+
+async function saveEdit(id) {
+  const checks = [...document.querySelectorAll(`#f-avail-${id} input:checked`)].map(c => c.value);
+  const sizeRaw = document.getElementById(`f-size-${id}`).value.trim();
+  let size;
+  if (sizeRaw.toLowerCase() === "no preference" || sizeRaw === "") { size = "no preference"; }
+  else { size = sizeRaw.split(",").map(s => parseInt(s.trim(),10)).filter(n => !isNaN(n)); }
+  const body = {
+    personality: document.getElementById(`f-personality-${id}`).value,
+    occupation: document.getElementById(`f-occupation-${id}`).value,
+    availability: checks,
+    hobbies: document.getElementById(`f-hobbies-${id}`).value.split(",").map(s=>s.trim()).filter(Boolean),
+    preferred_group_size: size,
+    bio: document.getElementById(`f-bio-${id}`).value,
+  };
+  const u = await (await fetch(`/api/users/${id}`, {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body)})).json();
+  document.getElementById(`traits-${id}`).innerHTML = traitLine(u);
+  document.getElementById(`saved-${id}`).textContent = "saved ✓";
+  setTimeout(() => { const s=document.getElementById(`saved-${id}`); if(s) s.textContent=""; }, 1500);
+}
+
+async function nudge(id) {
+  const instruction = document.getElementById(`f-nudge-${id}`).value.trim();
+  if (!instruction) return;
+  const status = document.getElementById(`nudged-${id}`);
+  status.textContent = "rewriting with AI…";
+  const r = await fetch(`/api/users/${id}/nudge`, {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({instruction, mode:modeEl()})});
+  const u = await r.json();
+  if (u.error) { status.innerHTML = '<span class="err">'+esc(u.error)+'</span>'; return; }
+  // re-render the whole card so the edit form reflects the new traits
+  document.getElementById(`card-${id}`).outerHTML = personCard(u);
+  toggle(`edit-${id}`);  // re-open the edit panel
+}
+
+async function sendChat(id) {
+  const input = document.getElementById(`cin-${id}`);
+  const msg = input.value.trim(); if (!msg) return;
+  input.value = "";
+  const thread = document.getElementById(`thread-${id}`);
+  chatHist[id] = chatHist[id] || [];
+  addMsg(thread, "m-you", msg);
+  addMsg(thread, "m-them", "…");
+  const pending = thread.lastChild;
+  const body = {user_id:id, message:msg, history:chatHist[id], mode:modeEl()};
+  const data = await (await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})).json();
+  pending.textContent = data.reply || data.error || "(no reply)";
+  chatHist[id].push({role:"user",content:msg});
+  chatHist[id].push({role:"assistant",content:data.reply||""});
+}
+
+function run() {
+  const btn = document.getElementById("runBtn");
+  btn.disabled = true; masterHist = [];
+  const mode = modeEl();
+  statusEl.textContent = mode==="live" ? "Running with real Claude — watch it come in live…" : "Running the offline demo…";
+  resultsEl.innerHTML = '<div id="sec-groups"></div><div id="sec-tail"></div>';
+
+  let interviews = {};
+  const nameOf = id => (interviews[id] && interviews[id].profile) ? interviews[id].profile.name : id;
+
+  const es = new EventSource("/api/run-stream?mode="+mode);
+  es.onmessage = (ev) => {
+    const msg = JSON.parse(ev.data);
+    const stage = msg.stage, data = msg.data;
+    if (stage === "interviews") {
+      interviews = data;
+      statusEl.textContent = "Interviews in. Forming groups…";
+    } else if (stage === "group") {
+      document.getElementById("sec-groups").insertAdjacentHTML("beforeend", renderGroupSection(data.index, data.match, nameOf));
+      groupMembers[data.index] = (data.match.group||[]).map(nameOf);
+      statusEl.textContent = "Formed group " + (data.index+1) + "…";
+    } else if (stage === "negotiation") {
+      appendNegEntry(document.getElementById("negthread-"+data.index), data.entry);
+      statusEl.textContent = "Group " + (data.index+1) + " is negotiating…";
+    } else if (stage === "negotiation_done") {
+      const t = document.getElementById("negthread-"+data.index);
+      if (t) { const p=data.plan; const head = p.agreed ? `Agreed on: <b>${esc(p.activity)}</b>` : `No full agreement after ${p.rounds} rounds`;
+        t.insertAdjacentHTML("afterbegin", `<div class="reason" style="margin-bottom:8px">${head}</div>`); }
+    } else if (stage === "popup") {
+      const slot = document.getElementById("pop-"+data.index);
+      if (slot) slot.innerHTML = renderPopupCard(data.popup);
+    } else if (stage === "error") {
+      statusEl.innerHTML = '<span class="err">Error: '+esc(data)+'</span>'; es.close(); btn.disabled = false;
+    } else if (stage === "done") {
+      statusEl.textContent = "Done." + usageText(data.usage);
+      const tail = document.getElementById("sec-tail");
+      const groups = data.groups || [];
+      if (groups.length === 0) {
+        tail.innerHTML = '<div class="whisper" style="margin-top:10px">No viable groups in this cast.</div>';
+      } else if (data.unmatched && data.unmatched.length) {
+        const un = data.unmatched.map(id=>esc(nameOf(id))).join(", ");
+        tail.innerHTML = section("Left over", '<div class="card whisper">No good group for: '+un+'</div>') + masterPanel();
+      } else {
+        tail.innerHTML = '<div class="whisper" style="margin:10px 0">Everyone got matched 🎉</div>' + masterPanel();
+      }
+      es.close(); btn.disabled = false;
+    }
+  };
+  es.onerror = () => { es.close(); btn.disabled = false; };
+}
+
+function appendNegEntry(t, e) {
+  if (!t) return;
+  let html = "";
+  if (e.type==="propose") html = `<div class="round-tag">Round ${e.round}</div><div class="bubble b-master"><div class="act">Master Claw proposes: ${esc(e.activity)}</div>${esc(e.pitch)}</div>`;
+  else if (e.type==="reaction") html = `<div class="bubble b-person"><div class="who">${esc(e.name)}</div>${esc(e.text)}</div>`;
+  else if (e.type==="assess") html = e.agreed ? `<div class="verdict v-yes">✓ Everyone's on board — settled.</div>` : `<div class="verdict v-no">✗ Not yet — ${esc(e.concern)}</div>`;
+  t.insertAdjacentHTML("beforeend", html);
+}
+
+function renderGroupSection(index, m, nameOf) {
+  if (!m || !m.group || !m.group.length) return "";
+  const chips = m.group.map(id => `<span class="chip">${esc(nameOf(id))}</span>`).join("");
+  const s = m.scores||{};
+  const sc = Object.keys(s).map(k=>`<div class="score"><div class="n">${s[k]}</div><div class="k">${esc(k)}</div></div>`).join("");
+  let wn = "";
+  if (m.why_not && m.why_not.length) wn = '<div class="whynot"><b>Why not these:</b><br>'+m.why_not.map(w=>`${esc(nameOf(w.id))} — ${esc(w.reason)}`).join("<br>")+"</div>";
+  return `<div class="section"><h2>Group ${index+1}</h2>
+    <div class="card">
+      <div class="chips">${chips}</div>
+      <div class="scores">${sc}</div>
+      <div class="reason">${esc(m.reason)}</div>
+      ${wn}
+      <div style="margin-top:14px" id="negthread-${index}"></div>
+      <div style="margin-top:14px" id="pop-${index}"></div>
+      <div class="rowbtns" style="margin-top:14px;align-items:center;border-top:1px solid var(--line);padding-top:12px">
+        <span class="whisper">Was this a good match?</span>
+        <button class="mini" onclick="sendFeedback(${index},'up')">👍</button>
+        <button class="mini" onclick="sendFeedback(${index},'down')">👎</button>
+        <input id="fbnote-${index}" placeholder="why? (optional — the matcher learns from this)" style="flex:1;min-width:160px;border:1px solid var(--line);border-radius:8px;padding:6px 9px"/>
+        <span class="whisper ok" id="fbsaved-${index}"></span>
+      </div>
+    </div></div>`;
+}
+
+function renderPopupCard(p) {
+  if (!p) return "";
+  const who = (p.matched_users||[]).join(", ");
+  const opts = (p.options && p.options.length) ? p.options
+    : [{event_name:p.event_name, activity:p.activity, location:p.location, time:p.time, reason:p.reason}];
+  const main = opts[0];
+  let html = `<div class="card popup"><div class="ev">${esc(main.event_name)}</div>
+    <div class="row"><b>Activity:</b> ${esc(main.activity)}</div><div class="row"><b>Where:</b> ${esc(main.location)}</div>
+    <div class="row"><b>When:</b> ${esc(main.time)}</div><div class="row"><b>Who:</b> ${esc(who)}</div>
+    <div class="row" style="margin-top:8px">${esc(main.reason)}</div>`;
+  if (opts.length > 1) {
+    html += `<div class="row" style="margin-top:10px"><b>Other options:</b></div>`;
+    for (let k=1;k<opts.length;k++) {
+      const o = opts[k];
+      html += `<div class="row whisper" style="margin-top:3px">• <b>${esc(o.event_name)}</b> — ${esc(o.activity)} at ${esc(o.location)}, ${esc(o.time)}</div>`;
+    }
+  }
+  return html + `</div>`;
+}
+
+function masterPanel() {
+  return section("Ask the Master Claw why", `<div class="card">
+    <div class="thread" id="mthread"></div>
+    <div class="chatrow">
+      <input id="min" placeholder="e.g. why did you leave Ethan out?" onkeydown="if(event.key==='Enter')sendMaster()"/>
+      <button class="mini" onclick="sendMaster()">Ask</button>
+    </div></div>`);
+}
+
+async function sendMaster() {
+  const input = document.getElementById("min");
+  const msg = input.value.trim(); if (!msg) return;
+  input.value = "";
+  const thread = document.getElementById("mthread");
+  addMsg(thread, "m-you", msg);
+  addMsg(thread, "m-them", "…");
+  const pending = thread.lastChild;
+  const body = {message:msg, history:masterHist, mode:modeEl()};
+  const data = await (await fetch("/api/master-chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})).json();
+  pending.textContent = data.reply || data.error || "(no reply)";
+  masterHist.push({role:"user",content:msg});
+  masterHist.push({role:"assistant",content:data.reply||""});
+}
+
+function addMsg(thread, cls, text) {
+  const d = document.createElement("div");
+  d.className = "msg " + cls; d.textContent = text;
+  thread.appendChild(d); thread.scrollTop = thread.scrollHeight;
+}
+function shortModel(m) {
+  if (m.includes("haiku")) return "Haiku";
+  if (m.includes("opus")) return "Opus";
+  if (m.includes("sonnet")) return "Sonnet";
+  return m;
+}
+function usageText(u) {
+  if (!u || !u.total) return "";
+  const parts = Object.keys(u.by_model).map(m => u.by_model[m] + "× " + shortModel(m));
+  return "  ·  " + u.total + " API calls (" + parts.join(", ") + ")";
+}
+function section(title, body) { return `<div class="section"><h2>${title}</h2>${body}</div>`; }
+function esc(s){ return (s==null?"":String(s)).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+
+// ----- feedback / learning loop -----
+async function sendFeedback(index, rating) {
+  const members = groupMembers[index] || [];
+  const note = (document.getElementById("fbnote-"+index)||{}).value || "";
+  const r = await fetch("/api/feedback", {method:"POST", headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({members, rating, note})});
+  if (r.ok) {
+    const saved = document.getElementById("fbsaved-"+index);
+    if (saved) saved.textContent = (rating==="up"?"👍":"👎") + " saved — the matcher will learn from this";
+    loadLessons();
+  }
+}
+async function loadLessons() {
+  try {
+    const d = await (await fetch("/api/feedback")).json();
+    const n = (d.feedback||[]).length;
+    const el = document.getElementById("lessons");
+    if (!el) return;
+    if (n === 0) { el.innerHTML = ""; return; }
+    el.innerHTML = "🧠 " + n + " lesson" + (n===1?"":"s") + " learned (the matcher reads these next run) · <a href='#' onclick='clearLessons();return false'>clear</a>";
+  } catch(e) {}
+}
+async function clearLessons() {
+  await fetch("/api/feedback/clear", {method:"POST"});
+  loadLessons();
+}
+</script>
+</body>
+</html>

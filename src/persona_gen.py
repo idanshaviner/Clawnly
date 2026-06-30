@@ -10,6 +10,7 @@ Run: python src/persona_gen.py        (prints a fresh cast as JSON)
 
 import asyncio
 import json
+import random
 
 import config
 from llm_io import join_text, extract_json
@@ -175,11 +176,15 @@ async def generate_users(count=12, theme=DEFAULT_THEME, client=None, attempts=3)
     if client is None:
         client = config.get_client()
     system = _gen_system_prompt(count, theme)
+    # a random seed nudges the model to invent a genuinely different cast each run.
+    seed = random.randint(1000, 9999)
     users = []
     feedback = ""
     n = 0
     while n < attempts:
-        payload = "Generate the {} users now.".format(count)
+        payload = ("Generate {} brand-new people now (random batch #{}). Make this set feel "
+                   "distinct -- vary the names, ages, neighborhoods, personalities, and hobbies "
+                   "from any typical batch.").format(count, seed)
         if len(feedback) > 0:
             payload = payload + "\nYour last attempt had problems: " + feedback + "\nFix them."
         message = await client.messages.create(
@@ -202,6 +207,53 @@ async def generate_users(count=12, theme=DEFAULT_THEME, client=None, attempts=3)
         n += 1
     # return the best effort even if imperfect; caller can inspect.
     return users
+
+
+def _nudge_system_prompt():
+    lines = [
+        "You revise a person's profile based on a short instruction (e.g. 'make her more",
+        "adventurous'). Keep them a believable, consistent individual -- change only what the",
+        "instruction implies, and keep the bio in first person.",
+        "",
+        "Use the SAME vocabulary:",
+        "- personality: introverted / extroverted / mixed",
+        "- occupation: student / working professional / freelancer",
+        "- availability: any of {}".format(", ".join(AVAILABILITY_WINDOWS)),
+        "- hobbies: only from this menu (exact words):",
+        _hobby_menu(),
+        "- preferred_group_size: [min, max] with 2 <= min <= max <= 8, or \"no preference\"",
+        "",
+        "Return ONLY a JSON object with the fields that CHANGE (omit unchanged ones), e.g.",
+        '{ "personality": "extroverted", "bio": "..." }. No fences, nothing else.',
+    ]
+    return "\n".join(lines)
+
+
+async def nudge_user(user, instruction, client=None):
+    # AI rewrites editable traits from a plain-English instruction; returns just
+    # the changed fields (the caller validates + applies them).
+    if client is None:
+        client = config.get_client()
+    editable = {
+        "name": user["name"], "age": user["age"], "gender": user["gender"],
+        "hobbies": user["hobbies"], "personality": user["personality"],
+        "occupation": user["occupation"], "availability": user["availability"],
+        "location": user["location"], "bio": user["bio"],
+        "preferred_group_size": user["preferred_group_size"],
+    }
+    payload = ("Current profile:\n" + json.dumps(editable)
+               + "\n\nInstruction: " + instruction + "\nReturn only the changed fields as JSON.")
+    message = await client.messages.create(
+        model=config.MODEL_CLAW,
+        max_tokens=600,
+        temperature=config.TEMP_PERSONA,
+        system=_nudge_system_prompt(),
+        messages=[{"role": "user", "content": payload}],
+    )
+    changes = extract_json(join_text(message))
+    if changes is None:
+        return {}
+    return changes
 
 
 async def main(client=None):

@@ -1,12 +1,20 @@
-# Clawly — Matchmaker Prototype Spec
+# Clawnly — Matchmaker Prototype Spec
 
 **Status:** v1.3 (PoC) · **Date:** 2026-06-20 · **Owner:** Idan Shaviner
+
+> **Note — built beyond this spec.** This document describes the original CLI proof-of-concept.
+> The project has since grown into an interactive **web app** (`src/app.py` + `src/web/index.html`).
+> Beyond the original `interview → match → popup`, the live pipeline is
+> **interview → match → real multi-agent negotiation → popup**, streamed to the browser. Added
+> capabilities: chat with each persona, edit/AI-nudge traits, generate a fresh cast, ask the Master
+> Claw *why* (`explain.py`), multi-group matching, a Fast/cheap mode, cost metering, and cast
+> persistence. The core engine (`claw`, `master_claw`, constraint validator) is unchanged from §3–§6.
 
 ---
 
 ## 1. Vision & scope
 
-Clawly fights loneliness by using AI to find people "their people." Each user is represented
+Clawnly fights loneliness by using AI to find people "their people." Each user is represented
 by a **Claw** — an AI agent that embodies them. A **Master Claw** orchestrator interviews every
 Claw and forms compatible group meetups.
 
@@ -43,7 +51,8 @@ A match that is merely plausible-sounding but fails any of these is **not** legi
   - Free-style chat (`chat.py`): `claude-sonnet-4-6` — richer model for the interactive surface
   - Master Claw matching call: `claude-opus-4-8` — the reasoning-critical call; match quality is
     the PoC's #1 goal, so it gets the strongest model
-  - Popup + negotiation calls: `claude-sonnet-4-6`
+  - Popup + negotiation propose/assess calls: `claude-sonnet-4-6`
+  - In-character Claw reactions during negotiation: `claude-haiku-4-5` (cheap, many of them)
 
 ---
 
@@ -408,9 +417,11 @@ confident, fabricated reason is worse than a weak honest one. Requirements:
 ### 12a. Extensions beyond the core PoC (added on request)
 
 These were added after the core spec and are part of the maintained codebase:
-- **`negotiation.py`** — a parent-agent phase that brokers common ground + a joint activity for the
-  matched group, grounded in their profiles. The live pipeline is now
-  **interview → match → negotiate → popup**; the negotiated activity feeds the popup.
+- **`negotiation.py`** — a **real multi-round negotiation** between the Master Claw and the group:
+  each round the Master Claw *proposes* an activity (Sonnet), every **real Claw reacts in character**
+  (`Claw.react`, Haiku, concurrent), and the Master Claw *assesses* whether they're on board (Sonnet)
+  — revising up to `max_rounds` until they agree. Returns the full `transcript` for display/replay.
+  The live pipeline is **interview → match → negotiate → popup**; the agreed activity feeds the popup.
 - **`chat.py`** — interactive free-style chat with any persona (adds `Claw.chat()` with history).
 - **`persona_gen.py`** — generate the user cast with Claude instead of hardcoding it; validates the
   output against §4 and retries on schema violations.

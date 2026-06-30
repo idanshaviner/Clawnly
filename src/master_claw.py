@@ -14,29 +14,38 @@ from claw import Claw
 from llm_io import join_text, extract_json
 
 
-# the two fixed interview questions (SPEC F3).
-QUESTION_1 = "What kinds of social experiences is your user looking for right now?"
-QUESTION_2 = "What is your user's availability like and what energy do they bring to group settings?"
+# the two fixed interview questions (SPEC F3). Phrased in the second person so
+# they match how the Claw answers (in first person, as the user).
+QUESTION_1 = "What kinds of social experiences are you looking for right now?"
+QUESTION_2 = "What is your availability like, and what energy do you bring to group settings?"
 
 # how many times to ask the matcher to fix a constraint-violating group.
 MAX_MATCH_ATTEMPTS = 3
 
 
 class MasterClaw:
-    def __init__(self, users, client=None):
+    def __init__(self, users, client=None, feedback=None):
         # one shared client for every Claw (injectable for tests).
         if client is None:
             client = config.get_client()
         self.client = client
+        # past human feedback on earlier matches; fed into the prompt so the
+        # matcher learns from thumbs-up/down over time (in-context learning).
+        if feedback is None:
+            feedback = []
+        self.feedback = feedback
 
-        # build one Claw per user, plus an id -> profile lookup.
+        # build one Claw per user, plus id -> profile and id -> Claw lookups.
         self.claws = []
         self.users_by_id = {}
+        self.claws_by_id = {}
         i = 0
         while i < len(users):
             user = users[i]
-            self.claws.append(Claw(user, client=self.client))
+            claw = Claw(user, client=self.client)
+            self.claws.append(claw)
             self.users_by_id[user["id"]] = user
+            self.claws_by_id[user["id"]] = claw
             i += 1
 
     # ----- interviews -------------------------------------------------------
@@ -131,9 +140,33 @@ class MasterClaw:
             parts.append("\n".join(block))
             i += 1
         text = "\n".join(parts)
+        lessons = self._feedback_text()
+        if len(lessons) > 0:
+            text = text + "\n" + lessons
         if len(feedback) > 0:
             text = text + "\n" + feedback
         return text
+
+    def _feedback_text(self):
+        # turn past thumbs-up/down + notes into guidance the matcher should weigh.
+        if len(self.feedback) == 0:
+            return ""
+        lines = ["LESSONS FROM PAST FEEDBACK (a human rated earlier groups -- learn from these:",
+                 "favor what worked, avoid what didn't):"]
+        i = 0
+        while i < len(self.feedback):
+            fb = self.feedback[i]
+            mark = "GOOD"
+            if fb.get("rating") == "down":
+                mark = "BAD"
+            who = ", ".join(fb.get("members", []))
+            note = fb.get("note", "")
+            line = "- [" + mark + "] group of " + who
+            if len(note) > 0:
+                line = line + " -- \"" + note + "\""
+            lines.append(line)
+            i += 1
+        return "\n".join(lines)
 
     def _candidate_ids(self, interviews):
         # only users who were interviewed successfully are eligible.
@@ -157,6 +190,7 @@ class MasterClaw:
             max_tokens=2000,
             system=system,
             messages=[{"role": "user", "content": payload}],
+            output_config={"effort": config.MATCH_EFFORT},
         )
         return extract_json(join_text(message))
 
@@ -204,6 +238,51 @@ class MasterClaw:
         if len(why_not) > 3:
             why_not = why_not[:3]
         return {"group": group, "reason": reason, "scores": scores, "why_not": why_not}
+
+    # ----- multi-group: partition the whole pool ----------------------------
+
+    async def find_all_matches(self, interviews, max_groups=6, on_group=None):
+        # form as many non-overlapping 3-5 person groups as the pool supports:
+        # match -> remove those people -> match the rest -> stop when no viable
+        # group remains. Each group still passes the hard-constraint validator.
+        remaining = self._candidate_ids(interviews)
+        groups = []
+        formed = 0
+        while formed < max_groups and len(remaining) >= 3:
+            # build a sub-pool of just the people still available.
+            sub = {}
+            i = 0
+            while i < len(remaining):
+                sub[remaining[i]] = interviews[remaining[i]]
+                i += 1
+
+            result = await self.find_matches(sub)
+            group = result["group"]
+            if len(group) == 0:
+                break   # nobody left forms a viable group
+
+            groups.append(result)
+            if on_group is not None:
+                on_group(result)
+
+            # drop the matched people from the remaining pool.
+            matched = {}
+            i = 0
+            while i < len(group):
+                matched[group[i]] = True
+                i += 1
+            next_remaining = []
+            i = 0
+            while i < len(remaining):
+                if remaining[i] not in matched:
+                    next_remaining.append(remaining[i])
+                i += 1
+            if len(next_remaining) == len(remaining):
+                break   # no progress (group wasn't from the pool) -> stop
+            remaining = next_remaining
+            formed += 1
+
+        return {"groups": groups, "unmatched": remaining}
 
     # ----- hard-constraint validation (SPEC 6b) -----------------------------
 

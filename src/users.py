@@ -43,10 +43,10 @@ USERS = [
         "personality": "introverted",
         "occupation": "working professional",
         "availability": ["weekday_evening", "weekend_daytime"],
-        "location": "Petworth",
+        "location": "Ballard",
         "bio": "I'm a data analyst who recharges with a good book and a quiet pottery class. "
                "I love deep one-on-one conversations way more than big loud rooms. "
-               "Still figuring out my way around DC after moving here last year.",
+               "Still figuring out my way around Seattle after moving here last year.",
         "preferred_group_size": [2, 3],
     },
     {
@@ -58,7 +58,7 @@ USERS = [
         "personality": "extroverted",
         "occupation": "freelancer",
         "availability": ["weekday_evening", "weekend_evening"],
-        "location": "Adams Morgan",
+        "location": "Capitol Hill",
         "bio": "Freelance photographer, which means my schedule is chaos but my evenings are usually free. "
                "I'm the guy who organizes the trivia team and then talks to everyone at the bar. "
                "Always down for a long bike ride to shake off a deadline.",
@@ -73,7 +73,7 @@ USERS = [
         "personality": "mixed",
         "occupation": "student",
         "availability": ["weekday_daytime", "weekend_daytime"],
-        "location": "Columbia Heights",
+        "location": "Beacon Hill",
         "bio": "Public health grad student, so my weeks are packed but I keep my days flexible. "
                "I can be the loudest person on a hike or the quietest one in a documentary night. "
                "I volunteer most weekends and would love to meet people who care about that stuff too.",
@@ -88,7 +88,7 @@ USERS = [
         "personality": "introverted",
         "occupation": "working professional",
         "availability": ["weekday_evening"],
-        "location": "Navy Yard",
+        "location": "Fremont",
         "bio": "Software engineer by day, working on a novel that may never finish by night. "
                "I'm pretty reserved until you get me on a topic I love, then good luck stopping me. "
                "Weekday evenings after the gym are my window for anything social.",
@@ -103,7 +103,7 @@ USERS = [
         "personality": "extroverted",
         "occupation": "working professional",
         "availability": ["weekday_evening", "weekend_daytime", "weekend_evening"],
-        "location": "Logan Circle",
+        "location": "Queen Anne",
         "bio": "Marketing manager with way too much social energy for one calendar. "
                "I'll drag you to karaoke and then to a morning run to regret it together. "
                "Painting is my one quiet hobby and honestly I'm not very good at it.",
@@ -118,9 +118,9 @@ USERS = [
         "personality": "mixed",
         "occupation": "freelancer",
         "availability": ["weekday_daytime", "weekend_evening"],
-        "location": "Shaw",
+        "location": "Wallingford",
         "bio": "Freelance graphic designer who treats board game nights as a competitive sport. "
-               "I play guitar badly and bike everywhere because parking in Shaw is a nightmare. "
+               "I play guitar badly and bike everywhere because parking in Wallingford is a nightmare. "
                "I like small groups where I can actually remember everyone's name.",
         "preferred_group_size": [3, 5],
     },
@@ -133,10 +133,10 @@ USERS = [
         "personality": "introverted",
         "occupation": "working professional",
         "availability": ["weekend_daytime"],
-        "location": "Capitol Hill",
+        "location": "West Seattle",
         "bio": "Lawyer with a brutal week, so weekends are sacred and mostly outdoors. "
                "I run a small book club and would happily talk about the same novel for hours. "
-               "Kayaking on the Potomac is my reset button.",
+               "Kayaking on Lake Union is my reset button.",
         "preferred_group_size": [2, 4],
     },
     {
@@ -148,7 +148,7 @@ USERS = [
         "personality": "extroverted",
         "occupation": "working professional",
         "availability": ["weekday_evening", "weekend_evening"],
-        "location": "Dupont Circle",
+        "location": "South Lake Union",
         "bio": "Sales director who genuinely loves a crowded room full of strangers. "
                "I go to every startup mixer in the city and lift heavy when I need to think. "
                "Honestly the bigger the group the happier I am.",
@@ -163,7 +163,7 @@ USERS = [
         "personality": "mixed",
         "occupation": "freelancer",
         "availability": ["weekday_daytime", "weekend_daytime"],
-        "location": "U Street",
+        "location": "Greenwood",
         "bio": "Freelance writer currently butchering my third language with great enthusiasm. "
                "I love a slow morning, a yoga class, and a tiny gathering of interesting people. "
                "Big parties drain me but a thoughtful coffee chat makes my week.",
@@ -178,7 +178,7 @@ USERS = [
         "personality": "introverted",
         "occupation": "student",
         "availability": ["weekday_evening", "weekend_daytime"],
-        "location": "Georgetown",
+        "location": "Green Lake",
         "bio": "MBA student who reads markets for fun and runs to clear my head. "
                "I'm quiet at first but I light up over a chess board or a good debate. "
                "I prefer a handful of sharp people over a packed bar any day.",
@@ -193,7 +193,7 @@ USERS = [
         "personality": "extroverted",
         "occupation": "working professional",
         "availability": ["weekday_daytime", "weekend_evening"],
-        "location": "Brookland",
+        "location": "Columbia City",
         "bio": "ER nurse, so my days off land mid-week and I make the most of them. "
                "I love volunteering, weekend camping trips, and painting when it rains. "
                "I'll talk to anyone and I'm happy in a group of any size.",
@@ -208,7 +208,7 @@ USERS = [
         "personality": "mixed",
         "occupation": "freelancer",
         "availability": ["weekday_daytime", "weekday_evening", "weekend_evening"],
-        "location": "H Street",
+        "location": "Ravenna",
         "bio": "Working musician who teaches public speaking workshops on the side. "
                "I'm comfortable on a stage but I also disappear into the woods for a long hike alone. "
                "Looking for a medium-sized crew that's up for both shows and trailheads.",

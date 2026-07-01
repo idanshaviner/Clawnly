@@ -327,7 +327,16 @@ function appendNegEntry(t, e) {
   let html = "";
   if (e.type==="propose") html = `<div class="round-tag">Round ${e.round}</div><div class="bubble b-master"><div class="act">Master Claw proposes: ${esc(e.activity)}</div>${esc(e.pitch)}</div>`;
   else if (e.type==="reaction") html = `<div class="bubble b-person"><div class="who">${esc(e.name)}</div>${esc(e.text)}</div>`;
-  else if (e.type==="assess") html = e.agreed ? `<div class="verdict v-yes">✓ Everyone's on board — settled.</div>` : `<div class="verdict v-no">✗ Not yet — ${esc(e.concern)}</div>`;
+  else if (e.type==="assess") {
+    let tally = "";
+    if (e.members && e.members.length) {
+      const yes = e.members.filter(m=>m.on_board).length;
+      const chips = e.members.map(m=>`<span class="${m.on_board?'v-yes':'v-no'}" style="margin-right:10px;white-space:nowrap">${m.on_board?'✓':'✗'} ${esc(m.name)}</span>`).join("");
+      tally = `<div style="font-size:12.5px;margin:6px 0">${chips}<span class="whisper"> (${yes}/${e.members.length} on board)</span></div>`;
+    }
+    const verdict = e.agreed ? `<div class="verdict v-yes">✓ Everyone's on board — settled.</div>` : `<div class="verdict v-no">✗ Not yet — ${esc(e.concern)}</div>`;
+    html = tally + verdict;
+  }
   t.insertAdjacentHTML("beforeend", html);
 }
 

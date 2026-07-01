@@ -116,7 +116,7 @@ class MasterClaw:
             "SOFT PREFERENCES (optimize, trade off, never block):",
             "- Complementary personality energy (not everyone the same, no one overwhelmed).",
             "- Interests that overlap enough to connect but vary enough to stay interesting.",
-            "- Light bonus for occupation variety and for living near each other in DC.",
+            "- Light bonus for occupation variety and for living near each other in Seattle.",
             "- More shared availability windows is better.",
             "",
             "SCORING (group-level integers 1-5): 5 = excellent fit, 3 = workable, 1 = poor.",

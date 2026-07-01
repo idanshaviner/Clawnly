@@ -20,7 +20,7 @@ from llm_io import join_text, extract_json
 from users import HOBBY_CATEGORIES, AVAILABILITY_WINDOWS
 
 
-DEFAULT_THEME = "young adults (ages 24-35) living in Washington DC"
+DEFAULT_THEME = "young adults (ages 24-35) living in the Seattle, Washington area"
 
 # how many person-generation calls may be in flight at once. Fanning out all 12
 # at once is fast but can trip API rate limits on lower tiers; a small cap keeps
@@ -61,7 +61,7 @@ def _gen_one_system_prompt(theme, spec):
         "Theme: {}.".format(theme),
         "",
         "Invent exactly ONE distinct, believable person -- a real individual, not a",
-        "stereotype. Give them a fresh name and a real Washington DC neighborhood.",
+        "stereotype. Give them a fresh name and a real Seattle, Washington neighborhood.",
         "Write the bio in first person, 2-3 natural sentences that sound human.",
         "",
         "Lean this person the following way (stay believable, don't force it):",
@@ -82,7 +82,7 @@ def _gen_one_system_prompt(theme, spec):
         "- hobbies: 2-3 items, chosen ONLY from this menu (use the exact words):",
         _hobby_menu(),
         "- preferred_group_size: either [min, max] with 2 <= min <= max <= 8, or the string \"no preference\".",
-        "- location: a real Washington DC neighborhood.",
+        "- location: a real Seattle, Washington neighborhood.",
         "",
         "Return ONLY a JSON object for the single person (the fields above).",
         "Respond with the JSON object ONLY -- no markdown code fences, no text before or after it.",

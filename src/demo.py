@@ -64,10 +64,10 @@ class _Messages:
                 self.outer.match_index = idx + 1
                 return _Resp(bodies[idx])
             if "joint activity" in low:
-                return _Resp(self.outer.propose_body)
+                return _Resp(self.outer.propose_for(content))
             if "on board" in low:
-                return _Resp(self.outer.assess_body)
-            return _Resp(self.outer.popup_body)
+                return _Resp(self.outer.assess_for(content))
+            return _Resp(self.outer.popup_for(content))
         # otherwise a Claw persona call (interview, reaction, or free-style chat).
         name = _parse_name(system)
         if "Separate your two answers" in content:
@@ -75,7 +75,7 @@ class _Messages:
             a2 = self.outer.interview_answer(name, "availability and energy")
             return _Resp(a1 + "\n===\n" + a2)
         if "React as yourself" in content:
-            return _Resp(self.outer.reaction_for(name))
+            return _Resp(self.outer.reaction_for(name, content))
         # a free-style chat message -> a reply that reflects edited traits (parsed
         # from the system prompt) and varies with the question.
         return _Resp(self.outer.chat_reply(system, content))
@@ -110,22 +110,96 @@ class DemoClient:
             _body({"group": [], "reason": "No further compatible group among the remaining people.",
                    "scores": {}, "why_not": []}),
         ]
-        self.propose_body = _body({
-            "activity": "a relaxed weeknight chess night over coffee",
-            "pitch": "How about a low-key chess night over coffee on a weekday evening? It fits all our schedules and our quieter vibe.",
-        })
-        self.assess_body = _body({"agreed": True, "concern": ""})
-        self.popup_body = _body({
-            "options": [
-                {"event_name": "Weeknight Chess & Coffee", "activity": "casual chess over coffee",
-                 "location": "Compass Coffee, Navy Yard", "time": "Wednesday evening",
-                 "reason": "You all unwind on weekday evenings and bond over a slow game and good talk."},
-                {"event_name": "Quiet Reading Hour", "activity": "a books-and-coffee hang",
-                 "location": "Politics and Prose, Connecticut Ave", "time": "Tuesday evening",
-                 "reason": "A calm weeknight over books suits this introverted, bookish trio."},
-            ],
-        })
         self.messages = _Messages(self)
+
+    # ----- negotiation: a scripted, content-driven multi-round exchange --------
+    # Group 1 (Maya/Marcus/Omar) genuinely disagrees, so the demo shows a real
+    # arc: chess (Maya's out) -> writing (Omar's out) -> a dinner everyone loves.
+    # Other groups get an easy plan they all like on the first try.
+
+    def propose_for(self, payload):
+        low = payload.lower()
+        # only Maya's group runs the scripted back-and-forth; others agree fast.
+        if "maya" not in low:
+            return _body({
+                "activity": "a relaxed weekend hangout -- coffee and an easy walk by the water",
+                "pitch": "You all like getting outside and keeping it easy, so let's grab coffee and take a walk somewhere pretty and just catch up.",
+            })
+        marker = "specific concern was:"
+        idx = low.find(marker)
+        if idx == -1:
+            # round 1: propose chess (Maya won't be into it).
+            return _body({
+                "activity": "a weeknight chess night over coffee",
+                "pitch": "You all keep weekday evenings free and lean low-key -- grab a chess board, find a quiet corner, and let a game or two give the evening some shape.",
+            })
+        concern = low[idx + len(marker):]
+        if "writing" in concern or "story" in concern:
+            # round 3: the compromise everyone actually wants.
+            return _body({
+                "activity": "a relaxed dinner and long conversation in Fremont",
+                "pitch": "Let's keep it simple -- a low-key dinner where the whole point is the conversation. No games, no pressure, just good food and real talk.",
+            })
+        # round 2: the concern was about chess -> try a creative writing night.
+        return _body({
+            "activity": "a small creative writing and storytelling night",
+            "pitch": "A couple of you lean creative, so let's do a writing night -- each bring a short piece or a prompt and riff on them together, low pressure and lots of room to talk.",
+        })
+
+    def assess_for(self, payload):
+        # judge each member from their reaction line; agreed only if all are in.
+        markers = ["not into", "not sure", "outside my lane", "stresses me", "not really", "not my thing"]
+        members = []
+        concern = ""
+        lines = payload.splitlines()
+        i = 0
+        while i < len(lines):
+            line = lines[i].strip()
+            if line.startswith("- ") and ":" in line:
+                rest = line[2:]
+                sep = rest.find(":")
+                name = rest[:sep].strip()
+                text = rest[sep + 1:].strip()
+                low_text = text.lower()
+                on = True
+                j = 0
+                while j < len(markers):
+                    if markers[j] in low_text:
+                        on = False
+                    j += 1
+                members.append({"name": name, "on_board": on, "note": ("" if on else "has reservations")})
+                if not on and len(concern) == 0:
+                    concern = name + " isn't sold: " + text
+            i += 1
+        agreed = True
+        k = 0
+        while k < len(members):
+            if not members[k]["on_board"]:
+                agreed = False
+            k += 1
+        return _body({"members": members, "agreed": agreed, "concern": concern})
+
+    def popup_for(self, payload):
+        low = payload.lower()
+        if "dinner" in low or "conversation" in low:
+            options = [
+                {"event_name": "Fremont Dinner & Long Talk", "activity": "a relaxed dinner with unhurried conversation",
+                 "location": "The Whale Wins, Fremont", "time": "Wednesday evening around 7pm",
+                 "reason": "A calm Fremont dinner is exactly the low-key, deep-conversation hang all three of you wanted."},
+                {"event_name": "Quiet Coffee & Catch-up", "activity": "coffee and conversation in a calm cafe",
+                 "location": "Miir Cafe, Ballard", "time": "Tuesday evening around 7pm",
+                 "reason": "A quiet Ballard cafe gives you the unhurried, small-group talk you each asked for."},
+            ]
+        else:
+            options = [
+                {"event_name": "Green Lake Walk & Coffee", "activity": "an easy loop around the lake, then coffee",
+                 "location": "Green Lake Park loop, then Diva Espresso", "time": "Saturday morning around 10am",
+                 "reason": "An easy weekend loop and coffee suits your relaxed, get-outside vibe perfectly."},
+                {"event_name": "Discovery Park Ramble", "activity": "a scenic walk with plenty of time to chat",
+                 "location": "Discovery Park, Magnolia", "time": "Sunday morning around 10am",
+                 "reason": "A pretty, low-key trail is an easy way for the three of you to actually catch up."},
+            ]
+        return _body({"options": options})
 
     def interview_answer(self, name, question):
         # craft a scripted-but-personalized answer from the user's own profile.
@@ -140,16 +214,29 @@ class DemoClient:
         return ("Right now I'd love to meet people around {}. I'm pretty {}, so something "
                 "low-key suits me.".format(hobbies, user["personality"]))
 
-    def reaction_for(self, name):
-        # a scripted in-character reaction to the proposed plan.
-        reactions = {
-            "Maya": "Honestly that sounds perfect -- a calm evening is exactly my speed.",
-            "Marcus": "Chess after the gym? Yeah, I'm in.",
-            "Omar": "Works for me -- a good game and real conversation beats a loud bar.",
-        }
-        if name in reactions:
-            return reactions[name]
-        return "Sounds good to me, I'm in."
+    def reaction_for(self, name, pitch):
+        # a scripted in-character reaction that depends on WHAT was proposed, so the
+        # demo shows genuine disagreement that resolves over several rounds.
+        low = pitch.lower()
+        if "chess" in low:
+            if name == "Maya":
+                return ("Honestly, I'm not into chess -- it kind of stresses me out. "
+                        "Could we do something lower-key where we just talk?")
+            picks = {"Marcus": "Chess after the gym? Yeah, I'm in.",
+                     "Omar": "Works for me -- a good game and real conversation beats a loud bar."}
+            return picks.get(name, "Sounds good to me, I'm in.")
+        if "writing" in low or "story" in low:
+            if name == "Omar":
+                return ("I'm not sure about this one -- writing's a bit outside my lane. "
+                        "Could we do something with more back-and-forth, like a good talk over dinner?")
+            picks = {"Maya": "Oh I love this -- writing together feels way less performative. I'm in.",
+                     "Marcus": "Honestly yeah, I've been craving that kind of creative company."}
+            return picks.get(name, "Sounds good to me, I'm in.")
+        # the compromise (dinner / conversation / walk) -- everyone is happy.
+        picks = {"Maya": "Yes! A relaxed dinner where we can actually talk is exactly my speed.",
+                 "Marcus": "That works for me -- good food and real conversation, I'm in.",
+                 "Omar": "Perfect, that's the kind of hang I actually enjoy. I'm in."}
+        return picks.get(name, "Yeah, I'm into this -- count me in.")
 
     def chat_reply(self, system, message):
         # a scripted chat reply that reflects EDITED traits (parsed from the live

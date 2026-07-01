@@ -34,12 +34,16 @@ def _planner_prompt():
 
 def _assess_prompt():
     lines = [
-        "You are the Master Claw. You proposed a plan and the group reacted. Decide whether the",
-        "group is genuinely ON BOARD, or whether real hesitation/conflict means you should revise.",
-        "Be honest -- polite-but-unconvinced is NOT on board.",
+        "You are the Master Claw. You proposed a plan and the group reacted. Judge EACH member",
+        "individually: is that person genuinely ON BOARD, or is there real hesitation or conflict?",
+        "Be honest -- polite-but-unconvinced is NOT on board. The group only AGREES when EVERY",
+        "single member is genuinely on board; if even one isn't, agreed is false.",
         "",
         "Return ONLY a JSON object, no markdown fences, nothing before or after:",
-        '{ "agreed": true, "concern": "if not agreed, the specific thing to fix next round" }',
+        '{ "members": [{"name": "<exact name>", "on_board": true, "note": "short reason"}],',
+        '  "agreed": true,',
+        '  "concern": "if not agreed, the single most important thing to fix next round" }',
+        "List every member by their exact name. agreed must be true only if all on_board are true.",
     ]
     return "\n".join(lines)
 
@@ -107,7 +111,7 @@ async def _assess(client, activity, reactions):
     return result
 
 
-async def negotiate(claws, interviews, client=None, max_rounds=3, on_event=None):
+async def negotiate(claws, interviews, client=None, max_rounds=4, on_event=None):
     # client is injectable for tests (zero API calls); defaults to the real one.
     # on_event(entry), if given, is called for each transcript entry as it happens
     # (so the UI can stream the negotiation live).
@@ -143,9 +147,19 @@ async def negotiate(claws, interviews, client=None, max_rounds=3, on_event=None)
             i += 1
 
         verdict = await _assess(client, activity, reactions)
+        members = verdict.get("members", [])
         agreed = verdict.get("agreed", True)
+        # safety: never call it agreed if any member is explicitly NOT on board, so a
+        # meetup can only ship once the whole group has genuinely signed off.
+        if isinstance(members, list):
+            k = 0
+            while k < len(members):
+                if members[k].get("on_board") is False:
+                    agreed = False
+                k += 1
         concern = verdict.get("concern", "")
-        record({"type": "assess", "round": round_no, "agreed": agreed, "concern": concern})
+        record({"type": "assess", "round": round_no, "agreed": agreed,
+                "concern": concern, "members": members})
 
         if agreed:
             break

@@ -1,6 +1,6 @@
 """The popup generator: turns a matched group into a concrete meetup card.
 
-Given the matched users and the matcher's reason, it produces one specific DC
+Given the matched users and the matcher's reason, it produces one specific Seattle
 meetup -- venue, day/time, activity -- with a personal one-line reason that is
 consistent with the matcher's reasoning and the group's stated availability
 (SPEC F4).
@@ -12,12 +12,12 @@ from llm_io import join_text, extract_json
 
 def _popup_system_prompt():
     lines = [
-        "You plan 2-3 real-world meetup OPTIONS for a small group in Washington DC, so they can pick.",
+        "You plan 2-3 real-world meetup OPTIONS for a small group in the Seattle, Washington area, so they can pick.",
         "Use the people's hobbies, neighborhoods, and availability. Give the options some variety",
         "(different vibes or venues), and put the best one first.",
         "",
         "Rules for EVERY option:",
-        "- Pick a SPECIFIC, real-sounding DC venue or park (not a generic 'a cafe').",
+        "- Pick a SPECIFIC, real-sounding Seattle venue or park (not a generic 'a cafe').",
         "- The day and time must fit the group's shared availability windows.",
         "- The reason must be ONE sentence, personal and specific to these people,",
         "  and consistent with the matcher's reason below (do not contradict it).",
@@ -25,7 +25,7 @@ def _popup_system_prompt():
         "Return ONLY a JSON object, exactly:",
         "{",
         '  "options": [',
-        '    {"event_name": "...", "activity": "...", "location": "specific DC venue or park",',
+        '    {"event_name": "...", "activity": "...", "location": "specific Seattle venue or park",',
         '     "time": "day of week + time of day", "reason": "one specific, personal sentence"}',
         "  ]",
         "}",
@@ -35,7 +35,7 @@ def _popup_system_prompt():
 
 
 def _fallback_option(match_reason):
-    return {"event_name": "Meetup", "activity": "casual hangout", "location": "a spot in DC",
+    return {"event_name": "Meetup", "activity": "casual hangout", "location": "a spot in Seattle",
             "time": "this weekend", "reason": match_reason}
 
 

@@ -46,11 +46,12 @@ def no_agreement_fake():
     g1 = json_body(match_obj(["u01", "u04", "u10"]))
     refuse = json_body({"group": [], "reason": "no more", "scores": {}, "why_not": []})
     p = json_body({"activity": "something", "pitch": "pitch"})
-    no = json_body({"agreed": False, "concern": "Omar isn't on board"})
+    no = json_body({"agreed": False, "concern": "Omar isn't on board",
+                    "members": [{"name": "Omar", "on_board": False, "note": "not sold"}]})
     return FakeClient(
         match_queue=[g1, refuse],
-        propose_queue=[p, p, p],          # 3 rounds of proposals
-        assess_queue=[no, no, no],        # all rejected
+        propose_queue=[p, p, p, p],       # up to 4 rounds of proposals
+        assess_queue=[no, no, no, no],    # all rejected
         popup_queue=[json_body(popup_obj())],   # must stay UNUSED
     )
 

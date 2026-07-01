@@ -148,20 +148,19 @@ def test_generate_cast_demo_is_rejected():
 def test_generate_cast_live_replaces_the_cast(monkeypatch):
     reset_state()
     from conftest import FakeClient, json_body
-    cast = {"users": [
-        {"name": "A", "age": 27, "gender": "female", "hobbies": ["reading", "yoga"],
-         "personality": "introverted", "occupation": "student", "availability": ["weekday_evening"],
-         "location": "Shaw", "bio": "I like quiet book nights.", "preferred_group_size": [2, 3]},
-        {"name": "B", "age": 31, "gender": "male", "hobbies": ["cycling", "trivia nights"],
-         "personality": "extroverted", "occupation": "freelancer", "availability": ["weekend_evening"],
-         "location": "Shaw", "bio": "Rides and pub quizzes.", "preferred_group_size": [5, 8]},
-    ]}
-    fake = FakeClient(generation_queue=[json_body(cast)])
+    # the app invents 12 people, one concurrent call each -> queue 12 person objects.
+    def person(name):
+        return {"name": name, "age": 27, "gender": "female", "hobbies": ["reading", "yoga"],
+                "personality": "introverted", "occupation": "student", "availability": ["weekday_evening"],
+                "location": "Shaw", "bio": "I like quiet book nights.", "preferred_group_size": [2, 3]}
+    queue = [json_body(person("P" + str(i))) for i in range(12)]
+    fake = FakeClient(generation_queue=queue)
     monkeypatch.setattr(webapp, "_client_for", lambda mode: fake)
     r = client.post("/api/generate-cast", json={"mode": "live", "theme": "anything"})
     assert r.status_code == 200
     users = client.get("/api/users").json()["users"]
-    assert len(users) == 2 and users[0]["id"] == "u01"      # cast replaced + re-id'd
+    assert len(users) == 12 and users[0]["id"] == "u01"     # fresh cast, re-id'd
+    assert len([k for k in fake.kinds() if k == "generation"]) == 12   # one call per person
 
 
 def test_edit_rejects_invalid_personality():

@@ -20,7 +20,6 @@ from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 
 import config
 from claw import Claw
-from compat import compatibility_matrix
 from demo import DemoClient
 from explain import explain_decision, context_summary
 from main import run_pipeline
@@ -139,12 +138,6 @@ def _find_user(uid):
 @app.get("/")
 async def index():
     return FileResponse(_INDEX)
-
-
-@app.get("/api/compatibility")
-async def api_compatibility():
-    # pairwise compatibility across the current cast (code only, no API/cost).
-    return compatibility_matrix(STATE["users"])
 
 
 @app.get("/api/users")

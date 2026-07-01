@@ -29,6 +29,14 @@ TEMP_POPUP = 0.7
 # short profiles. Bump to "high" if you want maximum matching rigor.
 MATCH_EFFORT = "medium"
 
+# the quality bar for SHIPPING a group. The matcher scores each group it forms
+# on four axes (1-5); we only accept a group whose average clears this bar, so we
+# ship strong connections -- "your people" -- not merely workable ones. When the
+# best group among the people left is below the bar, we form no group and leave
+# them unmatched rather than forcing a lukewarm meetup. 3.5 = clearly better than
+# "workable" (3) on average. Lower it to match more freely, raise it to be pickier.
+MIN_MATCH_QUALITY = 3.5
+
 
 def resolve_api_key():
     # 1) the environment variable (works when launched from a terminal export).

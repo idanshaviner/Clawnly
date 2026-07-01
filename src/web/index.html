@@ -56,11 +56,6 @@
   .verdict { font-size:13px; font-weight:600; margin:8px 0; } .v-yes { color:var(--green); } .v-no { color:var(--amber); }
   .popup { border:2px solid var(--accent); } .popup .ev { font-size:19px; font-weight:700; } .popup .row { margin-top:6px; font-size:14px; } .popup .row b { color:var(--muted); }
   .err { color:#b3261e; } .whisper { color:var(--muted); font-size:12.5px; }
-  .compat { border-collapse:collapse; font-size:11px; }
-  .compat th, .compat td { width:30px; height:26px; text-align:center; border:1px solid var(--line); color:#1d1d1f; }
-  .compat th { color:var(--muted); font-weight:600; }
-  .compat td.self { background:#eee; }
-  .compat .lab { text-align:right; padding-right:6px; color:var(--muted); white-space:nowrap; width:auto; }
   .keybar { margin-top:16px; padding:10px 14px; border:1px solid var(--line); border-radius:10px; background:var(--card); font-size:13.5px; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
   .keybar input { flex:1; min-width:200px; border:1px solid var(--line); border-radius:8px; padding:7px 10px; }
   .keybar .ok { color:var(--green); font-weight:600; }
@@ -92,10 +87,8 @@
     <div class="rowbtns" style="margin-bottom:12px">
       <button class="mini" id="genBtn" onclick="generateCast()">🎲 Generate new random cast (Live)</button>
       <button class="mini" onclick="resetCast()">↺ Reset to defaults</button>
-      <button class="mini" onclick="toggleCompat()">🔗 Compatibility map</button>
       <span class="whisper" id="genStatus"></span>
     </div>
-    <div id="compat" style="margin-bottom:12px"></div>
     <div class="grid" id="cast"></div>
   </div>
 
@@ -157,40 +150,6 @@ async function resetCast() {
   const data = await (await fetch("/api/reset", {method:"POST"})).json();
   WINDOWS = WINDOWS.length ? WINDOWS : data.availability_windows;
   castEl.innerHTML = data.users.map(personCard).join("");
-  document.getElementById("compat").innerHTML = ""; compatShown = false;
-}
-
-let compatShown = false;
-async function toggleCompat() {
-  const box = document.getElementById("compat");
-  if (compatShown) { box.innerHTML = ""; compatShown = false; return; }
-  const d = await (await fetch("/api/compatibility")).json();
-  box.innerHTML = renderCompat(d);
-  compatShown = true;
-}
-function compatColor(s) {
-  if (s === null) return "#eee";
-  const colors = ["#e8a0a0","#efe2c0","#dfe7bf","#aedaa0","#7cc483"]; // 0..4
-  return colors[s] || "#fff";
-}
-function renderCompat(d) {
-  const n = d.names.length;
-  let head = "<tr><th></th>";
-  for (let j=0;j<n;j++) head += "<th>"+esc(d.names[j].slice(0,3))+"</th>";
-  head += "</tr>";
-  let rows = "";
-  for (let i=0;i<n;i++) {
-    rows += '<tr><td class="lab">'+esc(d.names[i])+"</td>";
-    for (let j=0;j<n;j++) {
-      const s = d.matrix[i][j];
-      const cls = (s===null) ? "self" : "";
-      const txt = (s===null) ? "" : String(s);
-      const tip = (s===null) ? "self" : esc(d.names[i])+" ↔ "+esc(d.names[j])+": "+s+"/4";
-      rows += '<td class="'+cls+'" style="background:'+compatColor(s)+'" title="'+tip+'">'+txt+"</td>";
-    }
-    rows += "</tr>";
-  }
-  return '<div class="card"><div class="whisper" style="margin-bottom:6px">Who clicks with whom — 0 = can never meet (no shared time), 4 = strong fit. Hover a cell for the pair.</div><table class="compat">'+head+rows+"</table></div>";
 }
 
 async function generateCast() {
@@ -382,7 +341,8 @@ function renderGroupSection(index, m, nameOf) {
       <div class="scores">${sc}</div>
       <div class="reason">${esc(m.reason)}</div>
       ${wn}
-      <div style="margin-top:14px" id="negthread-${index}"></div>
+      <div class="whisper" style="margin-top:16px;font-weight:600;color:var(--accent)">💬 Live negotiation — watch them agree on a plan</div>
+      <div style="margin-top:8px" id="negthread-${index}"></div>
       <div style="margin-top:14px" id="pop-${index}"></div>
       <div class="rowbtns" style="margin-top:14px;align-items:center;border-top:1px solid var(--line);padding-top:12px">
         <span class="whisper">Was this a good match?</span>

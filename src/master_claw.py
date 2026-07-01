@@ -19,8 +19,26 @@ from llm_io import join_text, extract_json
 QUESTION_1 = "What kinds of social experiences are you looking for right now?"
 QUESTION_2 = "What is your availability like, and what energy do you bring to group settings?"
 
-# how many times to ask the matcher to fix a constraint-violating group.
+# how many times to ask the matcher to fix a constraint-violating (or too-weak) group.
 MAX_MATCH_ATTEMPTS = 3
+
+
+def _group_quality(scores):
+    # the average of the matcher's integer soft-scores, or None if it gave none
+    # (so we can only gate on quality when there is a score to judge).
+    if not isinstance(scores, dict):
+        return None
+    values = []
+    keys = list(scores.keys())
+    i = 0
+    while i < len(keys):
+        v = scores[keys[i]]
+        if isinstance(v, (int, float)) and not isinstance(v, bool):
+            values.append(v)
+        i += 1
+    if len(values) == 0:
+        return None
+    return sum(values) / len(values)
 
 
 class MasterClaw:
@@ -81,7 +99,13 @@ class MasterClaw:
         # the rules the matcher must follow, stated explicitly.
         lines = [
             "You are the Master Claw, a matchmaker. From the people below, form ONE meetup",
-            "group of 3 to 5 people who would genuinely click. Reason FIRST, then choose.",
+            "group of 3 to 5 people who would form a GENUINELY STRONG connection -- the kind",
+            "of people who would become real friends, not just tolerate an evening together.",
+            "Reason FIRST, then choose. Your goal is to find each person THEIR people.",
+            "",
+            "Quality over coverage: only form a group if the fit is strong. It is far better to",
+            "leave someone unmatched (return an empty group) than to place them in a lukewarm",
+            "group. Do not force a match just to include everyone.",
             "",
             "HARD CONSTRAINTS (never violate; if you cannot satisfy them, return an empty group):",
             "- Group size must fall inside EVERY chosen member's preferred size range.",
@@ -97,6 +121,9 @@ class MasterClaw:
             "",
             "SCORING (group-level integers 1-5): 5 = excellent fit, 3 = workable, 1 = poor.",
             "Score the ACTUAL group you chose, honestly. Do not inflate a score to justify a pick.",
+            "STRENGTH BAR: only propose a group whose four scores average 3.5 or higher. If the",
+            "best group you can form is merely 'workable' (averaging below 3.5), return an empty",
+            "group instead -- those people are better left for another round than badly matched.",
             "",
             "GROUNDING (this is critical): every claim in 'reason' and 'why_not' must be TRUE to the",
             "data shown. Do not invent hobbies, traits, or availability a person does not have. Cite",
@@ -214,17 +241,29 @@ class MasterClaw:
                 return self._finalize(result)
 
             problems = self._validate_group(group)
-            if len(problems) == 0:
-                return self._finalize(result)
+            if len(problems) > 0:
+                # repair: tell the matcher exactly what was wrong.
+                feedback = "Your group violated hard constraints: " + "; ".join(problems) + ". Return corrected JSON."
+                attempt += 1
+                continue
 
-            # repair: tell the matcher exactly what was wrong.
-            feedback = "Your group violated hard constraints: " + "; ".join(problems) + ". Return corrected JSON."
-            attempt += 1
+            # quality gate: ship only genuinely strong groups. A merely-workable
+            # group is sent back to be strengthened, or declined (empty) if none exists.
+            quality = _group_quality(result.get("scores", {}))
+            if quality is not None and quality < config.MIN_MATCH_QUALITY:
+                feedback = ("That group only averages {:.1f}/5 -- workable, not a STRONG connection. "
+                            "Propose a genuinely strong group (average >= {}), or return an EMPTY "
+                            "group if no strong group exists among these people.").format(
+                                quality, config.MIN_MATCH_QUALITY)
+                attempt += 1
+                continue
 
-        # safe fallback: never emit a bad group.
+            return self._finalize(result)
+
+        # safe fallback: never emit a bad or lukewarm group.
         return {
             "group": [],
-            "reason": "No group satisfied all hard constraints after repeated attempts.",
+            "reason": "No group here both satisfied the hard constraints and was a strong enough connection to ship.",
             "scores": {},
             "why_not": [],
         }

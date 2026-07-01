@@ -5,21 +5,19 @@ import persona_gen
 from users import USERS
 
 
+def person(name="A", **overrides):
+    # one valid single-person object (the id is assigned by _reid, not the model).
+    base = {"name": name, "age": 27, "gender": "female", "hobbies": ["reading", "yoga"],
+            "personality": "introverted", "occupation": "student",
+            "availability": ["weekday_evening"], "location": "Shaw",
+            "bio": "I like quiet evenings with a book.", "preferred_group_size": [2, 3]}
+    base.update(overrides)
+    return base
+
+
 def good_users():
-    return {"users": [
-        {"name": "A", "age": 27, "gender": "female", "hobbies": ["reading", "yoga"],
-         "personality": "introverted", "occupation": "student",
-         "availability": ["weekday_evening"], "location": "Shaw",
-         "bio": "I like quiet evenings with a book.", "preferred_group_size": [2, 3]},
-        {"name": "B", "age": 31, "gender": "male", "hobbies": ["cycling", "trivia nights"],
-         "personality": "extroverted", "occupation": "freelancer",
-         "availability": ["weekend_evening"], "location": "Adams Morgan",
-         "bio": "Always up for a ride and a pub quiz.", "preferred_group_size": [5, 8]},
-        {"name": "C", "age": 29, "gender": "non-binary", "hobbies": ["painting", "running"],
-         "personality": "mixed", "occupation": "working professional",
-         "availability": ["weekday_evening", "weekend_daytime"], "location": "Petworth",
-         "bio": "Paint by night, run by morning.", "preferred_group_size": "no preference"},
-    ]}
+    return {"users": [person("A"), person("B", personality="extroverted"),
+                      person("C", personality="mixed")]}
 
 
 # ----- validation -----------------------------------------------------------
@@ -46,20 +44,35 @@ def test_reid_assigns_sequential_unique_ids():
     assert [u["id"] for u in out] == ["u01", "u02", "u03"]
 
 
-# ----- generation (mocked) --------------------------------------------------
+# ----- generation (mocked): one concurrent call per person ------------------
 
-def test_generate_users_returns_valid_cast():
-    fake = FakeClient(generation_queue=[json_body(good_users())])
+def test_generate_users_invents_each_person_in_its_own_call():
+    # 3 people -> 3 separate generation calls, fired concurrently.
+    fake = FakeClient(generation_queue=[json_body(person("A")), json_body(person("B")),
+                                        json_body(person("C"))])
     users = run(persona_gen.generate_users(count=3, client=fake))
     assert len(users) == 3
     assert persona_gen.validate_users(users) == []
     assert [u["id"] for u in users] == ["u01", "u02", "u03"]
+    assert len([k for k in fake.kinds() if k == "generation"]) == 3   # one per person
 
 
-def test_generate_users_retries_on_invalid_schema():
-    invalid = {"users": [dict(good_users()["users"][0], age=40)]}   # bad age
-    fake = FakeClient(generation_queue=[json_body(invalid), json_body(good_users())])
+def test_generate_users_retries_only_the_failing_slot():
+    # first person comes back with a bad age, then valid; the other two are fine.
+    bad = json_body(person("A", age=40))
+    fake = FakeClient(generation_queue=[bad, json_body(person("A")),
+                                        json_body(person("B")), json_body(person("C"))])
     users = run(persona_gen.generate_users(count=3, client=fake))
     assert persona_gen.validate_users(users) == []
+    assert len(users) == 3
     gen_calls = [k for k in fake.kinds() if k == "generation"]
-    assert len(gen_calls) == 2          # retried once after the bad attempt
+    assert len(gen_calls) == 4          # 3 people + 1 retry on the bad slot
+
+
+def test_generate_users_accepts_a_wrapped_person_object():
+    # tolerant of {"user": {...}} and {"users": [{...}]} wrappers too.
+    fake = FakeClient(generation_queue=[json_body({"user": person("A")}),
+                                        json_body({"users": [person("B")]}),
+                                        json_body(person("C"))])
+    users = run(persona_gen.generate_users(count=3, client=fake))
+    assert [u["name"] for u in users] == ["A", "B", "C"]

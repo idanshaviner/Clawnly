@@ -90,6 +90,32 @@ def test_find_matches_falls_back_when_never_valid():
     assert "satisf" in out["reason"].lower()
 
 
+def weak_match_obj(group=None):
+    # a valid group, but only "workable" scores (average 3.0, under the 3.5 bar).
+    obj = valid_match_obj(group)
+    obj["scores"] = {"personality": 3, "availability": 3, "interests": 3, "size_fit": 3}
+    return obj
+
+
+def test_find_matches_declines_a_weak_but_valid_group():
+    # passes every hard constraint, but the connection is only lukewarm -> not shipped.
+    weak = json_body(weak_match_obj())
+    fake = FakeClient(match_queue=[weak, weak, weak])
+    mc = MasterClaw(USERS, client=fake)
+    out = run(mc.find_matches(run(mc.interview_claws())))
+    assert out["group"] == []
+    assert "strong" in out["reason"].lower()
+
+
+def test_find_matches_upgrades_from_weak_to_strong():
+    # a weak first pick is sent back; a strong one on retry ships.
+    fake = FakeClient(match_queue=[json_body(weak_match_obj()), json_body(valid_match_obj())])
+    mc = MasterClaw(USERS, client=fake)
+    out = run(mc.find_matches(run(mc.interview_claws())))
+    assert out["group"] == ["u01", "u04", "u10"]
+    assert len([k for k in fake.kinds() if k == "match"]) == 2
+
+
 def test_match_call_uses_strong_model():
     fake = FakeClient(match_queue=[json_body(valid_match_obj())])
     mc = MasterClaw(USERS, client=fake)

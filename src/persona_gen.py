@@ -1,9 +1,12 @@
 """Generate the user profiles with Claude instead of hardcoding them.
 
-`generate_users(count, theme)` asks Claude to invent a diverse, schema-valid cast
-of people. Edit GEN_STYLE (or pass a different `theme`) to re-roll who they are,
-then feed them into the pipeline or chat with them. Output is validated in code
-and re-tried if the model breaks the schema, so callers always get clean data.
+`generate_users(count, theme)` invents a diverse, schema-valid cast of people.
+For speed, every person is invented by its OWN call, all fired concurrently, so
+a 12-person cast takes about as long as inventing one person -- not twelve times
+as long. Each slot is nudged toward a different personality / occupation /
+group-size / hobby lean so the set still spans the whole space. Output is
+validated in code (and each slot re-tried if the model breaks the schema), so
+callers always get clean data.
 
 Run: python src/persona_gen.py        (prints a fresh cast as JSON)
 """
@@ -18,20 +21,6 @@ from users import HOBBY_CATEGORIES, AVAILABILITY_WINDOWS
 
 
 DEFAULT_THEME = "young adults (ages 24-35) living in Washington DC"
-
-# ---------------------------------------------------------------------------
-# GENERATION STYLE -- tweak this to change WHO gets invented and how varied
-# they are. Edit freely and re-run to get a different cast.
-# ---------------------------------------------------------------------------
-GEN_STYLE = [
-    "Invent a cast of distinct, believable people -- each should feel like a real",
-    "individual, not a stereotype. Vary gender, age, personality, occupation,",
-    "availability, neighborhood, hobbies, and group-size preference widely.",
-    "Write each bio in first person, 2-3 natural sentences that sound human.",
-    "Make sure the set collectively spans all six hobby categories, mixes all three",
-    "personality types and all three occupations, and includes some people who",
-    "prefer tiny groups and some who prefer big ones.",
-]
 
 
 def _hobby_menu():
@@ -58,34 +47,131 @@ def _hobby_lookup():
     return lookup
 
 
-def _gen_system_prompt(count, theme):
+def _gen_one_system_prompt(theme, spec):
+    # invent ONE believable person, leaning the way this slot asks so the whole
+    # cast spans the space. The phrase "generate simulated user" stays so the
+    # test fake can route the call.
     lines = [
         "You generate simulated user profiles for a friendship-matching app.",
         "Theme: {}.".format(theme),
         "",
+        "Invent exactly ONE distinct, believable person -- a real individual, not a",
+        "stereotype. Give them a fresh name and a real Washington DC neighborhood.",
+        "Write the bio in first person, 2-3 natural sentences that sound human.",
+        "",
+        "Lean this person the following way (stay believable, don't force it):",
+        "- personality: {}".format(spec["personality"]),
+        "- occupation: {}".format(spec["occupation"]),
+        "- group size: {}".format(spec["size"]),
+        "- center their hobbies on the '{}' area of life".format(spec["focus"]),
+        "",
+        "The person MUST use exactly these fields:",
+        "  id, name, age, gender, hobbies, personality, occupation,",
+        "  availability, location, bio, preferred_group_size",
+        "",
+        "Rules:",
+        "- age: integer 24-35.",
+        "- personality: one of introverted / extroverted / mixed.",
+        "- occupation: one of student / working professional / freelancer.",
+        "- availability: a non-empty list from: {}.".format(", ".join(AVAILABILITY_WINDOWS)),
+        "- hobbies: 2-3 items, chosen ONLY from this menu (use the exact words):",
+        _hobby_menu(),
+        "- preferred_group_size: either [min, max] with 2 <= min <= max <= 8, or the string \"no preference\".",
+        "- location: a real Washington DC neighborhood.",
+        "",
+        "Return ONLY a JSON object for the single person (the fields above).",
+        "Respond with the JSON object ONLY -- no markdown code fences, no text before or after it.",
     ]
-    i = 0
-    while i < len(GEN_STYLE):
-        lines.append(GEN_STYLE[i])
-        i += 1
-    lines.append("")
-    lines.append("Each user MUST use exactly these fields:")
-    lines.append("  id, name, age, gender, hobbies, personality, occupation,")
-    lines.append("  availability, location, bio, preferred_group_size")
-    lines.append("")
-    lines.append("Rules:")
-    lines.append("- age: integer 24-35.")
-    lines.append("- personality: one of introverted / extroverted / mixed.")
-    lines.append("- occupation: one of student / working professional / freelancer.")
-    lines.append("- availability: a non-empty list from: {}.".format(", ".join(AVAILABILITY_WINDOWS)))
-    lines.append("- hobbies: 2-3 items, chosen ONLY from this menu (use the exact words):")
-    lines.append(_hobby_menu())
-    lines.append("- preferred_group_size: either [min, max] with 2 <= min <= max <= 8, or the string \"no preference\".")
-    lines.append("- location: a real Washington DC neighborhood.")
-    lines.append("")
-    lines.append("Return ONLY a JSON object: {{\"users\": [ ... {} user objects ... ]}}".format(count))
-    lines.append("Respond with the JSON object ONLY -- no markdown code fences, no text before or after it.")
     return "\n".join(lines)
+
+
+def _slot_specs(count):
+    # give each slot a distinct lean so the cast spans personalities, occupations,
+    # group-size preferences, and all six hobby areas.
+    personalities = ["introverted", "extroverted", "mixed"]
+    occupations = ["student", "working professional", "freelancer"]
+    sizes = ["prefers a small, intimate group (2-3)",
+             "prefers a big, lively group (5-8)",
+             "has no strong group-size preference"]
+    cats = list(HOBBY_CATEGORIES.keys())
+    specs = []
+    i = 0
+    while i < count:
+        specs.append({
+            "personality": personalities[i % len(personalities)],
+            "occupation": occupations[(i + i // 3) % len(occupations)],
+            "size": sizes[(i + i // 2) % len(sizes)],
+            "focus": cats[i % len(cats)],
+        })
+        i += 1
+    return specs
+
+
+def _coerce_one(obj):
+    # accept a bare person object, or a {"user": {...}} / {"users": [...]} wrapper.
+    if not isinstance(obj, dict):
+        return None
+    if "name" in obj and "hobbies" in obj:
+        return obj
+    inner = obj.get("user")
+    if isinstance(inner, dict):
+        return inner
+    users = obj.get("users")
+    if isinstance(users, list) and len(users) > 0 and isinstance(users[0], dict):
+        return users[0]
+    return None
+
+
+async def _generate_one(client, theme, spec, seed, attempts=3):
+    # invent a single valid person, retrying just this slot if the schema breaks.
+    system = _gen_one_system_prompt(theme, spec)
+    feedback = ""
+    n = 0
+    while n < attempts:
+        payload = ("Invent ONE brand-new person now (random batch #{}). Make them feel "
+                   "distinct from any typical person.").format(seed)
+        if len(feedback) > 0:
+            payload = payload + "\nYour last attempt had problems: " + feedback + "\nFix them."
+        try:
+            message = await client.messages.create(
+                model=config.MODEL_CLAW,
+                max_tokens=700,
+                temperature=config.TEMP_PERSONA,
+                system=system,
+                messages=[{"role": "user", "content": payload}],
+            )
+        except Exception:
+            return None
+        person = _coerce_one(extract_json(join_text(message)))
+        if person is not None:
+            # validate the single person (a temp id satisfies the id checks).
+            problems = validate_users([dict(person, id="u01")])
+            if len(problems) == 0:
+                return person
+            feedback = "; ".join(problems)
+        else:
+            feedback = "Output was not a valid JSON person object."
+        n += 1
+    return None
+
+
+async def generate_users(count=12, theme=DEFAULT_THEME, client=None, attempts=3):
+    if client is None:
+        client = config.get_client()
+    specs = _slot_specs(count)
+    # one random seed so a re-roll feels like a different batch.
+    seed = random.randint(1000, 9999)
+    # invent every person concurrently -- one call each (gather fan-out only, D6).
+    tasks = [_generate_one(client, theme, specs[i], seed, attempts) for i in range(count)]
+    people = await asyncio.gather(*tasks)
+    # keep the ones that came back valid, in slot order, with clean sequential ids.
+    users = []
+    i = 0
+    while i < len(people):
+        if people[i] is not None:
+            users.append(people[i])
+        i += 1
+    return _reid(users)
 
 
 def validate_users(users):
@@ -170,43 +256,6 @@ def _reid(users):
         out.append(u)
         i += 1
     return out
-
-
-async def generate_users(count=12, theme=DEFAULT_THEME, client=None, attempts=3):
-    if client is None:
-        client = config.get_client()
-    system = _gen_system_prompt(count, theme)
-    # a random seed nudges the model to invent a genuinely different cast each run.
-    seed = random.randint(1000, 9999)
-    users = []
-    feedback = ""
-    n = 0
-    while n < attempts:
-        payload = ("Generate {} brand-new people now (random batch #{}). Make this set feel "
-                   "distinct -- vary the names, ages, neighborhoods, personalities, and hobbies "
-                   "from any typical batch.").format(count, seed)
-        if len(feedback) > 0:
-            payload = payload + "\nYour last attempt had problems: " + feedback + "\nFix them."
-        message = await client.messages.create(
-            model=config.MODEL_CLAW,
-            max_tokens=4000,
-            temperature=config.TEMP_PERSONA,
-            system=system,
-            messages=[{"role": "user", "content": payload}],
-        )
-        obj = extract_json(join_text(message))
-        if obj is None or "users" not in obj:
-            feedback = "Output was not valid JSON with a 'users' array."
-            n += 1
-            continue
-        users = _reid(obj["users"])
-        problems = validate_users(users)
-        if len(problems) == 0:
-            return users
-        feedback = "; ".join(problems)
-        n += 1
-    # return the best effort even if imperfect; caller can inspect.
-    return users
 
 
 def _nudge_system_prompt():

@@ -22,6 +22,11 @@ from users import HOBBY_CATEGORIES, AVAILABILITY_WINDOWS
 
 DEFAULT_THEME = "young adults (ages 24-35) living in Washington DC"
 
+# how many person-generation calls may be in flight at once. Fanning out all 12
+# at once is fast but can trip API rate limits on lower tiers; a small cap keeps
+# it quick while staying well under burst limits.
+GEN_CONCURRENCY = 4
+
 
 def _hobby_menu():
     lines = []
@@ -122,8 +127,14 @@ def _coerce_one(obj):
     return None
 
 
-async def _generate_one(client, theme, spec, seed, attempts=3):
+async def _generate_one(client, theme, spec, seed, sem, attempts=3):
     # invent a single valid person, retrying just this slot if the schema breaks.
+    # `sem` bounds how many of these run at once (rate-limit safety).
+    async with sem:
+        return await _generate_one_inner(client, theme, spec, seed, attempts)
+
+
+async def _generate_one_inner(client, theme, spec, seed, attempts):
     system = _gen_one_system_prompt(theme, spec)
     feedback = ""
     n = 0
@@ -161,8 +172,10 @@ async def generate_users(count=12, theme=DEFAULT_THEME, client=None, attempts=3)
     specs = _slot_specs(count)
     # one random seed so a re-roll feels like a different batch.
     seed = random.randint(1000, 9999)
-    # invent every person concurrently -- one call each (gather fan-out only, D6).
-    tasks = [_generate_one(client, theme, specs[i], seed, attempts) for i in range(count)]
+    # invent every person concurrently, but at most GEN_CONCURRENCY at a time so a
+    # re-roll stays fast without bursting past API rate limits (gather fan-out, D6).
+    sem = asyncio.Semaphore(GEN_CONCURRENCY)
+    tasks = [_generate_one(client, theme, specs[i], seed, sem, attempts) for i in range(count)]
     people = await asyncio.gather(*tasks)
     # keep the ones that came back valid, in slot order, with clean sequential ids.
     users = []

@@ -96,6 +96,16 @@ def _print_negotiation(plan):
         print("\nNo full agreement after {} rounds; best option: {}".format(plan["rounds"], plan["activity"]))
 
 
+def _print_no_plan(plan):
+    _header("NO MEETUP -- GROUP DIDN'T FULLY AGREE")
+    print("")
+    print("  The group is a good match, but couldn't settle on a plan everyone loved")
+    print("  after {} rounds. No meetup is sent until it's right for all of them.".format(plan.get("rounds")))
+    concern = plan.get("concern", "")
+    if len(concern) > 0:
+        print("  Sticking point: {}".format(concern))
+
+
 def _print_popup(popup):
     _header("MEETUP")
     print("")
@@ -164,11 +174,19 @@ async def run_pipeline(users, client=None, verbose=True, interviews=None, on_sta
             _print_negotiation(plan)
         emit("negotiation_done", {"index": gi, "plan": plan})
 
-        popup = await generate_popup(matched_users, match["reason"],
-                                     suggested_activity=plan.get("activity"), client=master.client)
-        if verbose:
-            _print_popup(popup)
-        emit("popup", {"index": gi, "popup": popup})
+        # Only turn a plan into a real meetup once the WHOLE group is on board. If
+        # they couldn't agree, ship no meetup -- show the sticking point instead.
+        popup = None
+        if plan.get("agreed"):
+            popup = await generate_popup(matched_users, match["reason"],
+                                         suggested_activity=plan.get("activity"), client=master.client)
+            if verbose:
+                _print_popup(popup)
+            emit("popup", {"index": gi, "popup": popup})
+        else:
+            if verbose:
+                _print_no_plan(plan)
+            emit("no_plan", {"index": gi, "concern": plan.get("concern", "")})
 
         group_results.append({"match": match, "negotiation": plan, "popup": popup})
         gi += 1

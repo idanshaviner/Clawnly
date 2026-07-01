@@ -17,8 +17,14 @@ from llm_io import join_text, extract_json
 def _planner_prompt():
     lines = [
         "You are the Master Claw, facilitating a small matched group toward ONE joint activity",
-        "they will all enjoy. Ground the plan in their real hobbies, availability, and what they",
-        "said they want -- do not invent interests they don't have.",
+        "that EVERY member is genuinely enthusiastic about. Ground the plan in their real hobbies,",
+        "availability, and what they said they want -- do not invent interests they don't have.",
+        "",
+        "Find genuine COMMON GROUND. A good plan is one nobody has to be talked into -- not one that",
+        "thrills some members while another just tolerates it. If their specific hobbies don't all",
+        "overlap, don't force one person's hobby on the others; fall back to a simple shared setting",
+        "(a relaxed dinner, coffee, a walk, a low-key game everyone can enjoy) where the real point is",
+        "the conversation they all said they want. Match the group's shared energy (calm vs lively).",
         "",
         "Return ONLY a JSON object, no markdown fences, nothing before or after:",
         '{ "activity": "one specific joint activity", "pitch": "1-2 warm sentences pitching it to the group" }',
@@ -79,8 +85,10 @@ async def _master_call(client, system, payload):
 async def _propose(client, claws, interviews, feedback):
     payload = _group_payload(claws, interviews)
     if len(feedback) > 0:
-        payload = payload + "\nLast plan didn't land. The group's concern: " + feedback \
-            + "\nPropose a revised activity that addresses it."
+        payload = payload + "\nLast plan didn't land. The specific concern was: " + feedback \
+            + "\nKeep whatever the group already liked and change ONLY what's needed to win over the" \
+            + " person who hesitated. Do NOT swing to a totally different activity that now loses" \
+            + " someone else -- aim for the shared middle ground everyone can be happy with."
     result = await _master_call(client, _planner_prompt(), payload)
     if result is None:
         result = {"activity": "a casual hangout", "pitch": "Let's just grab a coffee and see how it goes."}
@@ -99,7 +107,7 @@ async def _assess(client, activity, reactions):
     return result
 
 
-async def negotiate(claws, interviews, client=None, max_rounds=2, on_event=None):
+async def negotiate(claws, interviews, client=None, max_rounds=3, on_event=None):
     # client is injectable for tests (zero API calls); defaults to the real one.
     # on_event(entry), if given, is called for each transcript entry as it happens
     # (so the UI can stream the negotiation live).
@@ -120,6 +128,7 @@ async def negotiate(claws, interviews, client=None, max_rounds=2, on_event=None)
 
     round_no = 1
     agreed = False
+    concern = ""
     while round_no <= max_rounds:
         # every real Claw reacts to the pitch, concurrently (gather fan-out, D6).
         tasks = [claws[i].react(pitch) for i in range(len(claws))]
@@ -154,6 +163,7 @@ async def negotiate(claws, interviews, client=None, max_rounds=2, on_event=None)
         "activity": activity,          # alias kept so the popup can build around it
         "final_activity": activity,
         "agreed": agreed,
+        "concern": concern,            # the unresolved sticking point when not agreed
         "rounds": round_no,
         "transcript": transcript,
     }

@@ -41,6 +41,38 @@ def one_group_fake():
     )
 
 
+def no_agreement_fake():
+    # forms one group, but the group NEVER agrees on a plan (assess always false).
+    g1 = json_body(match_obj(["u01", "u04", "u10"]))
+    refuse = json_body({"group": [], "reason": "no more", "scores": {}, "why_not": []})
+    p = json_body({"activity": "something", "pitch": "pitch"})
+    no = json_body({"agreed": False, "concern": "Omar isn't on board"})
+    return FakeClient(
+        match_queue=[g1, refuse],
+        propose_queue=[p, p, p],          # 3 rounds of proposals
+        assess_queue=[no, no, no],        # all rejected
+        popup_queue=[json_body(popup_obj())],   # must stay UNUSED
+    )
+
+
+def test_no_meetup_when_group_never_agrees():
+    fake = no_agreement_fake()
+    result = run(run_pipeline(USERS, client=fake, verbose=False))
+    g = result["groups"][0]
+    assert g["negotiation"]["agreed"] is False
+    assert g["popup"] is None                       # no meetup shipped without agreement
+    kinds = [k for k, _ in fake.calls]
+    assert "popup" not in kinds                     # the popup call was never made
+
+
+def test_no_plan_stage_emitted_instead_of_popup():
+    fake = no_agreement_fake()
+    stages = []
+    run(run_pipeline(USERS, client=fake, verbose=False, on_stage=lambda s, d: stages.append(s)))
+    assert "no_plan" in stages
+    assert "popup" not in stages
+
+
 def test_full_pipeline_runs_end_to_end(capsys):
     fake = one_group_fake()
     result = run(run_pipeline(USERS, client=fake))

@@ -299,6 +299,9 @@ function run() {
     } else if (stage === "popup") {
       const slot = document.getElementById("pop-"+data.index);
       if (slot) slot.innerHTML = renderPopupCard(data.popup);
+    } else if (stage === "no_plan") {
+      const slot = document.getElementById("pop-"+data.index);
+      if (slot) slot.innerHTML = renderNoPlanCard(data.concern);
     } else if (stage === "error") {
       statusEl.innerHTML = '<span class="err">Error: '+esc(data)+'</span>'; es.close(); btn.disabled = false;
     } else if (stage === "done") {
@@ -372,6 +375,16 @@ function renderPopupCard(p) {
     }
   }
   return html + `</div>`;
+}
+
+function renderNoPlanCard(concern) {
+  let c = concern ? `<div class="row" style="margin-top:6px"><b>Sticking point:</b> ${esc(concern)}</div>` : "";
+  return `<div class="card" style="border:2px solid var(--amber)">
+    <div class="ev" style="font-size:16px;font-weight:700;color:var(--amber)">No meetup yet — the group didn't fully agree</div>
+    <div class="row" style="margin-top:6px">They're a good match, but couldn't land on a plan <b>everyone</b> was on board with, so no meetup is sent.</div>
+    ${c}
+    <div class="row whisper" style="margin-top:6px">Tip: run again, or tweak someone's hobbies/availability, and they may click.</div>
+  </div>`;
 }
 
 function masterPanel() {

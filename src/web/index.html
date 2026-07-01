@@ -163,7 +163,7 @@ async function generateCast() {
     WINDOWS = WINDOWS.length ? WINDOWS : ["weekday_daytime","weekday_evening","weekend_daytime","weekend_evening"];
     castEl.innerHTML = data.users.map(personCard).join("");
     resultsEl.innerHTML = "";
-    gs.textContent = "Fresh cast ready ✓ — hit Run.";
+    gs.textContent = data.warning ? ("Cast ready — " + data.warning) : "Fresh cast ready ✓ — hit Run.";
   } catch(e) { gs.innerHTML = '<span class="err">'+esc(String(e))+'</span>'; }
   finally { btn.disabled = false; }
 }

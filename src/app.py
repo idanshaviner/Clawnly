@@ -376,13 +376,22 @@ async def api_generate_cast(body: dict):
                             content={"error": "Generating a fresh cast uses real AI -- switch to Live mode."})
     try:
         users = await generate_users(count=12, theme=DEFAULT_THEME, client=_client_for(mode))
-        STATE["users"] = users
-        STATE["interview_cache"] = None     # new people -> old interviews are stale
-        STATE["last_run"] = None
-        _save_cast()
-        return {"users": users}
     except Exception as error:
         return JSONResponse(status_code=500, content={"error": str(error)})
+    # generation fans out one call per person; if too many failed (e.g. rate limits)
+    # we get a short cast back. Don't wipe the current cast with a broken one.
+    if len(users) < 3:
+        return JSONResponse(status_code=502, content={
+            "error": "Couldn't invent a full cast (the AI returned {} usable people). "
+                     "Your current cast is unchanged -- try again in a moment.".format(len(users))})
+    STATE["users"] = users
+    STATE["interview_cache"] = None     # new people -> old interviews are stale
+    STATE["last_run"] = None
+    _save_cast()
+    warning = None
+    if len(users) < 12:
+        warning = "Only {} of 12 people came back this time (some AI calls failed).".format(len(users))
+    return {"users": users, "warning": warning}
 
 
 @app.post("/api/chat")

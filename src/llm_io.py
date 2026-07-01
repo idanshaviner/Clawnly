@@ -1,7 +1,8 @@
 """Helpers for reading JSON out of Anthropic responses.
 
-Shared by master_claw and popup so the parsing logic lives in one place.
-Both callers prefill the assistant turn with '{' and prepend it before parsing.
+Shared by master_claw, popup, negotiation and persona_gen so the parsing logic
+lives in one place. The models we use reject assistant-message prefill, so every
+call asks for "JSON only" and we recover the object here with extract_json.
 """
 
 import json

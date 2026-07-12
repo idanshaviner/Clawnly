@@ -155,7 +155,7 @@ def test_generate_cast_live_replaces_the_cast(monkeypatch):
                 "location": "Shaw", "bio": "I like quiet book nights.", "preferred_group_size": [2, 3]}
     queue = [json_body(person("P" + str(i))) for i in range(12)]
     fake = FakeClient(generation_queue=queue)
-    monkeypatch.setattr(webapp, "_client_for", lambda mode: fake)
+    monkeypatch.setattr(webapp, "_client_for", lambda mode, key=None: fake)
     r = client.post("/api/generate-cast", json={"mode": "live", "theme": "anything"})
     assert r.status_code == 200
     users = client.get("/api/users").json()["users"]
@@ -193,7 +193,7 @@ def test_nudge_live_applies_ai_changes(monkeypatch):
     reset_state()
     from conftest import FakeClient, json_body
     fake = FakeClient(nudge_queue=[json_body({"personality": "extroverted", "bio": "I love a crowd now."})])
-    monkeypatch.setattr(webapp, "_client_for", lambda mode: fake)
+    monkeypatch.setattr(webapp, "_client_for", lambda mode, key=None: fake)
     r = client.post("/api/users/u01/nudge", json={"instruction": "make her outgoing", "mode": "live"})
     assert r.status_code == 200
     assert r.json()["personality"] == "extroverted"      # Maya was introverted

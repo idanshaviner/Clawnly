@@ -111,13 +111,14 @@ loadConfig();
 loadCast();
 loadLessons();
 
-let DEMO_ONLY = false;
+let DEMO_ONLY = false, BYOK = false;
 async function loadConfig() {
   try {
     const c = await (await fetch("/api/config")).json();
-    DEMO_ONLY = !!c.demo_only;
-  } catch(e) { DEMO_ONLY = false; }
+    DEMO_ONLY = !!c.demo_only; BYOK = !!c.byok;
+  } catch(e) { DEMO_ONLY = false; BYOK = false; }
   if (DEMO_ONLY) applyDemoOnly();
+  else if (BYOK) renderByokBar();
   else loadKeyStatus();
 }
 
@@ -131,6 +132,31 @@ function applyDemoOnly() {
   const gen = document.getElementById("genBtn");
   if (gen) gen.style.display = "none";
 }
+
+// ---- bring-your-own-key mode: the key lives ONLY in this browser ----
+function myKey() { return (localStorage.getItem("clawnly_key") || "").trim(); }
+function apiHeaders() {
+  const h = {"Content-Type":"application/json"};
+  if (BYOK && myKey()) h["X-Anthropic-Key"] = myKey();
+  return h;
+}
+function renderByokBar() {
+  const bar = document.getElementById("keybar");
+  if (myKey()) {
+    bar.innerHTML = `<span class="ok">🔑 Your key is set (this browser only) ✓</span> <span class="whisper">Live runs are billed to YOU. Demo is always free.</span> <button class="mini" onclick="clearMyKey()">Change / remove</button>`;
+  } else {
+    bar.innerHTML = `<span class="warn">🔑 Bring your own key.</span> <span class="whisper">Demo is free. For Live (real AI), paste YOUR Anthropic key — it's billed to you and stays in this browser only:</span>
+      <input id="keyin" type="password" placeholder="sk-ant-api03-…"/>
+      <button class="mini run" onclick="saveMyKey()">Save key</button>`;
+  }
+}
+function saveMyKey() {
+  const v = (document.getElementById("keyin").value || "").trim();
+  if (!v) return;
+  localStorage.setItem("clawnly_key", v);
+  renderByokBar();
+}
+function clearMyKey() { localStorage.removeItem("clawnly_key"); renderByokBar(); }
 
 async function loadKeyStatus() {
   try {
@@ -178,7 +204,7 @@ async function generateCast() {
   const gs = document.getElementById("genStatus");
   btn.disabled = true; gs.textContent = "Inventing 12 new people with AI…";
   try {
-    const r = await fetch("/api/generate-cast", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({mode:modeEl()})});
+    const r = await fetch("/api/generate-cast", {method:"POST", headers:apiHeaders(), body:JSON.stringify({mode:modeEl()})});
     const data = await r.json();
     if (data.error) { gs.innerHTML = '<span class="err">'+esc(data.error)+'</span>'; return; }
     WINDOWS = WINDOWS.length ? WINDOWS : ["weekday_daytime","weekday_evening","weekend_daytime","weekend_evening"];
@@ -265,7 +291,7 @@ async function nudge(id) {
   if (!instruction) return;
   const status = document.getElementById(`nudged-${id}`);
   status.textContent = "rewriting with AI…";
-  const r = await fetch(`/api/users/${id}/nudge`, {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({instruction, mode:modeEl()})});
+  const r = await fetch(`/api/users/${id}/nudge`, {method:"POST", headers:apiHeaders(), body:JSON.stringify({instruction, mode:modeEl()})});
   const u = await r.json();
   if (u.error) { status.innerHTML = '<span class="err">'+esc(u.error)+'</span>'; return; }
   // re-render the whole card so the edit form reflects the new traits
@@ -283,23 +309,34 @@ async function sendChat(id) {
   addMsg(thread, "m-them", "…");
   const pending = thread.lastChild;
   const body = {user_id:id, message:msg, history:chatHist[id], mode:modeEl()};
-  const data = await (await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})).json();
+  const data = await (await fetch("/api/chat",{method:"POST",headers:apiHeaders(),body:JSON.stringify(body)})).json();
   pending.textContent = data.reply || data.error || "(no reply)";
   chatHist[id].push({role:"user",content:msg});
   chatHist[id].push({role:"assistant",content:data.reply||""});
 }
 
-function run() {
+async function run() {
   const btn = document.getElementById("runBtn");
-  btn.disabled = true; masterHist = [];
   const mode = modeEl();
+  // BYOK live: the EventSource can't send a header, so hand the key to the server
+  // once via a short-lived token, then stream with that token in the URL.
+  let qs = "mode=" + mode;
+  if (mode === "live" && BYOK) {
+    if (!myKey()) { statusEl.innerHTML = '<span class="err">Paste your Anthropic key above to run Live.</span>'; return; }
+    try {
+      const s = await (await fetch("/api/session", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({key:myKey()})})).json();
+      if (s.error || !s.token) { statusEl.innerHTML = '<span class="err">'+esc(s.error||"Could not start a Live session")+'</span>'; return; }
+      qs += "&session=" + encodeURIComponent(s.token);
+    } catch(e) { statusEl.innerHTML = '<span class="err">'+esc(String(e))+'</span>'; return; }
+  }
+  btn.disabled = true; masterHist = [];
   statusEl.textContent = mode==="live" ? "Running with real Claude — watch it come in live…" : "Running the offline demo…";
   resultsEl.innerHTML = '<div id="sec-groups"></div><div id="sec-tail"></div>';
 
   let interviews = {};
   const nameOf = id => (interviews[id] && interviews[id].profile) ? interviews[id].profile.name : id;
 
-  const es = new EventSource("/api/run-stream?mode="+mode);
+  const es = new EventSource("/api/run-stream?"+qs);
   es.onmessage = (ev) => {
     const msg = JSON.parse(ev.data);
     const stage = msg.stage, data = msg.data;
@@ -435,7 +472,7 @@ async function sendMaster() {
   addMsg(thread, "m-them", "…");
   const pending = thread.lastChild;
   const body = {message:msg, history:masterHist, mode:modeEl()};
-  const data = await (await fetch("/api/master-chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})).json();
+  const data = await (await fetch("/api/master-chat",{method:"POST",headers:apiHeaders(),body:JSON.stringify(body)})).json();
   pending.textContent = data.reply || data.error || "(no reply)";
   masterHist.push({role:"user",content:msg});
   masterHist.push({role:"assistant",content:data.reply||""});

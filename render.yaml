@@ -1,4 +1,4 @@
-# Render Blueprint for deploying Clawnly as a public, demo-only web app.
+# Render Blueprint for deploying Clawnly as a public web app.
 # In Render: New -> Blueprint -> pick this repo. Or configure a Web Service by
 # hand with the build/start commands below.
 services:
@@ -10,8 +10,12 @@ services:
     # app lives in src/; bind 0.0.0.0 and use the port Render provides.
     startCommand: uvicorn app:app --host 0.0.0.0 --port $PORT --app-dir src
     envVars:
-      # public deploy runs the free offline demo only -- never spends API money.
-      - key: CLAWNLY_DEMO_ONLY
+      # BRING-YOUR-OWN-KEY: Demo is free; Live requires each visitor's OWN Anthropic
+      # key (billed to them, never stored on the server). The app owner is never
+      # charged. To make it demo-only instead, set CLAWNLY_DEMO_ONLY=1 and drop this.
+      - key: CLAWNLY_BYOK
         value: "1"
       - key: PYTHON_VERSION
         value: "3.12.6"
+      # IMPORTANT: do NOT set ANTHROPIC_API_KEY here -- in BYOK the server must
+      # have no key of its own, so no visitor can ever spend yours.

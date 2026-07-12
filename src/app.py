@@ -15,7 +15,7 @@ import copy
 import json
 import os
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 
 import config
@@ -28,11 +28,20 @@ from users import USERS, HOBBY_CATEGORIES, AVAILABILITY_WINDOWS
 
 app = FastAPI(title="Clawnly")
 
-# DEMO-ONLY mode: when this is set (e.g. on a public cloud deploy), the server
-# ignores any request to use Live mode and runs everything as the free offline
-# demo -- so a public URL can never spend real API money. Set the env var
-# CLAWNLY_DEMO_ONLY=1 on the host to turn it on.
-DEMO_ONLY = os.environ.get("CLAWNLY_DEMO_ONLY", "").strip().lower() in ("1", "true", "yes", "on")
+def _flag(name):
+    return os.environ.get(name, "").strip().lower() in ("1", "true", "yes", "on")
+
+
+# DEMO-ONLY mode: when set (e.g. on a public cloud deploy), the server ignores any
+# request to use Live mode and runs everything as the free offline demo -- so a
+# public URL can never spend real API money. Env: CLAWNLY_DEMO_ONLY=1.
+DEMO_ONLY = _flag("CLAWNLY_DEMO_ONLY")
+
+# BRING-YOUR-OWN-KEY mode: Live is allowed, but ONLY with a key the visitor
+# supplies on each request. The server never has a key of its own and never
+# stores a visitor's key, so real runs are billed to whoever brought the key --
+# not to the app owner. Env: CLAWNLY_BYOK=1. (DEMO_ONLY wins if both are set.)
+BYOK = _flag("CLAWNLY_BYOK") and not DEMO_ONLY
 
 
 def _effective_mode(mode):
@@ -40,6 +49,39 @@ def _effective_mode(mode):
     if DEMO_ONLY:
         return "demo"
     return mode
+
+
+# short-lived, single-use tokens that let the EventSource stream (a GET that
+# can't carry a header) fetch a browser-supplied key without ever putting the key
+# in a URL. token -> (key, expiry). In-memory only; nothing is persisted.
+_SESSIONS = {}
+_SESSION_TTL = 120.0   # seconds
+
+
+def _new_session(key):
+    import secrets
+    import time
+    token = secrets.token_urlsafe(24)
+    _SESSIONS[token] = (key, time.time() + _SESSION_TTL)
+    return token
+
+
+def _pop_session_key(token):
+    # single-use: consume the token and prune anything expired.
+    import time
+    now = time.time()
+    tokens = list(_SESSIONS.keys())
+    i = 0
+    while i < len(tokens):
+        t = tokens[i]
+        entry = _SESSIONS.get(t)
+        if entry is not None and entry[1] < now:
+            _SESSIONS.pop(t, None)
+        i += 1
+    entry = _SESSIONS.pop(token or "", None)
+    if entry is None:
+        return None
+    return entry[0]
 
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
@@ -102,10 +144,21 @@ def _users_signature(users):
     return json.dumps(users, sort_keys=True)
 
 
-def _client_for(mode):
-    # demo -> scripted offline client; live -> None (engine builds the real one).
+def _request_key(request):
+    # the visitor's own key, sent per-request in a header (BYOK mode).
+    if request is None:
+        return None
+    return request.headers.get("x-anthropic-key")
+
+
+def _client_for(mode, key=None):
+    # demo -> scripted offline client; live -> the real client. In BYOK mode the
+    # live client is built from the caller's own key; otherwise it's None (the
+    # engine builds the server's own client).
     if mode == "demo":
         return DemoClient()
+    if BYOK:
+        return config.client_from_key(key)
     return None
 
 
@@ -130,12 +183,14 @@ class CountingClient:
         self.messages = _CountingMessages(inner.messages, self.counter)
 
 
-def _counting_client(mode):
+def _counting_client(mode, key=None):
     # a real/demo client wrapped so the run reports its call usage.
     if mode == "demo":
         inner = DemoClient()
+    elif BYOK:
+        inner = config.client_from_key(key)   # visitor's own key; billed to them
     else:
-        inner = config.get_client()   # raises a clear error if no key (caught upstream)
+        inner = config.get_client()           # server's key (raises if none; caught upstream)
     return CountingClient(inner)
 
 
@@ -156,8 +211,21 @@ async def index():
 
 @app.get("/api/config")
 async def api_config():
-    # lets the front-end adapt (e.g. hide Live controls on a demo-only deploy).
-    return {"demo_only": DEMO_ONLY}
+    # lets the front-end adapt: hide Live on a demo-only deploy, or ask for the
+    # visitor's own key in bring-your-own-key mode.
+    return {"demo_only": DEMO_ONLY, "byok": BYOK}
+
+
+@app.post("/api/session")
+async def api_session(body: dict):
+    # BYOK only: exchange a browser-held key for a short-lived, single-use token
+    # the EventSource stream can present (so the key never rides in a URL).
+    if not BYOK:
+        return JSONResponse(status_code=400, content={"error": "not applicable"})
+    key = (body.get("key") or "").strip()
+    if len(key) < 8:
+        return JSONResponse(status_code=400, content={"error": "Enter your Anthropic API key first."})
+    return {"token": _new_session(key)}
 
 
 @app.get("/api/users")
@@ -230,7 +298,7 @@ async def api_edit_user(uid: str, changes: dict):
 
 
 @app.post("/api/users/{uid}/nudge")
-async def api_nudge_user(uid: str, body: dict):
+async def api_nudge_user(uid: str, body: dict, request: Request):
     # AI-assisted edit: "make them more X" rewrites the profile (live mode only).
     user = _find_user(uid)
     if user is None:
@@ -245,7 +313,8 @@ async def api_nudge_user(uid: str, body: dict):
     if len(instruction) == 0:
         return JSONResponse(status_code=400, content={"error": "Say how to change them, e.g. 'make her more outgoing'."})
     try:
-        changes = await nudge_user(user, instruction, client=_client_for(body.get("mode")))
+        changes = await nudge_user(user, instruction,
+                                   client=_client_for(body.get("mode"), _request_key(request)))
     except Exception as error:
         return JSONResponse(status_code=500, content={"error": str(error)})
     problem = _validate_changes(changes)
@@ -332,17 +401,18 @@ async def api_set_key(body: dict):
 
 
 @app.post("/api/run")
-async def api_run(mode: str = "demo"):
+async def api_run(request: Request, mode: str = "demo"):
     # run the full pipeline on the (possibly edited) cast; remember the result.
     # Reuse cached interviews when the cast + mode are unchanged (skips 12 calls).
     mode = _effective_mode(mode)
+    key = _request_key(request)
     try:
         signature = _users_signature(STATE["users"])
         cache = STATE["interview_cache"]
         reuse = None
         if cache is not None and cache["signature"] == signature and cache["mode"] == mode:
             reuse = cache["interviews"]
-        result = await run_pipeline(STATE["users"], client=_counting_client(mode),
+        result = await run_pipeline(STATE["users"], client=_counting_client(mode, key),
                                     verbose=False, interviews=reuse, feedback=STATE["feedback"])
         STATE["interview_cache"] = {"signature": signature, "mode": mode,
                                     "interviews": result["interviews"]}
@@ -354,10 +424,15 @@ async def api_run(mode: str = "demo"):
 
 
 @app.get("/api/run-stream")
-async def api_run_stream(mode: str = "demo"):
+async def api_run_stream(mode: str = "demo", session: str = None):
     # same run, but streamed live (Server-Sent Events): each stage and each
     # negotiation step is pushed as it happens, so the UI fills in progressively.
+    # In BYOK mode the visitor's key arrives as a one-time session token (a header
+    # can't ride on an EventSource GET).
     mode = _effective_mode(mode)
+    key = None
+    if BYOK and mode == "live":
+        key = _pop_session_key(session)
     queue = asyncio.Queue()
 
     def on_stage(stage, data):
@@ -370,7 +445,7 @@ async def api_run_stream(mode: str = "demo"):
             reuse = None
             if cache is not None and cache["signature"] == signature and cache["mode"] == mode:
                 reuse = cache["interviews"]
-            result = await run_pipeline(STATE["users"], client=_counting_client(mode),
+            result = await run_pipeline(STATE["users"], client=_counting_client(mode, key),
                                         verbose=False, interviews=reuse, on_stage=on_stage,
                                         feedback=STATE["feedback"])
             STATE["interview_cache"] = {"signature": signature, "mode": mode,
@@ -395,7 +470,7 @@ async def api_run_stream(mode: str = "demo"):
 
 
 @app.post("/api/generate-cast")
-async def api_generate_cast(body: dict):
+async def api_generate_cast(request: Request, body: dict):
     # re-roll the 12 people with real AI -- a fresh, random, diverse cast each
     # time (no theme). Uses the API -> live only.
     if DEMO_ONLY:
@@ -406,7 +481,8 @@ async def api_generate_cast(body: dict):
         return JSONResponse(status_code=400,
                             content={"error": "Generating a fresh cast uses real AI -- switch to Live mode."})
     try:
-        users = await generate_users(count=12, theme=DEFAULT_THEME, client=_client_for(mode))
+        users = await generate_users(count=12, theme=DEFAULT_THEME,
+                                     client=_client_for(mode, _request_key(request)))
     except Exception as error:
         return JSONResponse(status_code=500, content={"error": str(error)})
     # generation fans out one call per person; if too many failed (e.g. rate limits)
@@ -426,12 +502,12 @@ async def api_generate_cast(body: dict):
 
 
 @app.post("/api/chat")
-async def api_chat(body: dict):
+async def api_chat(body: dict, request: Request):
     # talk to one persona, in character. history = [{role, content}, ...].
     user = _find_user(body.get("user_id"))
     if user is None:
         return JSONResponse(status_code=404, content={"error": "no such user"})
-    claw = Claw(user, client=_client_for(_effective_mode(body.get("mode", "demo"))))
+    claw = Claw(user, client=_client_for(_effective_mode(body.get("mode", "demo")), _request_key(request)))
     try:
         reply = await claw.chat(body.get("message", ""), body.get("history", []))
         return {"reply": reply}
@@ -440,7 +516,7 @@ async def api_chat(body: dict):
 
 
 @app.post("/api/master-chat")
-async def api_master_chat(body: dict):
+async def api_master_chat(body: dict, request: Request):
     # ask the Master Claw why it decided what it did (about the last run).
     run_result = STATE["last_run"]
     if run_result is None:
@@ -451,8 +527,10 @@ async def api_master_chat(body: dict):
         return {"reply": "In demo mode I can't chat freely, but here's the record of what I did:\n\n"
                 + context_summary(run_result)}
     try:
+        # client is None for the server's own key, or the visitor's key in BYOK.
         reply = await explain_decision(body.get("message", ""), run_result,
-                                       body.get("history", []), client=None)
+                                       body.get("history", []),
+                                       client=_client_for("live", _request_key(request)))
         return {"reply": reply}
     except Exception as error:
         return JSONResponse(status_code=500, content={"error": str(error)})

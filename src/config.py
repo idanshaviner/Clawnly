@@ -72,3 +72,11 @@ def get_client():
         )
     # a per-request timeout so a hung call fails instead of freezing the app.
     return AsyncAnthropic(api_key=key, timeout=120.0)
+
+
+def client_from_key(key):
+    # build a client from a caller-supplied key (bring-your-own-key deploys),
+    # so the server never has to hold a key of its own.
+    if not key or len(key.strip()) < 8:
+        raise ValueError("A valid Anthropic API key is required for Live mode.")
+    return AsyncAnthropic(api_key=key.strip(), timeout=120.0)

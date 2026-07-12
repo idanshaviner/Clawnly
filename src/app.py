@@ -28,6 +28,20 @@ from users import USERS, HOBBY_CATEGORIES, AVAILABILITY_WINDOWS
 
 app = FastAPI(title="Clawnly")
 
+# DEMO-ONLY mode: when this is set (e.g. on a public cloud deploy), the server
+# ignores any request to use Live mode and runs everything as the free offline
+# demo -- so a public URL can never spend real API money. Set the env var
+# CLAWNLY_DEMO_ONLY=1 on the host to turn it on.
+DEMO_ONLY = os.environ.get("CLAWNLY_DEMO_ONLY", "").strip().lower() in ("1", "true", "yes", "on")
+
+
+def _effective_mode(mode):
+    # force demo when the deploy is locked to demo-only.
+    if DEMO_ONLY:
+        return "demo"
+    return mode
+
+
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _INDEX = os.path.join(_HERE, "web", "index.html")
 _CAST_PATH = os.path.join(os.path.dirname(_HERE), "cast.json")          # edited cast, gitignored
@@ -140,6 +154,12 @@ async def index():
     return FileResponse(_INDEX)
 
 
+@app.get("/api/config")
+async def api_config():
+    # lets the front-end adapt (e.g. hide Live controls on a demo-only deploy).
+    return {"demo_only": DEMO_ONLY}
+
+
 @app.get("/api/users")
 async def api_users():
     # the editable cast, plus the vocab the edit form needs.
@@ -215,6 +235,9 @@ async def api_nudge_user(uid: str, body: dict):
     user = _find_user(uid)
     if user is None:
         return JSONResponse(status_code=404, content={"error": "no such user"})
+    if DEMO_ONLY:
+        return JSONResponse(status_code=403,
+                            content={"error": "AI editing is disabled in this public demo. Edit the fields directly."})
     if body.get("mode", "demo") == "demo":
         return JSONResponse(status_code=400,
                             content={"error": "AI editing needs Live mode -- or edit the fields directly."})
@@ -298,6 +321,9 @@ async def api_key_status():
 
 @app.post("/api/key")
 async def api_set_key(body: dict):
+    if DEMO_ONLY:
+        return JSONResponse(status_code=403,
+                            content={"error": "Key entry is disabled in this public demo."})
     key = (body.get("key") or "").strip()
     if len(key) < 8:
         return JSONResponse(status_code=400, content={"error": "That doesn't look like an API key."})
@@ -309,6 +335,7 @@ async def api_set_key(body: dict):
 async def api_run(mode: str = "demo"):
     # run the full pipeline on the (possibly edited) cast; remember the result.
     # Reuse cached interviews when the cast + mode are unchanged (skips 12 calls).
+    mode = _effective_mode(mode)
     try:
         signature = _users_signature(STATE["users"])
         cache = STATE["interview_cache"]
@@ -330,6 +357,7 @@ async def api_run(mode: str = "demo"):
 async def api_run_stream(mode: str = "demo"):
     # same run, but streamed live (Server-Sent Events): each stage and each
     # negotiation step is pushed as it happens, so the UI fills in progressively.
+    mode = _effective_mode(mode)
     queue = asyncio.Queue()
 
     def on_stage(stage, data):
@@ -370,6 +398,9 @@ async def api_run_stream(mode: str = "demo"):
 async def api_generate_cast(body: dict):
     # re-roll the 12 people with real AI -- a fresh, random, diverse cast each
     # time (no theme). Uses the API -> live only.
+    if DEMO_ONLY:
+        return JSONResponse(status_code=403,
+                            content={"error": "Generating a fresh cast is disabled in this public demo."})
     mode = body.get("mode", "demo")
     if mode == "demo":
         return JSONResponse(status_code=400,
@@ -400,7 +431,7 @@ async def api_chat(body: dict):
     user = _find_user(body.get("user_id"))
     if user is None:
         return JSONResponse(status_code=404, content={"error": "no such user"})
-    claw = Claw(user, client=_client_for(body.get("mode", "demo")))
+    claw = Claw(user, client=_client_for(_effective_mode(body.get("mode", "demo"))))
     try:
         reply = await claw.chat(body.get("message", ""), body.get("history", []))
         return {"reply": reply}
@@ -414,7 +445,7 @@ async def api_master_chat(body: dict):
     run_result = STATE["last_run"]
     if run_result is None:
         return {"reply": "Run the matchmaker first, then I can explain what I did and why."}
-    mode = body.get("mode", "demo")
+    mode = _effective_mode(body.get("mode", "demo"))
     if mode == "demo":
         # free, offline: a grounded summary built from the actual run (no AI).
         return {"reply": "In demo mode I can't chat freely, but here's the record of what I did:\n\n"
@@ -428,10 +459,18 @@ async def api_master_chat(body: dict):
 
 
 if __name__ == "__main__":
-    import threading
-    import webbrowser
     import uvicorn
-    url = "http://127.0.0.1:8000"
-    print("Clawnly is running at  " + url + "   (press Ctrl+C to stop)")
-    threading.Timer(1.5, lambda: webbrowser.open(url)).start()
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    # cloud hosts (Render, etc.) set PORT and expect the app to bind 0.0.0.0.
+    # locally there is no PORT, so we bind localhost and pop open the browser.
+    port = int(os.environ.get("PORT", "8000"))
+    on_cloud = os.environ.get("PORT") is not None
+    if on_cloud:
+        print("Clawnly running in the cloud on port " + str(port))
+        uvicorn.run(app, host="0.0.0.0", port=port)
+    else:
+        import threading
+        import webbrowser
+        url = "http://127.0.0.1:" + str(port)
+        print("Clawnly is running at  " + url + "   (press Ctrl+C to stop)")
+        threading.Timer(1.5, lambda: webbrowser.open(url)).start()
+        uvicorn.run(app, host="127.0.0.1", port=port)

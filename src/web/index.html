@@ -96,7 +96,7 @@
 </div>
 
 <script>
-const modeEl = () => document.getElementById("mode").value;
+const modeEl = () => { const m = document.getElementById("mode"); return m ? m.value : "demo"; };
 const statusEl = document.getElementById("status");
 const resultsEl = document.getElementById("results");
 const castEl = document.getElementById("cast");
@@ -107,9 +107,30 @@ const chatHist = {};      // per-person chat history
 let masterHist = [];
 const groupMembers = {};  // index -> member names, for feedback
 
+loadConfig();
 loadCast();
-loadKeyStatus();
 loadLessons();
+
+let DEMO_ONLY = false;
+async function loadConfig() {
+  try {
+    const c = await (await fetch("/api/config")).json();
+    DEMO_ONLY = !!c.demo_only;
+  } catch(e) { DEMO_ONLY = false; }
+  if (DEMO_ONLY) applyDemoOnly();
+  else loadKeyStatus();
+}
+
+function applyDemoOnly() {
+  // public demo: no Live mode, no key entry, no AI cast generation.
+  const mode = document.getElementById("mode");
+  mode.value = "demo";
+  mode.parentElement.removeChild(mode);   // lock to demo
+  const kb = document.getElementById("keybar");
+  kb.innerHTML = '<span class="whisper">🌐 Public demo — free offline mode. Everything runs without an API key.</span>';
+  const gen = document.getElementById("genBtn");
+  if (gen) gen.style.display = "none";
+}
 
 async function loadKeyStatus() {
   try {
@@ -433,6 +454,8 @@ function shortModel(m) {
 }
 function usageText(u) {
   if (!u || !u.total) return "";
+  // in the free/offline demo there are no real API calls -- don't imply cost.
+  if (DEMO_ONLY || modeEl() === "demo") return "  ·  offline demo — no real API calls";
   const parts = Object.keys(u.by_model).map(m => u.by_model[m] + "× " + shortModel(m));
   return "  ·  " + u.total + " API calls (" + parts.join(", ") + ")";
 }

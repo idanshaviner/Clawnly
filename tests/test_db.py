@@ -231,6 +231,19 @@ def test_get_resident_unknown_returns_none():
     assert db.get_resident(999999) is None
 
 
+def test_record_consent_sets_the_timestamp_once():
+    reset()
+    nb = db.get_or_create_neighborhood("ballard", "Ballard", 100)
+    resident = db.get_or_create_resident(nb["id"], "a@example.com", "google")
+    assert resident["consent_agreed_at"] is None
+
+    first = db.record_consent(resident["id"])
+    assert first["consent_agreed_at"] is not None
+
+    second = db.record_consent(resident["id"])
+    assert second["consent_agreed_at"] == first["consent_agreed_at"]   # first agreement wins
+
+
 # ----- real-user pilot: sessions --------------------------------------------
 
 def test_session_round_trip_and_delete():

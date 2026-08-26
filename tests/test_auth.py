@@ -267,8 +267,26 @@ def test_magic_link_request_and_verify_route_round_trip(monkeypatch, capsys):
     path_and_query = verify_url.split("testserver", 1)[1]
 
     r2 = client.get(path_and_query, follow_redirects=False)
+    assert r2.status_code == 302
+    assert r2.headers["location"] == "/consent"
+    assert auth.SESSION_COOKIE_NAME in r2.cookies
+
+
+def test_magic_link_verify_route_admin_gets_the_plain_success_page(monkeypatch, capsys):
+    reset_state()
+    clear_env(monkeypatch)
+    monkeypatch.setenv("CLAWNLY_ADMIN_EMAILS", "boss@example.com")
+    monkeypatch.delenv("RESEND_API_KEY", raising=False)
+    r = client.post("/api/auth/magic-link/request", json={"email": "boss@example.com"})
+    assert r.status_code == 200
+    out = capsys.readouterr().out
+    link = [line for line in out.splitlines() if "[DEV MODE]" in line][0]
+    verify_url = link.split(": ", 1)[1]
+    path_and_query = verify_url.split("testserver", 1)[1]
+
+    r2 = client.get(path_and_query, follow_redirects=False)
     assert r2.status_code == 200
-    assert "a@example.com" in r2.text
+    assert "boss@example.com" in r2.text
     assert auth.SESSION_COOKIE_NAME in r2.cookies
 
 
@@ -296,3 +314,79 @@ def test_google_login_route_redirects_when_configured(monkeypatch):
     r = client.get("/auth/google/login?neighborhood=ballard", follow_redirects=False)
     assert r.status_code in (302, 307)
     assert "accounts.google.com" in r.headers["location"]
+
+
+# ----- routes: invite-link landing page + consent capture ---------------------
+
+def test_join_page_serves_regardless_of_slug():
+    reset_state()
+    r = client.get("/join/ballard")
+    assert r.status_code == 200
+    assert "text/html" in r.headers["content-type"]
+
+
+def test_consent_page_serves():
+    reset_state()
+    r = client.get("/consent")
+    assert r.status_code == 200
+    assert "text/html" in r.headers["content-type"]
+
+
+def test_api_consent_requires_login():
+    reset_state()
+    r = client.post("/api/consent")
+    assert r.status_code == 401
+
+
+def test_api_consent_rejects_admin_without_a_resident_row():
+    reset_state()
+    token = auth.start_session("boss@example.com", "admin", None, None)
+    client.cookies.set(auth.SESSION_COOKIE_NAME, token)
+    try:
+        r = client.post("/api/consent")
+        assert r.status_code == 400
+    finally:
+        client.cookies.clear()
+
+
+def test_api_consent_records_agreement_and_api_me_reflects_it():
+    reset_state()
+    nb = db.get_or_create_neighborhood("ballard", "Ballard", 100)
+    resident = db.get_or_create_resident(nb["id"], "a@example.com", "magic_link")
+    assert resident["consent_agreed_at"] is None
+    token = auth.start_session("a@example.com", "resident", resident["id"], nb["id"])
+    client.cookies.set(auth.SESSION_COOKIE_NAME, token)
+    try:
+        r = client.get("/api/me")
+        assert r.json()["consent_agreed_at"] is None
+
+        r = client.post("/api/consent")
+        assert r.status_code == 200
+        assert r.json()["ok"] is True
+        assert r.json()["consent_agreed_at"] is not None
+
+        r = client.get("/api/me")
+        assert r.json()["consent_agreed_at"] is not None
+    finally:
+        client.cookies.clear()
+
+
+def test_full_magic_link_login_redirects_a_resident_into_the_consent_flow(monkeypatch, capsys):
+    reset_state()
+    clear_env(monkeypatch)
+    monkeypatch.delenv("RESEND_API_KEY", raising=False)
+    r = client.post("/api/auth/magic-link/request", json={"email": "a@example.com", "neighborhood": "ballard"})
+    out = capsys.readouterr().out
+    link = [line for line in out.splitlines() if "[DEV MODE]" in line][0]
+    verify_url = link.split(": ", 1)[1]
+    path_and_query = verify_url.split("testserver", 1)[1]
+    r2 = client.get(path_and_query, follow_redirects=False)
+    client.cookies.set(auth.SESSION_COOKIE_NAME, r2.cookies[auth.SESSION_COOKIE_NAME])
+    try:
+        r3 = client.get("/consent")
+        assert r3.status_code == 200
+        r4 = client.post("/api/consent")
+        assert r4.status_code == 200
+        assert r4.json()["consent_agreed_at"] is not None
+    finally:
+        client.cookies.clear()

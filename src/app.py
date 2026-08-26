@@ -93,6 +93,8 @@ def _pop_session_key(token):
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _INDEX = os.path.join(_HERE, "web", "index.html")
+_JOIN = os.path.join(_HERE, "web", "join.html")
+_CONSENT = os.path.join(_HERE, "web", "consent.html")
 
 
 def _users_signature(users):
@@ -473,8 +475,8 @@ async def api_master_chat(body: dict, request: Request):
 # ============================================================================
 
 def _login_success_html(result):
-    # a minimal, self-contained confirmation page -- the real onboarding/admin
-    # UIs land in a later stage; this just proves the login mechanics work.
+    # admins have no onboarding/consent flow yet (admin dashboard is a later
+    # stage) -- this just proves the login mechanics work for them.
     return (
         "<html><body style='font-family:sans-serif;max-width:480px;margin:60px auto'>"
         "<h2>You're logged in</h2>"
@@ -482,6 +484,38 @@ def _login_success_html(result):
         "<p><a href='/api/me'>/api/me</a></p>"
         "</body></html>"
     )
+
+
+def _post_login_response(result):
+    # residents land on the consent step next (captured once, before any
+    # onboarding conversation exists); admins get the plain proof-of-login page.
+    if result["role"] == "resident":
+        response = RedirectResponse(url="/consent", status_code=302)
+    else:
+        response = HTMLResponse(_login_success_html(result))
+    auth.set_session_cookie(response, result["token"])
+    return response
+
+
+@app.get("/join/{slug}")
+async def join(slug: str):
+    return FileResponse(_JOIN)
+
+
+@app.get("/consent")
+async def consent_page():
+    return FileResponse(_CONSENT)
+
+
+@app.post("/api/consent")
+async def api_consent(request: Request):
+    session = auth.current_session(request)
+    if session is None:
+        return JSONResponse(status_code=401, content={"error": "not logged in"})
+    if session.get("resident_id") is None:
+        return JSONResponse(status_code=400, content={"error": "Only residents need to give consent."})
+    resident = db.record_consent(session["resident_id"])
+    return {"ok": True, "consent_agreed_at": resident["consent_agreed_at"]}
 
 
 @app.get("/auth/google/login")
@@ -511,9 +545,7 @@ async def google_callback(request: Request, code: str = None, state: str = None)
         return JSONResponse(status_code=400, content={"error": str(error)})
     except Exception as error:
         return JSONResponse(status_code=500, content={"error": str(error)})
-    response = HTMLResponse(_login_success_html(result))
-    auth.set_session_cookie(response, result["token"])
-    return response
+    return _post_login_response(result)
 
 
 @app.post("/api/auth/magic-link/request")
@@ -543,9 +575,7 @@ async def magic_link_verify(token: str = None):
         return JSONResponse(status_code=400, content={"error": str(error)})
     if result is None:
         return JSONResponse(status_code=400, content={"error": "This link is invalid, expired, or already used."})
-    response = HTMLResponse(_login_success_html(result))
-    auth.set_session_cookie(response, result["token"])
-    return response
+    return _post_login_response(result)
 
 
 @app.post("/api/auth/logout")
@@ -566,6 +596,10 @@ async def api_me(request: Request):
         if neighborhood is not None:
             result["neighborhood_slug"] = neighborhood["slug"]
             result["neighborhood_name"] = neighborhood["name"]
+    if session.get("resident_id") is not None:
+        resident = db.get_resident(session["resident_id"])
+        if resident is not None:
+            result["consent_agreed_at"] = resident["consent_agreed_at"]
     return result
 
 

@@ -1,0 +1,112 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clawnly -- Join your neighborhood</title>
+<style>
+  :root{
+    --bg:#f7f6f3; --card:#fff; --ink:#1d1d1f; --muted:#6b6b70; --line:#e4e2dd;
+    --accent:#6c5ce7; --accent-soft:#efedfd; --amber:#c98a2b;
+  }
+  body { margin:0; background:var(--bg); color:var(--ink); line-height:1.5;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }
+  .wrap { max-width:480px; margin:0 auto; padding:24px 20px 60px; }
+  .banner { background:var(--amber); color:#fff; font-weight:600; font-size:13px;
+    text-align:center; padding:8px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:14px;
+    padding:24px; margin-top:20px; }
+  h1 { font-size:22px; margin:0 0 6px; }
+  p.sub { color:var(--muted); margin-top:0; }
+  .consent { background:var(--accent-soft); border-radius:10px; padding:14px; font-size:14px;
+    margin:18px 0; }
+  label.agree { display:flex; gap:10px; align-items:flex-start; font-size:14px; cursor:pointer; }
+  label.agree input { margin-top:3px; }
+  button, input[type=email] { font-size:15px; border-radius:10px; padding:11px 14px; width:100%;
+    box-sizing:border-box; border:1px solid var(--line); }
+  button { background:var(--accent); color:#fff; border:none; font-weight:600; cursor:pointer;
+    margin-top:10px; }
+  button:disabled { background:#c9c6e6; cursor:not-allowed; }
+  .divider { text-align:center; color:var(--muted); font-size:12px; margin:16px 0; }
+  #email-status { font-size:14px; margin-top:10px; }
+  #email-status.ok { color:#2f9e6e; }
+  #email-status.err { color:#c0392b; }
+</style>
+</head>
+<body>
+<div class="banner">ALPHA -- Clawnly is an early experiment. Expect rough edges.</div>
+<div class="wrap">
+  <div class="card">
+    <h1 id="title">You're invited</h1>
+    <p class="sub" id="subtitle">Join your neighborhood on Clawnly.</p>
+
+    <div class="consent">
+      A Master Claw will read what you share here and use it to try to put you in a small,
+      genuinely-compatible group of neighbors for a real-world meetup. This is an early alpha --
+      the matching is experimental and not reviewed by a human before it reaches you.
+    </div>
+
+    <label class="agree">
+      <input type="checkbox" id="agree-box">
+      I understand and want to continue.
+    </label>
+
+    <button id="google-btn" disabled>Continue with Google</button>
+
+    <div class="divider">or</div>
+
+    <input type="email" id="email-input" placeholder="you@example.com" disabled>
+    <button id="email-btn" disabled>Email me a sign-in link</button>
+    <div id="email-status"></div>
+  </div>
+</div>
+<script>
+var slug = window.location.pathname.split("/").filter(function(p){ return p.length > 0; }).pop();
+var displayName = slug.replace(/[-_]+/g, " ").replace(/\b\w/g, function(c){ return c.toUpperCase(); });
+document.getElementById("title").textContent = "Join " + displayName;
+document.getElementById("subtitle").textContent = "You're invited to Clawnly's " + displayName + " pilot.";
+var googleLoginUrl = "/auth/google/login?neighborhood=" + encodeURIComponent(slug);
+
+var agreeBox = document.getElementById("agree-box");
+var googleBtn = document.getElementById("google-btn");
+var emailInput = document.getElementById("email-input");
+var emailBtn = document.getElementById("email-btn");
+
+agreeBox.addEventListener("change", function(){
+  googleBtn.disabled = !agreeBox.checked;
+  emailInput.disabled = !agreeBox.checked;
+  emailBtn.disabled = !agreeBox.checked;
+});
+
+googleBtn.addEventListener("click", function(){
+  if (!agreeBox.checked) { return; }
+  window.location.href = googleLoginUrl;
+});
+
+emailBtn.addEventListener("click", function(){
+  var email = emailInput.value.trim();
+  var status = document.getElementById("email-status");
+  status.className = "";
+  status.textContent = "Sending...";
+  fetch("/api/auth/magic-link/request", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email: email, neighborhood: slug }),
+  }).then(function(r){ return r.json().then(function(data){ return { ok: r.ok, data: data }; }); })
+    .then(function(res){
+      if (res.ok) {
+        status.className = "ok";
+        status.textContent = "Check your email for a sign-in link.";
+      } else {
+        status.className = "err";
+        status.textContent = res.data.error || "Something went wrong.";
+      }
+    })
+    .catch(function(){
+      status.className = "err";
+      status.textContent = "Something went wrong. Try again.";
+    });
+});
+</script>
+</body>
+</html>

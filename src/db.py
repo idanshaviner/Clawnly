@@ -512,6 +512,18 @@ def get_or_create_resident(neighborhood_id, email, auth_method):
     return _row_to_resident(row)
 
 
+def record_consent(resident_id):
+    # first agreement wins -- a repeat call (e.g. a double-click) is a no-op,
+    # not a timestamp bump.
+    conn = _get_conn()
+    conn.execute(
+        "UPDATE residents SET consent_agreed_at = ? WHERE id = ? AND consent_agreed_at IS NULL",
+        (_now(), resident_id),
+    )
+    conn.commit()
+    return get_resident(resident_id)
+
+
 # ----- real-user pilot: sessions ------------------------------------------------
 
 def create_session(token, email, role, resident_id, neighborhood_id, ttl_seconds):

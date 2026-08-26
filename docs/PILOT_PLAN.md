@@ -148,7 +148,7 @@ stages rather than one pass, the same way Milestone 1 went:
 1. **Data model + auth backbone** -- new `db.py` tables, `auth.py` (Google OAuth + magic link +
    sessions), login/callback/logout routes, admin gating. No onboarding chat yet. **DONE.**
 2. **Registration + consent** -- the invite-link landing page, neighborhood creation, consent
-   capture.
+   capture. **DONE.**
 3. **Onboarding chat + completeness tracking** -- the `simulated=False` Claw mode, persisted
    conversation, the slot-tracking completeness check, the turn cap.
 4. **Batch trigger + real-pipeline wiring** -- `batch.py`, resident->profile-dict mapping, reusing

@@ -1,0 +1,108 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clawnly -- Consent</title>
+<style>
+  :root{
+    --bg:#f7f6f3; --card:#fff; --ink:#1d1d1f; --muted:#6b6b70; --line:#e4e2dd;
+    --accent:#6c5ce7; --accent-soft:#efedfd; --amber:#c98a2b; --green:#2f9e6e;
+  }
+  body { margin:0; background:var(--bg); color:var(--ink); line-height:1.5;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }
+  .wrap { max-width:480px; margin:0 auto; padding:24px 20px 60px; }
+  .banner { background:var(--amber); color:#fff; font-weight:600; font-size:13px;
+    text-align:center; padding:8px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:14px;
+    padding:24px; margin-top:20px; }
+  h1 { font-size:22px; margin:0 0 6px; }
+  p.sub { color:var(--muted); margin-top:0; }
+  .consent { background:var(--accent-soft); border-radius:10px; padding:14px; font-size:14px;
+    margin:18px 0; }
+  .consent ul { margin:8px 0 0; padding-left:20px; }
+  button { font-size:15px; border-radius:10px; padding:11px 14px; width:100%; box-sizing:border-box;
+    border:none; background:var(--accent); color:#fff; font-weight:600; cursor:pointer; }
+  #status { font-size:14px; margin-top:12px; color:var(--muted); }
+  #status.err { color:#c0392b; }
+  #done { display:none; }
+  #done .check { color:var(--green); font-weight:700; }
+</style>
+</head>
+<body>
+<div class="banner">ALPHA -- Clawnly is an early experiment. Expect rough edges.</div>
+<div class="wrap">
+  <div class="card" id="loading">
+    <p>Loading...</p>
+  </div>
+
+  <div class="card" id="ask" style="display:none">
+    <h1>Before we start</h1>
+    <p class="sub">One more thing, then you're in.</p>
+    <div class="consent">
+      By continuing you agree that:
+      <ul>
+        <li>What you share is read by a Master Claw (AI) to arrange real-world meetups with other
+          neighbors -- not by a human, unless something goes wrong and we need to look into it.</li>
+        <li>This is an alpha: matching quality is experimental and unreviewed.</li>
+        <li>You can delete your account and data at any time once that's available in-app.</li>
+      </ul>
+    </div>
+    <button id="agree-btn">I agree, let's go</button>
+    <div id="status"></div>
+  </div>
+
+  <div class="card" id="done">
+    <h1><span class="check">&#10003;</span> You're all set</h1>
+    <p class="sub">Your neighborhood's onboarding conversation is coming soon -- we'll let you know
+      right here when it's ready.</p>
+  </div>
+
+  <div class="card" id="loggedout" style="display:none">
+    <h1>You're not logged in</h1>
+    <p class="sub">Head back to your neighborhood's invite link to sign in.</p>
+  </div>
+</div>
+<script>
+function show(id){
+  var ids = ["loading", "ask", "done", "loggedout"];
+  ids.forEach(function(other){ document.getElementById(other).style.display = (other === id) ? "block" : "none"; });
+}
+
+fetch("/api/me").then(function(r){
+  if (!r.ok) { show("loggedout"); return null; }
+  return r.json();
+}).then(function(me){
+  if (me == null) { return; }
+  if (me.consent_agreed_at) {
+    show("done");
+  } else {
+    show("ask");
+  }
+}).catch(function(){ show("loggedout"); });
+
+document.getElementById("agree-btn").addEventListener("click", function(){
+  var btn = document.getElementById("agree-btn");
+  var status = document.getElementById("status");
+  btn.disabled = true;
+  status.className = "";
+  status.textContent = "";
+  fetch("/api/consent", { method: "POST" }).then(function(r){
+    return r.json().then(function(data){ return { ok: r.ok, data: data }; });
+  }).then(function(res){
+    if (res.ok) {
+      show("done");
+    } else {
+      btn.disabled = false;
+      status.className = "err";
+      status.textContent = res.data.error || "Something went wrong.";
+    }
+  }).catch(function(){
+    btn.disabled = false;
+    status.className = "err";
+    status.textContent = "Something went wrong. Try again.";
+  });
+});
+</script>
+</body>
+</html>

@@ -107,10 +107,18 @@ blocking -- dev mode already works): a Google Cloud OAuth app (redirect URI
 publishing status -- same number as the batch threshold**) and a Resend
 account + verified sending domain. Both go in `.env`.
 
-**Stage 2 -- Registration + consent: NOT STARTED.**
-Invite-link landing page, neighborhood self-provisioning (already supported
-by `db.get_or_create_neighborhood`), consent capture (`consent_agreed_at` on
-the resident row), an "alpha" banner in the resident-facing UI.
+**Stage 2 -- Registration + consent: DONE.**
+`web/join.html` (invite-link landing page at `GET /join/{slug}`, alpha
+banner + framing, Google/magic-link login) and `web/consent.html` (`GET
+/consent`) plus `db.record_consent` / `POST /api/consent` (idempotent --
+first agreement wins) capture `consent_agreed_at` on the resident row.
+Google/magic-link login now branches on role: a resident is redirected to
+`/consent` after login, an admin still gets the plain proof-of-login page
+(no admin dashboard yet). `/api/me` now also reports `consent_agreed_at`.
+Verified live against a running server (direct DB-seeded session, since
+this dev machine's real Resend/Google creds are already configured and
+sending a real email wasn't needed to exercise the new routes). 211 tests
+passing.
 
 **Stage 3 -- Onboarding chat + completeness tracking: NOT STARTED.**
 Add `simulated=False` mode to `Claw.__init__` (default `True` -- zero change

@@ -1,27 +1,20 @@
 """Tests for the web backend. Demo mode runs fully offline (no API calls)."""
 
-import copy
 import json
 
 from fastapi.testclient import TestClient
 
 import app as webapp
+import db
 from users import USERS
 
 client = TestClient(webapp.app)
 
 
 def reset_state():
-    # the backend holds module-global state; reset it for a clean test.
-    import os
-    webapp.STATE["users"] = copy.deepcopy(USERS)
-    webapp.STATE["last_run"] = None
-    webapp.STATE["interview_cache"] = None
-    webapp.STATE["feedback"] = []
-    for path in (webapp._CAST_PATH, webapp._FEEDBACK_PATH):
-        if os.path.exists(path):
-            os.remove(path)
-    webapp.STATE["interview_cache"] = None
+    # the backend's state now lives in SQLite (db.py, Milestone 1); wipe every
+    # table and restore the default 12 people for a clean test.
+    db.reset_all(USERS)
 
 
 def test_interviews_cached_across_runs_until_edited():
@@ -114,28 +107,26 @@ def test_edit_unknown_user_404():
     assert client.post("/api/users/nope", json={"bio": "x"}).status_code == 404
 
 
-def test_edit_persists_to_disk():
-    import json
-    import os
+def test_edit_persists_across_a_restart():
+    # simulate a server restart: open a totally fresh sqlite3 connection to the
+    # same db file (not the app's cached one) and confirm the edit is really there.
+    import sqlite3
     reset_state()
     client.post("/api/users/u01", json={"personality": "extroverted"})
-    assert os.path.exists(webapp._CAST_PATH)
-    with open(webapp._CAST_PATH) as handle:
-        saved = json.load(handle)
-    maya = next(u for u in saved if u["id"] == "u01")
-    assert maya["personality"] == "extroverted"
+    fresh = sqlite3.connect(db.DB_PATH)
+    row = fresh.execute("SELECT personality FROM users WHERE id = ?", ("u01",)).fetchone()
+    fresh.close()
+    assert row[0] == "extroverted"
     reset_state()
 
 
 def test_reset_restores_defaults():
-    import os
     reset_state()
     client.post("/api/users/u01", json={"personality": "extroverted"})
     client.post("/api/reset")
     users = client.get("/api/users").json()["users"]
     maya = next(u for u in users if u["id"] == "u01")
     assert maya["personality"] == "introverted"      # back to the default
-    assert not os.path.exists(webapp._CAST_PATH)
 
 
 def test_generate_cast_demo_is_rejected():

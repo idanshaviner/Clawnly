@@ -22,6 +22,9 @@ QUESTION_2 = "What is your availability like, and what energy do you bring to gr
 # how many times to ask the matcher to fix a constraint-violating (or too-weak) group.
 MAX_MATCH_ATTEMPTS = 3
 
+# the four group-level score dimensions the matcher must return (SPEC 6a).
+SCORE_DIMENSIONS = ["personality", "availability", "interests", "size_fit"]
+
 
 def _group_quality(scores):
     # the average of the matcher's integer soft-scores, or None if it gave none
@@ -39,6 +42,19 @@ def _group_quality(scores):
     if len(values) == 0:
         return None
     return sum(values) / len(values)
+
+
+def _shared_items(list_a, list_b):
+    # items common to both lists, in list_a's order, each counted once
+    # (index loop, no comprehension -- SPEC 10).
+    shared = []
+    i = 0
+    while i < len(list_a):
+        item = list_a[i]
+        if item in list_b and item not in shared:
+            shared.append(item)
+        i += 1
+    return shared
 
 
 class MasterClaw:
@@ -119,6 +135,15 @@ class MasterClaw:
             "- Light bonus for occupation variety and for living near each other in Seattle.",
             "- More shared availability windows is better.",
             "",
+            "USE THE COMPUTED COMPATIBILITY SIGNALS below the people list -- they are exact",
+            "shared-hobby pairs and availability-overlap strength, computed in code from the",
+            "profiles (not your inference), so they are the most reliable evidence you have.",
+            "The STRONGEST groups have an interest 'anchor': at least one specific hobby that",
+            "genuinely connects most or all members (directly, or through a couple of overlapping",
+            "pairs), not just a vague shared vibe. A group where nobody shares any concrete hobby",
+            "with anybody else is a weak pick even if personalities seem to fit -- prefer a",
+            "different combination, or an empty group, over that.",
+            "",
             "SCORING (group-level integers 1-5): 5 = excellent fit, 3 = workable, 1 = poor.",
             "Score the ACTUAL group you chose, honestly. Do not inflate a score to justify a pick.",
             "STRENGTH BAR: only propose a group whose four scores average 3.5 or higher. If the",
@@ -127,8 +152,9 @@ class MasterClaw:
             "",
             "GROUNDING (this is critical): every claim in 'reason' and 'why_not' must be TRUE to the",
             "data shown. Do not invent hobbies, traits, or availability a person does not have. Cite",
-            "the specific person and attribute. If evidence is thin, say so and score it low. Prefer an",
-            "empty group over fabricating compatibility.",
+            "the specific person and attribute -- prefer citing the computed signals directly (e.g.",
+            "\"Maya & Aisha both do puzzles\") since those are pre-verified. If evidence is thin, say",
+            "so and score it low. Prefer an empty group over fabricating compatibility.",
             "",
             "Return ONLY a JSON object, no prose around it, exactly:",
             '{',
@@ -166,6 +192,9 @@ class MasterClaw:
             ]
             parts.append("\n".join(block))
             i += 1
+        hints = self._compatibility_hints(candidate_ids)
+        if len(hints) > 0:
+            parts.append(hints)
         text = "\n".join(parts)
         lessons = self._feedback_text()
         if len(lessons) > 0:
@@ -173,6 +202,54 @@ class MasterClaw:
         if len(feedback) > 0:
             text = text + "\n" + feedback
         return text
+
+    def _compatibility_hints(self, candidate_ids):
+        # compute REAL pairwise signals in code -- exact shared hobbies, and how
+        # strongly two people's availability overlaps -- so the match call reasons
+        # over verified ground truth instead of having to eyeball up to a dozen
+        # profiles itself. This directly strengthens both match quality (the model
+        # no longer has to spot every overlap by hand) and grounding (SPEC 6c):
+        # every pair listed here is a fact the model can cite and a reviewer can
+        # re-derive from the profiles above.
+        hobby_lines = []
+        availability_lines = []
+        i = 0
+        while i < len(candidate_ids):
+            a = self.users_by_id[candidate_ids[i]]
+            j = i + 1
+            while j < len(candidate_ids):
+                b = self.users_by_id[candidate_ids[j]]
+
+                shared_hobbies = _shared_items(a["hobbies"], b["hobbies"])
+                if len(shared_hobbies) > 0:
+                    hobby_lines.append("  {} & {}: {}".format(a["name"], b["name"], ", ".join(shared_hobbies)))
+
+                # only surface STRONG overlap (2+ windows); a bare 1-window
+                # overlap is common and already visible on each person's own
+                # availability line above, so listing every such pair is noise.
+                shared_windows = _shared_items(a["availability"], b["availability"])
+                if len(shared_windows) >= 2:
+                    availability_lines.append("  {} & {}: {} shared windows -- {}".format(
+                        a["name"], b["name"], len(shared_windows), ", ".join(shared_windows)))
+                j += 1
+            i += 1
+
+        lines = []
+        if len(hobby_lines) > 0:
+            lines.append("Pairs with an EXACT shared hobby (the strongest grounded evidence for the")
+            lines.append("'interests' score -- a group where everyone connects to at least one other")
+            lines.append("member this way is a much stronger pick than one where nobody overlaps):")
+            lines.extend(hobby_lines)
+        if len(availability_lines) > 0:
+            if len(lines) > 0:
+                lines.append("")
+            lines.append("Pairs with STRONG shared availability (2+ windows -- worth a 5 on the")
+            lines.append("'availability' rubric; H2 only requires 1, so these pairs clear it easily):")
+            lines.extend(availability_lines)
+        if len(lines) == 0:
+            return ""
+        return "COMPUTED COMPATIBILITY SIGNALS (ground truth computed from the profiles above --\n" \
+               "use these, do not recompute or contradict them):\n" + "\n".join(lines)
 
     def _feedback_text(self):
         # turn past thumbs-up/down + notes into guidance the matcher should weigh.
@@ -236,11 +313,18 @@ class MasterClaw:
                 continue
 
             group = result.get("group", [])
+            why_not_problems = self._validate_why_not(result.get("why_not", []))
+
             if len(group) == 0:
-                # the matcher declined to force a match -- a valid outcome.
+                # the matcher declined to force a match -- a valid outcome, as long
+                # as it didn't also cite a made-up person in why_not.
+                if len(why_not_problems) > 0:
+                    feedback = "Problems in your reply: " + "; ".join(why_not_problems) + ". Return corrected JSON."
+                    attempt += 1
+                    continue
                 return self._finalize(result)
 
-            problems = self._validate_group(group)
+            problems = self._validate_group(group) + why_not_problems + self._validate_scores(result.get("scores", {}))
             if len(problems) > 0:
                 # repair: tell the matcher exactly what was wrong.
                 feedback = "Your group violated hard constraints: " + "; ".join(problems) + ". Return corrected JSON."
@@ -249,6 +333,7 @@ class MasterClaw:
 
             # quality gate: ship only genuinely strong groups. A merely-workable
             # group is sent back to be strengthened, or declined (empty) if none exists.
+            # (scores are already validated as ints 1-5 above, so quality is never None here.)
             quality = _group_quality(result.get("scores", {}))
             if quality is not None and quality < config.MIN_MATCH_QUALITY:
                 feedback = ("That group only averages {:.1f}/5 -- workable, not a STRONG connection. "
@@ -382,4 +467,43 @@ class MasterClaw:
             if len(common) == 0:
                 problems.append("group shares no common availability window")
 
+        return problems
+
+    def _validate_why_not(self, why_not):
+        # H3 also covers why_not (SPEC 6c): every cited id must be a real person,
+        # never an invented one.
+        problems = []
+        if not isinstance(why_not, list):
+            problems.append("why_not must be a list")
+            return problems
+        i = 0
+        while i < len(why_not):
+            entry = why_not[i]
+            wid = None
+            if isinstance(entry, dict):
+                wid = entry.get("id")
+            if wid not in self.users_by_id:
+                problems.append("why_not references unknown id " + str(wid))
+            i += 1
+        return problems
+
+    def _validate_scores(self, scores):
+        # scores must be exactly the four group-level dimensions, each an
+        # integer 1-5 (SPEC 6a, section 9 acceptance criteria). A malformed or
+        # missing score must not be able to sneak past the quality gate.
+        problems = []
+        if not isinstance(scores, dict):
+            problems.append("scores must be an object with personality/availability/interests/size_fit")
+            return problems
+        j = 0
+        while j < len(SCORE_DIMENSIONS):
+            key = SCORE_DIMENSIONS[j]
+            if key not in scores:
+                problems.append("scores missing '" + key + "'")
+            else:
+                value = scores[key]
+                is_number = isinstance(value, (int, float)) and not isinstance(value, bool)
+                if not is_number or value < 1 or value > 5:
+                    problems.append("scores['" + key + "'] must be an integer 1-5, got " + str(value))
+            j += 1
         return problems

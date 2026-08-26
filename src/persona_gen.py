@@ -79,7 +79,8 @@ def _gen_one_system_prompt(theme, spec):
         "- personality: one of introverted / extroverted / mixed.",
         "- occupation: one of student / working professional / freelancer.",
         "- availability: a non-empty list from: {}.".format(", ".join(AVAILABILITY_WINDOWS)),
-        "- hobbies: 2-3 items, chosen ONLY from this menu (use the exact words):",
+        "- hobbies: 4-6 items, chosen ONLY from this menu (use the exact words). Pick a genuinely",
+        "  varied mix -- don't just take the first few that fit the lean above:",
         _hobby_menu(),
         "- preferred_group_size: either [min, max] with 2 <= min <= max <= 8, or the string \"no preference\".",
         "- location: a real Seattle, Washington neighborhood.",
@@ -90,23 +91,43 @@ def _gen_one_system_prompt(theme, spec):
     return "\n".join(lines)
 
 
+def _cycled_shuffle(options, count):
+    # repeat 'options' enough times to reach count, re-shuffling each full
+    # cycle independently -- guarantees every option appears roughly equally
+    # often (so the cast still spans the whole space) while the ORDER (who
+    # gets which lean) is genuinely random on every call, not a fixed pattern.
+    out = []
+    while len(out) < count:
+        cycle = list(options)
+        random.shuffle(cycle)
+        out.extend(cycle)
+    return out[:count]
+
+
 def _slot_specs(count):
-    # give each slot a distinct lean so the cast spans personalities, occupations,
-    # group-size preferences, and all six hobby areas.
+    # give each slot a distinct, randomized lean so the cast spans personalities,
+    # occupations, group-size preferences, and all six hobby areas -- but which
+    # slot gets which lean is reshuffled every call, so re-rolling the cast
+    # produces a genuinely different mix of people each time, not the same
+    # index-0-is-always-introverted pattern.
     personalities = ["introverted", "extroverted", "mixed"]
     occupations = ["student", "working professional", "freelancer"]
     sizes = ["prefers a small, intimate group (2-3)",
              "prefers a big, lively group (5-8)",
              "has no strong group-size preference"]
     cats = list(HOBBY_CATEGORIES.keys())
+    p_leans = _cycled_shuffle(personalities, count)
+    o_leans = _cycled_shuffle(occupations, count)
+    s_leans = _cycled_shuffle(sizes, count)
+    c_leans = _cycled_shuffle(cats, count)
     specs = []
     i = 0
     while i < count:
         specs.append({
-            "personality": personalities[i % len(personalities)],
-            "occupation": occupations[(i + i // 3) % len(occupations)],
-            "size": sizes[(i + i // 2) % len(sizes)],
-            "focus": cats[i % len(cats)],
+            "personality": p_leans[i],
+            "occupation": o_leans[i],
+            "size": s_leans[i],
+            "focus": c_leans[i],
         })
         i += 1
     return specs

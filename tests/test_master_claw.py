@@ -153,6 +153,48 @@ def test_past_feedback_is_injected_into_match_prompt():
     assert "[BAD]" in payload                         # a thumbs-down is marked BAD
 
 
+# ----- computed compatibility hints (grounded matching signal) --------------
+
+def test_shared_items_finds_overlap_in_order_no_dupes():
+    from master_claw import _shared_items
+    assert _shared_items(["a", "b", "c"], ["c", "a"]) == ["a", "c"]
+    assert _shared_items(["a", "a", "b"], ["a"]) == ["a"]   # no duplicate entries
+    assert _shared_items(["a"], ["b"]) == []
+
+
+def test_compatibility_hints_lists_exact_shared_hobbies():
+    mc = MasterClaw(USERS, client=FakeClient())
+    # Marcus (u04) and Omar (u10) both list chess and podcasts.
+    hints = mc._compatibility_hints(["u04", "u10"])
+    assert "Marcus & Omar" in hints
+    assert "chess" in hints and "podcasts" in hints
+
+
+def test_compatibility_hints_only_flags_strong_availability_overlap():
+    mc = MasterClaw(USERS, client=FakeClient())
+    # Maya (u01) and Sofia (u05) share 2 windows -> flagged as strong.
+    hints = mc._compatibility_hints(["u01", "u05"])
+    assert "Maya & Sofia" in hints and "2 shared windows" in hints
+    # Maya (u01) and Daniel (u02) share only 1 window -> not flagged (noise).
+    hints_one = mc._compatibility_hints(["u01", "u02"])
+    assert "Maya & Daniel" not in hints_one
+
+
+def test_compatibility_hints_empty_when_no_overlap_in_pool():
+    mc = MasterClaw(USERS, client=FakeClient())
+    # a lone candidate has no pairs to compute at all.
+    assert mc._compatibility_hints(["u01"]) == ""
+
+
+def test_compatibility_hints_are_sent_in_the_match_payload():
+    fake = FakeClient(match_queue=[json_body(valid_match_obj())])
+    mc = MasterClaw(USERS, client=fake)
+    run(mc.find_matches(run(mc.interview_claws())))
+    payload = [kw for kind, kw in fake.calls if kind == "match"][0]["messages"][0]["content"]
+    assert "COMPUTED COMPATIBILITY SIGNALS" in payload
+    assert "Marcus & Omar" in payload   # a real shared-hobby pair among the 12
+
+
 def test_find_all_matches_stops_when_no_group():
     refuse = json_body({"group": [], "reason": "none", "scores": {}, "why_not": []})
     fake = FakeClient(match_queue=[refuse])
@@ -169,6 +211,51 @@ def test_why_not_capped_at_three():
     mc = MasterClaw(USERS, client=fake)
     out = run(mc.find_matches(run(mc.interview_claws())))
     assert len(out["why_not"]) <= 3
+
+
+def test_find_matches_repairs_missing_scores():
+    # empty scores must not silently bypass the quality gate -- it should be
+    # treated as a malformed reply and repaired, same as a hard-constraint miss.
+    broken = valid_match_obj()
+    broken["scores"] = {}
+    fake = FakeClient(match_queue=[json_body(broken), json_body(valid_match_obj())])
+    mc = MasterClaw(USERS, client=fake)
+    out = run(mc.find_matches(run(mc.interview_claws())))
+    assert out["group"] == ["u01", "u04", "u10"]
+    assert len([k for k in fake.kinds() if k == "match"]) == 2
+
+
+def test_find_matches_repairs_out_of_range_score():
+    broken = valid_match_obj()
+    broken["scores"] = {"personality": 9, "availability": 4, "interests": 4, "size_fit": 5}
+    fake = FakeClient(match_queue=[json_body(broken), json_body(valid_match_obj())])
+    mc = MasterClaw(USERS, client=fake)
+    out = run(mc.find_matches(run(mc.interview_claws())))
+    assert out["group"] == ["u01", "u04", "u10"]
+    assert len([k for k in fake.kinds() if k == "match"]) == 2
+
+
+def test_find_matches_repairs_invented_why_not_id():
+    # a why_not entry citing someone who doesn't exist is an invented entity
+    # (SPEC 6c) and must be repaired, not shipped.
+    broken = valid_match_obj()
+    broken["why_not"] = [{"id": "u99", "reason": "made up"}]
+    fake = FakeClient(match_queue=[json_body(broken), json_body(valid_match_obj())])
+    mc = MasterClaw(USERS, client=fake)
+    out = run(mc.find_matches(run(mc.interview_claws())))
+    assert out["group"] == ["u01", "u04", "u10"]
+    assert len([k for k in fake.kinds() if k == "match"]) == 2
+
+
+def test_find_matches_repairs_invented_why_not_id_on_empty_group():
+    broken = {"group": [], "reason": "no viable group", "scores": {},
+              "why_not": [{"id": "u99", "reason": "made up"}]}
+    fine = {"group": [], "reason": "no viable group", "scores": {}, "why_not": []}
+    fake = FakeClient(match_queue=[json_body(broken), json_body(fine)])
+    mc = MasterClaw(USERS, client=fake)
+    out = run(mc.find_matches(run(mc.interview_claws())))
+    assert out["group"] == []
+    assert len([k for k in fake.kinds() if k == "match"]) == 2
 
 
 # ----- hard-constraint validator (SPEC 6b) ----------------------------------
@@ -204,6 +291,39 @@ def test_validator_h3_unknown_id():
 def test_validator_size_over_five():
     problems = make_mc()._validate_group(["u01", "u02", "u03", "u05", "u06", "u12"])
     assert any("larger than" in p for p in problems)
+
+
+def test_score_validator_passes_clean_scores():
+    scores = {"personality": 3, "availability": 4, "interests": 4, "size_fit": 5}
+    assert make_mc()._validate_scores(scores) == []
+
+
+def test_score_validator_flags_missing_dimension():
+    scores = {"personality": 3, "availability": 4, "interests": 4}   # size_fit missing
+    problems = make_mc()._validate_scores(scores)
+    assert any("size_fit" in p for p in problems)
+
+
+def test_score_validator_flags_non_integer_and_out_of_range():
+    scores = {"personality": "high", "availability": 4, "interests": 4, "size_fit": 9}
+    problems = make_mc()._validate_scores(scores)
+    assert any("personality" in p for p in problems)
+    assert any("size_fit" in p for p in problems)
+
+
+def test_score_validator_flags_non_dict():
+    assert make_mc()._validate_scores([]) != []
+
+
+def test_why_not_validator_passes_known_ids():
+    why_not = [{"id": "u08", "reason": "too big"}]
+    assert make_mc()._validate_why_not(why_not) == []
+
+
+def test_why_not_validator_flags_unknown_id():
+    why_not = [{"id": "u99", "reason": "made up"}]
+    problems = make_mc()._validate_why_not(why_not)
+    assert any("u99" in p for p in problems)
 
 
 # ----- json extraction helper -----------------------------------------------

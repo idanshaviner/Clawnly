@@ -1,9 +1,10 @@
 """Clawnly web app -- run the matchmaker, chat with the people, edit them, and
 ask the Master Claw why it did what it did.
 
-A small FastAPI backend that reuses the existing engine and holds simple
-in-memory state (an editable copy of the 12 users + the last run). The pipeline
-and chat run in either:
+A small FastAPI backend that reuses the existing engine. All state (the cast,
+past runs/matches, feedback) is persisted in a small SQLite file via db.py
+(Milestone 1) instead of an in-memory dict, so it survives a server restart.
+The pipeline and chat run in either:
   - demo mode : free + offline (scripted AI via DemoClient) -- the default
   - live mode : real Claude (needs ANTHROPIC_API_KEY)
 
@@ -11,14 +12,16 @@ Run:  .venv/bin/python src/app.py   (or double-click Clawnly.command)
 """
 
 import asyncio
-import copy
+import html
 import json
 import os
 
 from fastapi import FastAPI, Request
-from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse, StreamingResponse
 
+import auth
 import config
+import db
 from claw import Claw
 from demo import DemoClient
 from explain import explain_decision, context_summary
@@ -27,6 +30,10 @@ from persona_gen import generate_users, nudge_user, DEFAULT_THEME
 from users import USERS, HOBBY_CATEGORIES, AVAILABILITY_WINDOWS
 
 app = FastAPI(title="Clawnly")
+
+db.init_db()
+db.seed_default_users_if_empty(USERS)
+
 
 def _flag(name):
     return os.environ.get(name, "").strip().lower() in ("1", "true", "yes", "on")
@@ -86,61 +93,11 @@ def _pop_session_key(token):
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _INDEX = os.path.join(_HERE, "web", "index.html")
-_CAST_PATH = os.path.join(os.path.dirname(_HERE), "cast.json")          # edited cast, gitignored
-_FEEDBACK_PATH = os.path.join(os.path.dirname(_HERE), "feedback.json")  # learning feedback, gitignored
-
-
-def _load_json_list(path):
-    if os.path.exists(path):
-        try:
-            with open(path) as handle:
-                data = json.load(handle)
-            if isinstance(data, list):
-                return data
-        except Exception:
-            pass
-    return []
-
-
-def _save_feedback():
-    try:
-        with open(_FEEDBACK_PATH, "w") as handle:
-            json.dump(STATE["feedback"], handle, indent=2)
-    except Exception:
-        pass
-
-
-def _load_cast():
-    # restore the saved (edited/generated) cast if there is one, else the default 12.
-    if os.path.exists(_CAST_PATH):
-        try:
-            with open(_CAST_PATH) as handle:
-                users = json.load(handle)
-            if isinstance(users, list) and len(users) > 0:
-                return users
-        except Exception:
-            pass
-    return copy.deepcopy(USERS)
-
-
-def _save_cast():
-    # persist the current cast so edits survive an app restart.
-    try:
-        with open(_CAST_PATH, "w") as handle:
-            json.dump(STATE["users"], handle, indent=2)
-    except Exception:
-        pass
-
-
-# in-memory state: an editable cast, the most recent run (for explanations), a
-# cache of interviews (reused when the cast hasn't changed), and the learning
-# feedback the matcher reads on future runs.
-STATE = {"users": _load_cast(), "last_run": None, "interview_cache": None,
-         "feedback": _load_json_list(_FEEDBACK_PATH)}
 
 
 def _users_signature(users):
-    # changes whenever any user is edited -> invalidates the interview cache.
+    # changes whenever any user is edited -> invalidates the interview cache
+    # and "forgets" the last run for master-chat (both are signature-scoped).
     return json.dumps(users, sort_keys=True)
 
 
@@ -194,16 +151,6 @@ def _counting_client(mode, key=None):
     return CountingClient(inner)
 
 
-def _find_user(uid):
-    users = STATE["users"]
-    i = 0
-    while i < len(users):
-        if users[i]["id"] == uid:
-            return users[i]
-        i += 1
-    return None
-
-
 @app.get("/")
 async def index():
     return FileResponse(_INDEX)
@@ -232,7 +179,7 @@ async def api_session(body: dict):
 async def api_users():
     # the editable cast, plus the vocab the edit form needs.
     return {
-        "users": STATE["users"],
+        "users": db.list_users(),
         "availability_windows": AVAILABILITY_WINDOWS,
         "hobby_categories": HOBBY_CATEGORIES,
     }
@@ -270,37 +217,22 @@ def _validate_changes(changes):
     return None
 
 
-def _apply_changes(user, changes):
-    # copy only the editable, valid fields onto the user in place.
-    editable = ["name", "age", "gender", "hobbies", "personality",
-                "occupation", "availability", "location", "bio", "preferred_group_size"]
-    keys = list(changes.keys())
-    i = 0
-    while i < len(keys):
-        key = keys[i]
-        if key in editable:
-            user[key] = changes[key]
-        i += 1
-
-
 @app.post("/api/users/{uid}")
 async def api_edit_user(uid: str, changes: dict):
     # update editable traits on one user (no AI -- direct edit).
-    user = _find_user(uid)
+    user = db.get_user(uid)
     if user is None:
         return JSONResponse(status_code=404, content={"error": "no such user"})
     problem = _validate_changes(changes)
     if problem is not None:
         return JSONResponse(status_code=400, content={"error": problem})
-    _apply_changes(user, changes)
-    _save_cast()
-    return user
+    return db.update_user(uid, changes)
 
 
 @app.post("/api/users/{uid}/nudge")
 async def api_nudge_user(uid: str, body: dict, request: Request):
     # AI-assisted edit: "make them more X" rewrites the profile (live mode only).
-    user = _find_user(uid)
+    user = db.get_user(uid)
     if user is None:
         return JSONResponse(status_code=404, content={"error": "no such user"})
     if DEMO_ONLY:
@@ -320,28 +252,20 @@ async def api_nudge_user(uid: str, body: dict, request: Request):
     problem = _validate_changes(changes)
     if problem is not None:
         return JSONResponse(status_code=400, content={"error": "AI produced an invalid change: " + problem})
-    _apply_changes(user, changes)
-    _save_cast()
-    return user
+    return db.update_user(uid, changes)
 
 
 @app.post("/api/reset")
 async def api_reset():
-    # restore the original 12 people and forget all edits.
-    STATE["users"] = copy.deepcopy(USERS)
-    STATE["interview_cache"] = None
-    STATE["last_run"] = None
-    try:
-        if os.path.exists(_CAST_PATH):
-            os.remove(_CAST_PATH)
-    except Exception:
-        pass
-    return {"users": STATE["users"]}
+    # restore the original 12 people and forget all edits. Past runs/matches
+    # and feedback history are untouched (same as before Milestone 1).
+    db.replace_users(USERS)
+    return {"users": db.list_users()}
 
 
 @app.get("/api/feedback")
 async def api_get_feedback():
-    return {"feedback": STATE["feedback"]}
+    return {"feedback": db.list_feedback()}
 
 
 @app.post("/api/feedback")
@@ -355,19 +279,13 @@ async def api_add_feedback(body: dict):
         "rating": rating,
         "note": (body.get("note") or "").strip(),
     }
-    STATE["feedback"].append(entry)
-    _save_feedback()
-    return {"feedback": STATE["feedback"]}
+    db.add_feedback(entry)
+    return {"feedback": db.list_feedback()}
 
 
 @app.post("/api/feedback/clear")
 async def api_clear_feedback():
-    STATE["feedback"] = []
-    try:
-        if os.path.exists(_FEEDBACK_PATH):
-            os.remove(_FEEDBACK_PATH)
-    except Exception:
-        pass
+    db.clear_feedback()
     return {"feedback": []}
 
 
@@ -400,24 +318,39 @@ async def api_set_key(body: dict):
     return {"configured": True}
 
 
+def _persist_run(mode, signature, result, reused):
+    # save a completed pipeline run (interviews, every group formed, each
+    # group's negotiation + meetup) so it survives a restart and can be
+    # explained later by /api/master-chat.
+    run_id = db.create_run(mode, signature)
+    db.save_interviews(run_id, result["interviews"])
+    groups = result["groups"]
+    gi = 0
+    while gi < len(groups):
+        entry = groups[gi]
+        match_id = db.save_match(run_id, gi, entry["match"])
+        if entry.get("negotiation") is not None:
+            db.save_negotiation(match_id, entry["negotiation"])
+        if entry.get("popup") is not None:
+            db.save_meetup(match_id, entry["popup"])
+        gi += 1
+    db.finish_run(run_id, result["unmatched"])
+    result["interviews_reused"] = reused
+
+
 @app.post("/api/run")
 async def api_run(request: Request, mode: str = "demo"):
-    # run the full pipeline on the (possibly edited) cast; remember the result.
+    # run the full pipeline on the (possibly edited) cast; persist the result.
     # Reuse cached interviews when the cast + mode are unchanged (skips 12 calls).
     mode = _effective_mode(mode)
     key = _request_key(request)
     try:
-        signature = _users_signature(STATE["users"])
-        cache = STATE["interview_cache"]
-        reuse = None
-        if cache is not None and cache["signature"] == signature and cache["mode"] == mode:
-            reuse = cache["interviews"]
-        result = await run_pipeline(STATE["users"], client=_counting_client(mode, key),
-                                    verbose=False, interviews=reuse, feedback=STATE["feedback"])
-        STATE["interview_cache"] = {"signature": signature, "mode": mode,
-                                    "interviews": result["interviews"]}
-        STATE["last_run"] = result
-        result["interviews_reused"] = reuse is not None
+        users = db.list_users()
+        signature = _users_signature(users)
+        cached = db.find_cached_interviews(signature, mode)
+        result = await run_pipeline(users, client=_counting_client(mode, key),
+                                    verbose=False, interviews=cached, feedback=db.list_feedback())
+        _persist_run(mode, signature, result, cached is not None)
         return result
     except Exception as error:
         return JSONResponse(status_code=500, content={"error": str(error)})
@@ -440,17 +373,13 @@ async def api_run_stream(mode: str = "demo", session: str = None):
 
     async def run():
         try:
-            signature = _users_signature(STATE["users"])
-            cache = STATE["interview_cache"]
-            reuse = None
-            if cache is not None and cache["signature"] == signature and cache["mode"] == mode:
-                reuse = cache["interviews"]
-            result = await run_pipeline(STATE["users"], client=_counting_client(mode, key),
-                                        verbose=False, interviews=reuse, on_stage=on_stage,
-                                        feedback=STATE["feedback"])
-            STATE["interview_cache"] = {"signature": signature, "mode": mode,
-                                        "interviews": result["interviews"]}
-            STATE["last_run"] = result
+            users = db.list_users()
+            signature = _users_signature(users)
+            cached = db.find_cached_interviews(signature, mode)
+            result = await run_pipeline(users, client=_counting_client(mode, key),
+                                        verbose=False, interviews=cached, on_stage=on_stage,
+                                        feedback=db.list_feedback())
+            _persist_run(mode, signature, result, cached is not None)
         except Exception as error:
             queue.put_nowait({"stage": "error", "data": str(error)})
         finally:
@@ -491,20 +420,17 @@ async def api_generate_cast(request: Request, body: dict):
         return JSONResponse(status_code=502, content={
             "error": "Couldn't invent a full cast (the AI returned {} usable people). "
                      "Your current cast is unchanged -- try again in a moment.".format(len(users))})
-    STATE["users"] = users
-    STATE["interview_cache"] = None     # new people -> old interviews are stale
-    STATE["last_run"] = None
-    _save_cast()
+    db.replace_users(users)
     warning = None
     if len(users) < 12:
         warning = "Only {} of 12 people came back this time (some AI calls failed).".format(len(users))
-    return {"users": users, "warning": warning}
+    return {"users": db.list_users(), "warning": warning}
 
 
 @app.post("/api/chat")
 async def api_chat(body: dict, request: Request):
     # talk to one persona, in character. history = [{role, content}, ...].
-    user = _find_user(body.get("user_id"))
+    user = db.get_user(body.get("user_id"))
     if user is None:
         return JSONResponse(status_code=404, content={"error": "no such user"})
     claw = Claw(user, client=_client_for(_effective_mode(body.get("mode", "demo")), _request_key(request)))
@@ -517,10 +443,14 @@ async def api_chat(body: dict, request: Request):
 
 @app.post("/api/master-chat")
 async def api_master_chat(body: dict, request: Request):
-    # ask the Master Claw why it decided what it did (about the last run).
-    run_result = STATE["last_run"]
-    if run_result is None:
+    # ask the Master Claw why it decided what it did (about the last run for
+    # the CURRENT cast -- editing or resetting people "forgets" the last run,
+    # same as before Milestone 1).
+    signature = _users_signature(db.list_users())
+    run_id = db.latest_run_id_for_signature(signature)
+    if run_id is None:
         return {"reply": "Run the matchmaker first, then I can explain what I did and why."}
+    run_result = db.load_run_result(run_id)
     mode = _effective_mode(body.get("mode", "demo"))
     if mode == "demo":
         # free, offline: a grounded summary built from the actual run (no AI).
@@ -536,6 +466,109 @@ async def api_master_chat(body: dict, request: Request):
         return JSONResponse(status_code=500, content={"error": str(error)})
 
 
+# ============================================================================
+# Real-user pilot: authentication (Google OAuth + email magic link).
+# One session model for both; residents and the admin allowlist share it.
+# See auth.py for the actual OAuth/magic-link/session mechanics.
+# ============================================================================
+
+def _login_success_html(result):
+    # a minimal, self-contained confirmation page -- the real onboarding/admin
+    # UIs land in a later stage; this just proves the login mechanics work.
+    return (
+        "<html><body style='font-family:sans-serif;max-width:480px;margin:60px auto'>"
+        "<h2>You're logged in</h2>"
+        "<p>Signed in as <b>" + html.escape(result["email"]) + "</b> (" + html.escape(result["role"]) + ").</p>"
+        "<p><a href='/api/me'>/api/me</a></p>"
+        "</body></html>"
+    )
+
+
+@app.get("/auth/google/login")
+async def google_login(request: Request, neighborhood: str = None):
+    if not auth.google_configured():
+        return JSONResponse(status_code=503, content={"error": "Google login is not configured yet."})
+    neighborhood_id = None
+    if neighborhood is not None and len(neighborhood.strip()) > 0:
+        nb = db.get_or_create_neighborhood(neighborhood.strip(), neighborhood.strip(), config.MATCH_BATCH_THRESHOLD)
+        neighborhood_id = nb["id"]
+    redirect_uri = str(request.url_for("google_callback"))
+    try:
+        url = auth.google_authorize_url(redirect_uri, neighborhood_id)
+    except ValueError as error:
+        return JSONResponse(status_code=503, content={"error": str(error)})
+    return RedirectResponse(url)
+
+
+@app.get("/auth/google/callback")
+async def google_callback(request: Request, code: str = None, state: str = None):
+    if code is None:
+        return JSONResponse(status_code=400, content={"error": "Missing authorization code."})
+    redirect_uri = str(request.url_for("google_callback"))
+    try:
+        result = await auth.google_login_callback(code, state, redirect_uri)
+    except ValueError as error:
+        return JSONResponse(status_code=400, content={"error": str(error)})
+    except Exception as error:
+        return JSONResponse(status_code=500, content={"error": str(error)})
+    response = HTMLResponse(_login_success_html(result))
+    auth.set_session_cookie(response, result["token"])
+    return response
+
+
+@app.post("/api/auth/magic-link/request")
+async def api_magic_link_request(request: Request, body: dict):
+    email = (body.get("email") or "").strip().lower()
+    if "@" not in email or len(email) < 5:
+        return JSONResponse(status_code=400, content={"error": "Enter a valid email address."})
+    neighborhood = body.get("neighborhood")
+    neighborhood_id = None
+    if neighborhood is not None and len(str(neighborhood).strip()) > 0:
+        slug = str(neighborhood).strip()
+        nb = db.get_or_create_neighborhood(slug, slug, config.MATCH_BATCH_THRESHOLD)
+        neighborhood_id = nb["id"]
+    elif not auth.is_admin(email):
+        return JSONResponse(status_code=400,
+                            content={"error": "This login link is missing a neighborhood invite code."})
+    verify_base_url = str(request.url_for("magic_link_verify"))
+    await auth.request_magic_link(email, neighborhood_id, verify_base_url)
+    return {"sent": True}
+
+
+@app.get("/auth/magic-link/verify")
+async def magic_link_verify(token: str = None):
+    try:
+        result = auth.verify_magic_link(token)
+    except ValueError as error:
+        return JSONResponse(status_code=400, content={"error": str(error)})
+    if result is None:
+        return JSONResponse(status_code=400, content={"error": "This link is invalid, expired, or already used."})
+    response = HTMLResponse(_login_success_html(result))
+    auth.set_session_cookie(response, result["token"])
+    return response
+
+
+@app.post("/api/auth/logout")
+async def api_logout(request: Request):
+    response = JSONResponse(content={"ok": True})
+    auth.logout(request, response)
+    return response
+
+
+@app.get("/api/me")
+async def api_me(request: Request):
+    session = auth.current_session(request)
+    if session is None:
+        return JSONResponse(status_code=401, content={"error": "not logged in"})
+    result = dict(session)
+    if session.get("neighborhood_id") is not None:
+        neighborhood = db.get_neighborhood(session["neighborhood_id"])
+        if neighborhood is not None:
+            result["neighborhood_slug"] = neighborhood["slug"]
+            result["neighborhood_name"] = neighborhood["name"]
+    return result
+
+
 if __name__ == "__main__":
     import uvicorn
     # cloud hosts (Render, etc.) set PORT and expect the app to bind 0.0.0.0.
@@ -544,7 +577,9 @@ if __name__ == "__main__":
     on_cloud = os.environ.get("PORT") is not None
     if on_cloud:
         print("Clawnly running in the cloud on port " + str(port))
-        uvicorn.run(app, host="0.0.0.0", port=port)
+        # trust the platform's proxy headers so request.url_for() (used by the
+        # Google OAuth redirect_uri) reports https:// instead of http://.
+        uvicorn.run(app, host="0.0.0.0", port=port, proxy_headers=True, forwarded_allow_ips="*")
     else:
         import threading
         import webbrowser

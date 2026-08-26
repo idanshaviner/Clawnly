@@ -104,7 +104,8 @@ def test_is_solvable_true_for_seed_false_for_impossible():
 
 
 def test_evaluate_records_solvability():
-    valid = json_body({"group": ["u01", "u04", "u10"], "reason": "r", "scores": {}, "why_not": []})
+    scores = {"personality": 4, "availability": 4, "interests": 4, "size_fit": 4}
+    valid = json_body({"group": ["u01", "u04", "u10"], "reason": "r", "scores": scores, "why_not": []})
     refusal = json_body({"group": [], "reason": "no", "scores": {}, "why_not": []})
     fake = FakeClient(match_queue=[valid, refusal])
     records = run(evalmod.evaluate(controlled_pools(), fake))

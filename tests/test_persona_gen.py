@@ -44,6 +44,38 @@ def test_reid_assigns_sequential_unique_ids():
     assert [u["id"] for u in out] == ["u01", "u02", "u03"]
 
 
+# ----- slot leans: full coverage, genuinely randomized -----------------------
+
+def test_slot_specs_cover_every_personality_and_occupation():
+    # a 12-slot cast must still span all three personalities/occupations and
+    # all six hobby-category focuses, regardless of shuffle order.
+    specs = persona_gen._slot_specs(12)
+    personalities = set(s["personality"] for s in specs)
+    occupations = set(s["occupation"] for s in specs)
+    focuses = set(s["focus"] for s in specs)
+    assert personalities == {"introverted", "extroverted", "mixed"}
+    assert occupations == {"student", "working professional", "freelancer"}
+    assert len(focuses) == 6
+
+
+def test_slot_specs_lean_order_is_randomized_across_calls():
+    # which slot gets which lean should differ run to run, not follow the
+    # same fixed index pattern every time (that was the old, non-random behavior).
+    seen = set()
+    i = 0
+    while i < 20:
+        specs = persona_gen._slot_specs(12)
+        seen.add(tuple(s["personality"] for s in specs))
+        i += 1
+    assert len(seen) > 1
+
+
+def test_cycled_shuffle_covers_all_options_and_matches_requested_count():
+    out = persona_gen._cycled_shuffle(["a", "b", "c"], 7)
+    assert len(out) == 7
+    assert set(out) == {"a", "b", "c"}
+
+
 # ----- generation (mocked): one concurrent call per person ------------------
 
 def test_generate_users_invents_each_person_in_its_own_call():

@@ -9,13 +9,36 @@ import os
 from anthropic import AsyncAnthropic
 
 
-# model per role. the match call is the reasoning-critical one, so it gets the
-# strongest model; the bulk interview calls get the cheapest model to control cost
-# (SPEC section 2).
-MODEL_INTERVIEW = "claude-haiku-4-5"   # cheap + fast: the 12 interview calls
-MODEL_CLAW = "claude-sonnet-4-6"        # richer model for free-style chat
-MODEL_MATCH = "claude-opus-4-8"         # strongest: the reasoning-critical match
-MODEL_POPUP = "claude-sonnet-4-6"
+# ----- model tiers (cost/reasoning ladder) ---------------------------------
+# three tiers, cheapest to most expensive. Route each AI task to the cheapest
+# tier that can reliably do the job -- reserve the premium tier for the one
+# call where getting it right matters most (SPEC section 2).
+MODEL_CHEAP = "claude-haiku-4-5"       # bulk, mechanical, low-reasoning tasks:
+                                        # interview answers, in-character reactions,
+                                        # structured fact-extraction (e.g. "is this
+                                        # profile complete yet?")
+MODEL_REASONING = "claude-sonnet-4-6"  # needs real judgment/quality but isn't the
+                                        # single highest-stakes call: free-form chat,
+                                        # negotiation, popup/venue suggestions, persona
+                                        # generation, explaining a decision
+MODEL_PREMIUM = "claude-opus-4-8"      # the reasoning-critical call: forming the
+                                        # actual group. Match quality is the whole
+                                        # product's bet, so it gets the strongest model
+
+# named per-task aliases -- kept for readability at each call site, and so
+# nothing elsewhere has to change. Always equal to one of the three tiers
+# above; retier a task by moving its alias, never by hardcoding a new model id.
+MODEL_INTERVIEW = MODEL_CHEAP      # the 12 interview calls
+MODEL_CLAW = MODEL_REASONING       # free-style chat, negotiation, persona gen, explain
+MODEL_MATCH = MODEL_PREMIUM        # the reasoning-critical match
+MODEL_POPUP = MODEL_REASONING      # venue/meetup suggestions
+
+# real-user pilot (onboarding): the chat reply itself needs real quality
+# (MODEL_REASONING), but checking whether a profile is complete yet is a
+# simple structured read of the transcript so far -- it stays on MODEL_CHEAP
+# even though it runs after every turn.
+MODEL_ONBOARDING_CHAT = MODEL_REASONING
+MODEL_ONBOARDING_COMPLETENESS = MODEL_CHEAP
 
 
 # temperatures for the Sonnet calls: vivid personas, lively popups.
@@ -37,29 +60,59 @@ MATCH_EFFORT = "medium"
 # "workable" (3) on average. Lower it to match more freely, raise it to be pickier.
 MIN_MATCH_QUALITY = 3.5
 
+# how many profile-complete residents a neighborhood needs before a matching
+# batch runs automatically (real-user pilot). Bigger pools give the matcher more
+# room to find genuinely strong groups instead of settling; lower this if a
+# neighborhood is filling too slowly, raise it for stricter pools. Each
+# neighborhood snapshots this value when it's created, so changing it here only
+# affects neighborhoods created afterward -- it never moves the goalposts on a
+# cohort already filling up.
+MATCH_BATCH_THRESHOLD = 100
 
-def resolve_api_key():
+# who can see the admin dashboard (real-user pilot). Comma-separated emails in
+# CLAWNLY_ADMIN_EMAILS, e.g. "you@example.com,cofounder@example.com". Plain
+# allowlist, not a role/permission system -- this is a single-operator alpha.
+# Read fresh (not cached) so tests can change it without reimporting anything.
+def parse_admin_emails():
+    raw = os.environ.get("CLAWNLY_ADMIN_EMAILS", "")
+    emails = []
+    parts = raw.split(",")
+    i = 0
+    while i < len(parts):
+        email = parts[i].strip().lower()
+        if len(email) > 0:
+            emails.append(email)
+        i += 1
+    return emails
+
+
+def resolve_env(name):
     # 1) the environment variable (works when launched from a terminal export).
-    key = os.environ.get("ANTHROPIC_API_KEY")
-    if key:
-        return key
+    value = os.environ.get(name)
+    if value:
+        return value
     # 2) a .env file at the project root (so the double-click launcher can do
-    #    live mode without an export). The file is gitignored; one line:
-    #       ANTHROPIC_API_KEY=sk-ant-...
+    #    live mode without an export). The file is gitignored; one line per key:
+    #       NAME=value
     root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     env_path = os.path.join(root, ".env")
     if os.path.exists(env_path):
         with open(env_path) as handle:
             lines = handle.read().splitlines()
+        prefix = name + "="
         i = 0
         while i < len(lines):
             line = lines[i].strip()
-            if line.startswith("ANTHROPIC_API_KEY="):
-                value = line[len("ANTHROPIC_API_KEY="):].strip().strip('"').strip("'")
+            if line.startswith(prefix):
+                value = line[len(prefix):].strip().strip('"').strip("'")
                 if len(value) > 0:
                     return value
             i += 1
     return None
+
+
+def resolve_api_key():
+    return resolve_env("ANTHROPIC_API_KEY")
 
 
 def get_client():

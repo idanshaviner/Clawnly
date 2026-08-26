@@ -9,7 +9,14 @@ apply to the shipped modules, not to tests.
 
 import asyncio
 import json
+import os
 from types import SimpleNamespace
+
+# isolate the test database from the real clawnly.db a manual run would create.
+# Must happen before db.py (or app.py, which imports it) is first imported --
+# conftest.py is always loaded before test modules, so this is early enough.
+_TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
+os.environ.setdefault("CLAWNLY_DB_PATH", os.path.join(_TESTS_DIR, "test_clawnly.db"))
 
 import config
 

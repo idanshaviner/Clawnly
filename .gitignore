@@ -4,5 +4,11 @@ __pycache__/
 .pytest_cache/
 .env
 .DS_Store
-cast.json
-feedback.json
+clawnly.db
+clawnly.db-journal
+clawnly.db-wal
+clawnly.db-shm
+tests/test_clawnly.db
+tests/test_clawnly.db-journal
+tests/test_clawnly.db-wal
+tests/test_clawnly.db-shm

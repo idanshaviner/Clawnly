@@ -26,8 +26,11 @@ from claw import Claw
 from demo import DemoClient
 from explain import explain_decision, context_summary
 from main import run_pipeline
+import admin
+import batch
 import my_match
 import onboarding
+import usage
 from persona_gen import generate_users, nudge_user, DEFAULT_THEME
 from users import USERS, HOBBY_CATEGORIES, AVAILABILITY_WINDOWS
 
@@ -99,6 +102,7 @@ _JOIN = os.path.join(_HERE, "web", "join.html")
 _CONSENT = os.path.join(_HERE, "web", "consent.html")
 _ONBOARDING = os.path.join(_HERE, "web", "onboarding.html")
 _MY_MATCH = os.path.join(_HERE, "web", "my-match.html")
+_ADMIN = os.path.join(_HERE, "web", "admin.html")
 
 
 def _users_signature(users):
@@ -125,27 +129,6 @@ def _client_for(mode, key=None):
     return None
 
 
-class _CountingMessages:
-    def __init__(self, inner, counter):
-        self._inner = inner
-        self._counter = counter
-
-    async def create(self, **kwargs):
-        model = kwargs.get("model", "?")
-        self._counter["total"] += 1
-        by_model = self._counter["by_model"]
-        by_model[model] = by_model.get(model, 0) + 1
-        return await self._inner.create(**kwargs)
-
-
-class CountingClient:
-    # wraps any client and tallies how many API calls a run made, by model,
-    # so the UI can show a usage/cost meter.
-    def __init__(self, inner):
-        self.counter = {"total": 0, "by_model": {}}
-        self.messages = _CountingMessages(inner.messages, self.counter)
-
-
 def _counting_client(mode, key=None):
     # a real/demo client wrapped so the run reports its call usage.
     if mode == "demo":
@@ -154,7 +137,7 @@ def _counting_client(mode, key=None):
         inner = config.client_from_key(key)   # visitor's own key; billed to them
     else:
         inner = config.get_client()           # server's key (raises if none; caught upstream)
-    return CountingClient(inner)
+    return usage.CountingClient(inner)
 
 
 @app.get("/")
@@ -680,6 +663,65 @@ async def api_my_match_respond(body: dict, request: Request):
     if error is not None:
         return JSONResponse(status_code=400, content={"error": error})
     return state
+
+
+# ============================================================================
+# Real-user pilot: admin dashboard (Stage 6). Neighborhood progress, resident
+# status, recent batch runs + usage, and a manual "trigger batch now"
+# override -- read-only aggregation of data earlier stages already persist
+# (see admin.py's module docstring). Plain/functional styling -- an internal
+# tool, not resident-facing.
+# ============================================================================
+
+def _require_admin(request):
+    session = auth.current_session(request)
+    if session is None:
+        return None, JSONResponse(status_code=401, content={"error": "not logged in"})
+    if session.get("role") != "admin":
+        return None, JSONResponse(status_code=403, content={"error": "Admin access required."})
+    return session, None
+
+
+@app.get("/admin")
+async def admin_page():
+    return FileResponse(_ADMIN)
+
+
+@app.get("/api/admin/neighborhoods")
+async def api_admin_neighborhoods(request: Request):
+    session, error_response = _require_admin(request)
+    if error_response is not None:
+        return error_response
+    return {"neighborhoods": admin.list_neighborhood_progress()}
+
+
+@app.get("/api/admin/neighborhoods/{neighborhood_id}")
+async def api_admin_neighborhood_detail(neighborhood_id: int, request: Request):
+    session, error_response = _require_admin(request)
+    if error_response is not None:
+        return error_response
+    neighborhood = db.get_neighborhood(neighborhood_id)
+    if neighborhood is None:
+        return JSONResponse(status_code=404, content={"error": "no such neighborhood"})
+    return {
+        "neighborhood": admin.neighborhood_progress(neighborhood),
+        "residents": admin.resident_summaries(neighborhood_id),
+        "runs": admin.recent_run_summaries(neighborhood_id),
+    }
+
+
+@app.post("/api/admin/neighborhoods/{neighborhood_id}/trigger")
+async def api_admin_trigger(neighborhood_id: int, request: Request):
+    session, error_response = _require_admin(request)
+    if error_response is not None:
+        return error_response
+    try:
+        run_id, error = await batch.force_trigger_batch(neighborhood_id)
+    except Exception as error:
+        return JSONResponse(status_code=500, content={"error": str(error)})
+    if error is not None:
+        return JSONResponse(status_code=400, content={"error": error})
+    return {"run_id": run_id}
 
 
 if __name__ == "__main__":

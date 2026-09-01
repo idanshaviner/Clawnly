@@ -560,6 +560,110 @@ def test_api_my_match_respond_accept_round_trip():
         client.cookies.clear()
 
 
+# ----- routes: admin dashboard (stage 6) --------------------------------------
+
+def _admin_session():
+    os.environ["CLAWNLY_ADMIN_EMAILS"] = "boss@example.com"
+    token = auth.start_session("boss@example.com", "admin", None, None)
+    return token
+
+
+def test_admin_page_serves():
+    reset_state()
+    r = client.get("/admin")
+    assert r.status_code == 200
+    assert "text/html" in r.headers["content-type"]
+
+
+def test_api_admin_neighborhoods_requires_login():
+    reset_state()
+    r = client.get("/api/admin/neighborhoods")
+    assert r.status_code == 401
+
+
+def test_api_admin_neighborhoods_requires_admin_role():
+    reset_state()
+    resident, token = _consented_resident_session()
+    client.cookies.set(auth.SESSION_COOKIE_NAME, token)
+    try:
+        r = client.get("/api/admin/neighborhoods")
+        assert r.status_code == 403
+    finally:
+        client.cookies.clear()
+
+
+def test_api_admin_neighborhoods_lists_progress():
+    reset_state()
+    nb = db.get_or_create_neighborhood("ballard", "Ballard", 10)
+    db.get_or_create_resident(nb["id"], "a@example.com", "google")
+    token = _admin_session()
+    client.cookies.set(auth.SESSION_COOKIE_NAME, token)
+    try:
+        r = client.get("/api/admin/neighborhoods")
+        assert r.status_code == 200
+        rows = r.json()["neighborhoods"]
+        assert any(row["slug"] == "ballard" and row["resident_count"] == 1 for row in rows)
+    finally:
+        client.cookies.clear()
+
+
+def test_api_admin_neighborhood_detail_unknown_id():
+    reset_state()
+    token = _admin_session()
+    client.cookies.set(auth.SESSION_COOKIE_NAME, token)
+    try:
+        r = client.get("/api/admin/neighborhoods/999999")
+        assert r.status_code == 404
+    finally:
+        client.cookies.clear()
+
+
+def test_api_admin_neighborhood_detail_includes_residents_and_runs():
+    reset_state()
+    nb = db.get_or_create_neighborhood("ballard", "Ballard", 10)
+    resident = db.get_or_create_resident(nb["id"], "a@example.com", "google")
+    db.mark_profile_complete(resident["id"])
+    token = _admin_session()
+    client.cookies.set(auth.SESSION_COOKIE_NAME, token)
+    try:
+        r = client.get("/api/admin/neighborhoods/" + str(nb["id"]))
+        assert r.status_code == 200
+        data = r.json()
+        assert data["neighborhood"]["complete_count"] == 1
+        assert data["residents"][0]["email"] == "a@example.com"
+        assert data["residents"][0]["status"] == "complete_unmatched"
+        assert data["runs"] == []
+    finally:
+        client.cookies.clear()
+
+
+def test_api_admin_trigger_requires_admin_role():
+    reset_state()
+    nb = db.get_or_create_neighborhood("ballard", "Ballard", 10)
+    resident, token = _consented_resident_session()
+    client.cookies.set(auth.SESSION_COOKIE_NAME, token)
+    try:
+        r = client.post("/api/admin/neighborhoods/" + str(nb["id"]) + "/trigger")
+        assert r.status_code == 403
+    finally:
+        client.cookies.clear()
+
+
+def test_api_admin_trigger_reports_not_enough_residents(monkeypatch):
+    reset_state()
+    nb = db.get_or_create_neighborhood("ballard", "Ballard", 100)
+    from conftest import FakeClient
+    monkeypatch.setattr(config, "get_client", lambda: FakeClient())
+    token = _admin_session()
+    client.cookies.set(auth.SESSION_COOKIE_NAME, token)
+    try:
+        r = client.post("/api/admin/neighborhoods/" + str(nb["id"]) + "/trigger")
+        assert r.status_code == 400
+        assert "at least 2" in r.json()["error"]
+    finally:
+        client.cookies.clear()
+
+
 def test_full_magic_link_login_redirects_a_resident_into_the_consent_flow(monkeypatch, capsys):
     reset_state()
     clear_env(monkeypatch)

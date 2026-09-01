@@ -20,6 +20,7 @@ import json
 import config
 import db
 from main import run_pipeline
+import usage
 from users import AVAILABILITY_WINDOWS, HOBBY_CATEGORIES
 
 
@@ -164,15 +165,54 @@ async def check_and_trigger_batch(neighborhood_id, client=None):
     # this is private, authenticated, real conversation data, never the
     # demo/BYOK toggles the public admin console uses).
     try:
-        result = await run_pipeline(profiles, client=client, verbose=False)
+        await _run_and_persist(neighborhood_id, profiles, client)
     except Exception as error:
         # the CAS already fired, so this neighborhood's one-shot trigger is
-        # spent -- an operator has to intervene (Stage 6's admin surface) if
-        # this happens. Not swallowing it silently, but not crashing the
-        # fire-and-forget task's caller either (same failure-isolation
-        # philosophy as onboarding.py's extraction-call try/except).
+        # spent -- an operator has to intervene (Stage 6's admin surface --
+        # its manual "trigger batch now" override) if this happens. Not
+        # swallowing it silently, but not crashing the fire-and-forget task's
+        # caller either (same failure-isolation philosophy as onboarding.py's
+        # extraction-call try/except).
         print("[batch] neighborhood {} pipeline run failed: {}".format(neighborhood_id, error))
-        return
 
+
+async def _run_and_persist(neighborhood_id, profiles, client):
+    # shared by the automatic threshold trigger above and the admin
+    # dashboard's manual override below -- wraps the client so the admin
+    # dashboard's usage visibility (Stage 6) works for both the same way.
+    counting_client = usage.CountingClient(client)
+    result = await run_pipeline(profiles, client=counting_client, verbose=False)
     signature = json.dumps(profiles, sort_keys=True)
-    db.persist_run_result("live", signature, result, neighborhood_id=neighborhood_id)
+    return db.persist_run_result("live", signature, result, neighborhood_id=neighborhood_id)
+
+
+async def force_trigger_batch(neighborhood_id, client=None):
+    # the admin dashboard's manual "trigger batch now" override (Stage 6):
+    # bypasses batch_threshold entirely (useful for testing, and for
+    # re-matching residents a decline released back into the pool -- nothing
+    # else currently re-triggers for them, see ROADMAP.md's Stage 5 caveat).
+    # Still needs at least 2 eligible residents (master_claw.py's own hard
+    # floor -- H4 -- for any group at all). Unlike check_and_trigger_batch
+    # this runs synchronously inside an authenticated admin request, so a
+    # pipeline exception is allowed to propagate to the caller (app.py's
+    # route reports it as a real error) instead of being swallowed.
+    neighborhood = db.get_neighborhood(neighborhood_id)
+    if neighborhood is None:
+        return None, "No such neighborhood."
+
+    eligible = db.list_eligible_residents(neighborhood_id)
+    if len(eligible) < 2:
+        return None, "Not enough eligible residents to form even one group (need at least 2)."
+
+    profiles = []
+    i = 0
+    while i < len(eligible):
+        profiles.append(resident_to_profile(eligible[i], neighborhood))
+        i += 1
+
+    if client is None:
+        client = config.get_client()
+
+    db.mark_batch_triggered(neighborhood_id)
+    run_id = await _run_and_persist(neighborhood_id, profiles, client)
+    return run_id, None

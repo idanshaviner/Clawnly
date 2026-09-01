@@ -262,6 +262,81 @@ def test_pipeline_exception_does_not_raise_out_of_the_background_task():
     assert count == 0   # nothing half-persisted
 
 
+# ----- force_trigger_batch: admin manual override (stage 6) ------------------
+
+def test_force_trigger_requires_at_least_two_eligible_residents():
+    reset()
+    nb = make_neighborhood(threshold=100)   # would never auto-trigger
+    make_complete_resident(nb, "a@example.com", "A")
+    fake = FakeClient()
+    run_id, error = run(batch.force_trigger_batch(nb["id"], client=fake))
+    assert run_id is None
+    assert "at least 2" in error
+    assert fake.calls == []
+
+
+def test_force_trigger_unknown_neighborhood():
+    reset()
+    run_id, error = run(batch.force_trigger_batch(999999, client=FakeClient()))
+    assert run_id is None
+    assert error == "No such neighborhood."
+
+
+def test_force_trigger_bypasses_the_threshold():
+    reset()
+    nb = make_neighborhood(threshold=100)   # nowhere close to met
+    r1 = make_complete_resident(nb, "a@example.com", "A", availability=["weekend_daytime"])
+    r2 = make_complete_resident(nb, "b@example.com", "B", availability=["weekend_daytime"])
+    r3 = make_complete_resident(nb, "c@example.com", "C", availability=["weekend_daytime"])
+    group_ids = ["r" + str(r1["id"]), "r" + str(r2["id"]), "r" + str(r3["id"])]
+    fake = pipeline_fake(group_ids)
+
+    run_id, error = run(batch.force_trigger_batch(nb["id"], client=fake))
+    assert error is None
+    assert run_id is not None
+    assert db.get_neighborhood(nb["id"])["batch_triggered_at"] is not None
+    result = db.load_run_result(run_id)
+    assert result["groups"][0]["match"]["group"] == group_ids
+
+
+def test_force_trigger_records_usage():
+    reset()
+    nb = make_neighborhood(threshold=100)
+    r1 = make_complete_resident(nb, "a@example.com", "A", availability=["weekend_daytime"])
+    r2 = make_complete_resident(nb, "b@example.com", "B", availability=["weekend_daytime"])
+    r3 = make_complete_resident(nb, "c@example.com", "C", availability=["weekend_daytime"])
+    group_ids = ["r" + str(r1["id"]), "r" + str(r2["id"]), "r" + str(r3["id"])]
+    fake = pipeline_fake(group_ids)
+
+    run_id, error = run(batch.force_trigger_batch(nb["id"], client=fake))
+    assert error is None
+    conn = db._get_conn()
+    row = conn.execute("SELECT usage FROM runs WHERE id = ?", (run_id,)).fetchone()
+    assert row["usage"] is not None
+    import json as jsonlib
+    usage_data = jsonlib.loads(row["usage"])
+    assert usage_data["total"] > 0
+
+
+def test_force_trigger_can_fire_again_after_an_earlier_trigger():
+    reset()
+    nb = make_neighborhood(threshold=2)
+    r1 = make_complete_resident(nb, "a@example.com", "A", availability=["weekend_daytime"])
+    r2 = make_complete_resident(nb, "b@example.com", "B", availability=["weekend_daytime"])
+    group_ids = ["r" + str(r1["id"]), "r" + str(r2["id"])]
+
+    # the automatic threshold trigger fires once, dissolving isn't simulated here --
+    # just confirm force_trigger_batch doesn't get blocked by an already-set
+    # batch_triggered_at the way the automatic CAS would.
+    db.try_trigger_batch(nb["id"])
+    assert db.get_neighborhood(nb["id"])["batch_triggered_at"] is not None
+
+    fake = pipeline_fake(group_ids)
+    run_id, error = run(batch.force_trigger_batch(nb["id"], client=fake))
+    assert error is None
+    assert run_id is not None
+
+
 def test_default_client_falls_back_to_config_get_client(monkeypatch):
     reset()
     nb = make_neighborhood(threshold=3)

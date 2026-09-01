@@ -147,6 +147,9 @@ def init_db():
     # resident members (an all-demo-cast admin-console group).
     _ensure_column(conn, "matches", "sealed_at", "TEXT")
     _ensure_column(conn, "matches", "dissolved_at", "TEXT")
+    # per-run API call tally (Stage 6 admin usage visibility) -- reuses the
+    # existing CountingClient call-count pattern, JSON {"total":N,"by_model":{}}.
+    _ensure_column(conn, "runs", "usage", "TEXT")
 
     conn.commit()
 
@@ -420,7 +423,48 @@ def persist_run_result(mode, signature, result, neighborhood_id=None):
             create_pending_acceptances(match_id, resident_ids)
         gi += 1
     finish_run(run_id, result["unmatched"])
+    if result.get("usage") is not None:
+        set_run_usage(run_id, result["usage"])
     return run_id
+
+
+def set_run_usage(run_id, usage):
+    # per-run API call tally (Stage 6 admin dashboard) -- only ever set when
+    # the pipeline ran with a CountingClient (see usage.py), so most
+    # admin-console demo runs simply never call this.
+    conn = _get_conn()
+    conn.execute("UPDATE runs SET usage = ? WHERE id = ?", (json.dumps(usage), run_id))
+    conn.commit()
+
+
+def list_runs_for_neighborhood(neighborhood_id, limit=10):
+    # newest-first summary of past batch runs for the admin dashboard --
+    # group/unmatched counts + the call-usage tally, without reconstructing
+    # every interview/match/negotiation/meetup row (load_run_result does that
+    # for the one run at a time admin.py actually inspects in detail).
+    conn = _get_conn()
+    rows = conn.execute(
+        "SELECT * FROM runs WHERE neighborhood_id = ? ORDER BY id DESC LIMIT ?",
+        (neighborhood_id, limit),
+    ).fetchall()
+    out = []
+    i = 0
+    while i < len(rows):
+        row = rows[i]
+        group_count = conn.execute(
+            "SELECT COUNT(*) FROM matches WHERE run_id = ?", (row["id"],)
+        ).fetchone()[0]
+        usage = None
+        if row["usage"] is not None:
+            usage = json.loads(row["usage"])
+        out.append({
+            "id": row["id"], "mode": row["mode"], "created_at": row["created_at"],
+            "group_count": group_count,
+            "unmatched_count": len(json.loads(row["unmatched_ids"])),
+            "usage": usage,
+        })
+        i += 1
+    return out
 
 
 def load_run_result(run_id):
@@ -551,6 +595,31 @@ def get_or_create_neighborhood(slug, name, batch_threshold):
     return get_neighborhood_by_slug(slug)
 
 
+def list_neighborhoods():
+    conn = _get_conn()
+    rows = conn.execute("SELECT * FROM neighborhoods ORDER BY id").fetchall()
+    out = []
+    i = 0
+    while i < len(rows):
+        out.append(_row_to_neighborhood(rows[i]))
+        i += 1
+    return out
+
+
+def mark_batch_triggered(neighborhood_id):
+    # the admin dashboard's manual "trigger batch now" override (Stage 6) --
+    # unlike try_trigger_batch's compare-and-swap (the automatic, one-shot,
+    # concurrency-safe guard on a resident completion crossing the
+    # threshold), this is a deliberate, single, authenticated admin action
+    # that's allowed to fire again even after an earlier automatic or manual
+    # trigger -- e.g. to re-match residents a decline released back into the
+    # pool, since nothing else currently re-triggers for them (see
+    # ROADMAP.md's Stage 5 caveat).
+    conn = _get_conn()
+    conn.execute("UPDATE neighborhoods SET batch_triggered_at = ? WHERE id = ?", (_now(), neighborhood_id))
+    conn.commit()
+
+
 def try_trigger_batch(neighborhood_id):
     # compare-and-swap: only the caller that actually flips batch_triggered_at
     # from NULL wins (rowcount 1), so two near-simultaneous onboarding
@@ -664,6 +733,22 @@ def update_resident_profile(resident_id, fields):
         i += 1
     conn.commit()
     return get_resident(resident_id)
+
+
+def list_residents(neighborhood_id):
+    # EVERY resident in this cohort, complete or not -- the admin dashboard's
+    # full roster (list_complete_residents/list_eligible_residents stay
+    # scoped to what batch.py actually needs).
+    conn = _get_conn()
+    rows = conn.execute(
+        "SELECT * FROM residents WHERE neighborhood_id = ? ORDER BY id", (neighborhood_id,)
+    ).fetchall()
+    out = []
+    i = 0
+    while i < len(rows):
+        out.append(_row_to_resident(rows[i]))
+        i += 1
+    return out
 
 
 def list_complete_residents(neighborhood_id):

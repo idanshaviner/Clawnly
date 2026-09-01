@@ -38,9 +38,13 @@ hard constraint (H6). Today neither exists in code at all -- `location`/`age`
 are decorative text sent to the model, not validated.
 
 ## Milestone 4 -- Real-user onboarding
-**Status: IN PROGRESS.** See the neighborhood-pilot plan below -- this
-milestone and Milestone 4 are effectively the same piece of work, being built
-in stages.
+**Status: All 6 build stages DONE** (registration/consent, onboarding chat,
+batch trigger, mutual reveal gate, admin dashboard) -- see the neighborhood-
+pilot plan below; this milestone and Milestone 9 are effectively the same
+piece of work, built in stages. Not yet "launched": still needs the human
+prerequisites Stage 1 flagged (a Google OAuth consent screen moved to
+production, a verified Resend sending domain) and an actual cohort of real
+residents.
 
 ## Milestone 5 -- Geographic matchmaking
 **Status: NOT STARTED**, but simplified for the pilot: since the pilot is a
@@ -71,7 +75,8 @@ meet again" capture (not just free text), and a cap on how much feedback gets
 reinjected into future match prompts (see the cost risk noted in Milestone 2).
 
 ## Milestone 9 -- Seattle/neighborhood pilot
-**Status: IN PROGRESS.** This is the neighborhood-pilot plan below.
+**Status: All 6 build stages DONE**, real launch still pending (see Milestone
+4's note above). This is the neighborhood-pilot plan below.
 
 ## Milestone 10 -- Scaling architecture
 **Status: NOT STARTED, intentionally.** Don't start this until the pilot has
@@ -246,20 +251,88 @@ batch now" admin override (or a future reset-on-release design), not
 engineered around here per CLAUDE.md's guidance not to build ahead of an
 actual need.
 
-**Stage 6 -- Admin dashboard: NOT STARTED.**
-Neighborhood progress, resident list + status, manual "trigger batch now"
-override, usage visibility (reusing the `CountingClient` call-count pattern --
-full dollar tracking is Milestone 2, not rebuilt here).
+**Stage 6 -- Admin dashboard: DONE.**
+Built as a stretch goal after Stage 5, same rigor. Pure read-only aggregation
+of data the earlier stages already persist, per the plan ("reusing existing
+data rather than building new tracking") -- no new tracking tables.
+
+New `src/admin.py`: `list_neighborhood_progress()` / `neighborhood_progress()`
+(`complete_count`/`resident_count` vs. `batch_threshold`), `resident_summaries`
+(a plain status rollup -- `onboarding` / `complete_unmatched` / `match_pending`
+/ `match_waiting` / `sealed` / `dissolved` -- computed from
+`profile_complete_at` + the resident's latest `match_acceptances` row + its
+match's `sealed_at`/`dissolved_at`, nothing new tracked), and
+`recent_run_summaries` (group/unmatched counts + usage, and any interview
+`error` records -- the plan's "recent interview/batch failures" requirement,
+reusing `db.load_run_result` rather than a new failure-tracking mechanism).
+
+New `src/usage.py`: `CountingClient`, extracted verbatim from app.py's old
+inline definition so `batch.py`'s real-pilot runs (both the automatic
+threshold trigger and the new manual override) can report a call-count usage
+tally the same way the admin console always has -- `app.py`'s own usage meter
+is unchanged, just now imports the shared wrapper. `db.persist_run_result`
+saves `result["usage"]` (when present) to a new `runs.usage` column
+(`db.set_run_usage`); `db.list_runs_for_neighborhood` surfaces it per run.
+
+New `batch.force_trigger_batch(neighborhood_id, client=None)`: the admin
+dashboard's manual "trigger batch now" override -- bypasses `batch_threshold`
+entirely (useful for testing, and for actually re-matching residents a
+decline released back into the pool, resolving Stage 5's noted caveat -- see
+`db.mark_batch_triggered`, which unlike the automatic path's
+compare-and-swap is allowed to fire again after an earlier trigger). Still
+enforces the one real structural floor -- at least 2 eligible residents
+(`master_claw.py`'s own H4 minimum for any group at all) -- and, since it
+runs synchronously inside an authenticated admin request rather than
+fire-and-forget, lets a pipeline exception propagate as a real error instead
+of being swallowed.
+
+New routes `GET /admin` (`web/admin.html` -- plain/functional styling
+matching `web/index.html`'s existing admin-console palette, not the
+resident-facing cream/sage style; ungated itself, its JS calls gated APIs
+the same way `onboarding.html`/`my-match.html` already do), `GET
+/api/admin/neighborhoods`, `GET /api/admin/neighborhoods/{id}` (residents +
+recent runs), and `POST /api/admin/neighborhoods/{id}/trigger`, all gated by
+a new `_require_admin` (same 401/403 shape as `_require_consented_resident`,
+checking `session["role"] == "admin"` -- a role only ever assigned
+server-side by `auth.is_admin`'s email allowlist, never client-supplied).
+
+29 new tests (`tests/test_admin.py` + additions to `tests/test_batch.py`/
+`tests/test_auth.py`), 295 passing. A `security-review` pass on the new
+admin routes/table found no high-confidence issues (every route behind
+`_require_admin`; the `role` on a session traces back only to the
+server-side allowlist check, never a client-supplied value; parameterized
+SQL throughout; every dynamic value in `admin.html` written through the
+existing `esc()`-before-`innerHTML` pattern). Live-verified against a
+running server with an isolated DB and, for the first time this session, a
+now-valid `ANTHROPIC_API_KEY`: seeded 3 real residents, ran
+`check_and_trigger_batch` for real (a genuine Opus-matched, Sonnet-negotiated,
+grounded group with a real venue suggestion -- Rattlesnake Ledge, WA -- came
+back), drove all three through `/api/my-match`'s pending -> waiting -> sealed
+with real content, confirmed `/api/admin/neighborhoods` and its detail route
+reflect that run's real progress/status/usage (visually checked in a
+browser, not just curl), confirmed a non-admin resident session gets a clean
+403 on every `/api/admin/*` route, exercised
+`POST /api/admin/neighborhoods/{id}/trigger` for real against a second
+neighborhood with only 2 residents and a threshold of 100 -- the override
+correctly bypassed the threshold and ran a real pipeline call, which
+correctly declined to form a group of 2 (H4) rather than shipping a bad one,
+and confirmed all of the above survives a server restart.
 
 ---
 
 ## Highest-priority items if picking up fresh work (not already covered above)
 
-1. Continue the neighborhood-pilot stages in order (2 -> 6) -- each depends on
-   the last.
+1. All 6 neighborhood-pilot build stages are done (see Milestones 4/9) --
+   next is the actual launch: get the Google OAuth consent screen to
+   production, a verified Resend sending domain, and invite the real Ten
+   Trails cohort. A second automatic re-trigger mechanism (beyond Stage 6's
+   manual override) is worth revisiting once real decline/dissolve volume
+   exists to justify it -- see Stage 5's noted caveat in the stage-6 entry.
 2. Milestone 2's real token/cost tracking, once pilot usage exists to make it
-   worth building.
+   worth building. Stage 6 added interim call-count-only usage visibility
+   (`usage.py`); real dollar tracking is still this milestone, not rebuilt.
 3. Milestone 3's geo/age hard constraints, needed before the pilot can safely
    scale past one neighborhood.
 4. Milestone 8's feedback-cap fix -- cheap, and the risk it addresses is
-   already live, not hypothetical.
+   already live, not hypothetical. Its structured post-meetup feedback half
+   was also left as a fast-follow to Stage 5's my-match.html, not folded in.

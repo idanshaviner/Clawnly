@@ -4,38 +4,46 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Clawnly -- Join your neighborhood</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg:#f7f6f3; --card:#fff; --ink:#1d1d1f; --muted:#6b6b70; --line:#e4e2dd;
-    --accent:#6c5ce7; --accent-soft:#efedfd; --amber:#c98a2b;
+    --bg:#f3efe3; --card:#fbf9f2; --ink:#2b2a22; --muted:#7c7663; --line:#e3dcc9;
+    --accent:#6f7d4f; --accent-soft:#e9ecdd; --accent-dark:#54613b; --amber:#b98a4a;
   }
   body { margin:0; background:var(--bg); color:var(--ink); line-height:1.5;
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }
+  h1, h2, .brand-word { font-family:"Lora",Georgia,"Times New Roman",serif; }
   .wrap { max-width:480px; margin:0 auto; padding:24px 20px 60px; }
   .banner { background:var(--amber); color:#fff; font-weight:600; font-size:13px;
     text-align:center; padding:8px; }
-  .card { background:var(--card); border:1px solid var(--line); border-radius:14px;
-    padding:24px; margin-top:20px; }
-  h1 { font-size:22px; margin:0 0 6px; }
+  .brand { display:flex; align-items:center; gap:8px; margin:22px 0 4px; color:var(--accent-dark); }
+  .brand-word { font-size:17px; font-weight:600; letter-spacing:0.02em; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:16px;
+    padding:26px; margin-top:16px; box-shadow:0 1px 2px rgba(43,42,34,0.04); }
+  h1 { font-size:24px; font-weight:600; margin:0 0 6px; }
   p.sub { color:var(--muted); margin-top:0; }
   .consent { background:var(--accent-soft); border-radius:10px; padding:14px; font-size:14px;
-    margin:18px 0; }
+    margin:18px 0; color:var(--accent-dark); }
   label.agree { display:flex; gap:10px; align-items:flex-start; font-size:14px; cursor:pointer; }
   label.agree input { margin-top:3px; }
   button, input[type=email] { font-size:15px; border-radius:10px; padding:11px 14px; width:100%;
-    box-sizing:border-box; border:1px solid var(--line); }
+    box-sizing:border-box; border:1px solid var(--line); font-family:inherit; }
   button { background:var(--accent); color:#fff; border:none; font-weight:600; cursor:pointer;
     margin-top:10px; }
-  button:disabled { background:#c9c6e6; cursor:not-allowed; }
+  button:hover:not(:disabled) { background:var(--accent-dark); }
+  button:disabled { background:#d8d3c2; color:#8f8a78; cursor:not-allowed; }
   .divider { text-align:center; color:var(--muted); font-size:12px; margin:16px 0; }
   #email-status { font-size:14px; margin-top:10px; }
-  #email-status.ok { color:#2f9e6e; }
-  #email-status.err { color:#c0392b; }
+  #email-status.ok { color:var(--accent-dark); }
+  #email-status.err { color:#a44a3f; }
 </style>
 </head>
 <body>
 <div class="banner">ALPHA -- Clawnly is an early experiment. Expect rough edges.</div>
 <div class="wrap">
+  <div class="brand">🌲 <span class="brand-word">Clawnly</span></div>
   <div class="card">
     <h1 id="title">You're invited</h1>
     <p class="sub" id="subtitle">Join your neighborhood on Clawnly.</p>

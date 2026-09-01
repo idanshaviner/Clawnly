@@ -33,6 +33,65 @@ Decisions already confirmed with the user:
 A focused technical-design sub-agent validated two of the riskiest choices below (auth mechanism,
 background trigger mechanism) against this exact repo; their recommendations are incorporated.
 
+## Addendum (2026-09-01): brand pitch video review -- new confirmed decisions
+
+The user shared a 36-second silent brand/pitch video (motion graphics, not app footage) for
+introducing the product, set in a neighborhood called "Ten Trails." It depicts: an onboarding
+chat ("You talk. Not a form. Not a profile."), no browsing/feed, a single named match with a
+reason and a mutual yes/no accept where "she will not see your name unless she also says yes,"
+a low-commitment first meetup ("fifteen minutes... you never have to do it again"), and a
+structured post-meetup "did you meet / would you meet again" check. Reviewed against the existing
+docs and confirmed with the user:
+
+1. **Group matching stays.** The video's "one neighbor" framing is brand storytelling, not a spec
+   change -- PRD.md's NG1 ("platonic **group** matching only") and the existing group-of-3-to-5
+   engine (`master_claw.py`) are unchanged. Do not build 1:1 matching.
+2. **New: a mutual-accept reveal gate.** Nothing like this exists in code today. Adapted from the
+   video's 1:1 mechanic to the group model -- see "Match acceptance (mutual reveal gate)" below.
+   This reshapes Stage 5.
+3. **"Ten Trails" is the real target pilot neighborhood** (not a placeholder). Use it as the
+   actual invite-link slug/name when the real pilot launches; existing test fixtures
+   (`ballard`/`fremont`) are arbitrary and unaffected -- neighborhoods are already
+   self-provisioned from whatever slug an invite link uses, so this is a launch-config choice,
+   not a code change.
+4. **Visual redesign, now.** The resident-facing pages should adopt the video's visual language --
+   a serif display face, a warm cream/sage palette, calmer and less "SaaS admin panel" than the
+   current plain style. Applies going forward to `join.html`/`consent.html`/`onboarding.html`
+   (redesigned in this pass) and every resident-facing page built after (`my-match.html`,
+   Stage 5). The admin console (`web/index.html`) is unaffected -- it's an internal tool, not
+   resident-facing.
+
+### Match acceptance (mutual reveal gate) -- design for the reshaped Stage 5
+
+Adapting the video's "one neighbor, a reason, yes or no, both say yes to reveal" to an N-person
+group (design call made by Claude, product direction confirmed by the user):
+
+- New `db.py` table `match_acceptances`: one row per real (resident-sourced) member of a formed
+  match -- `match_id`, `resident_id`, `status` (`pending`/`accepted`/`declined`), `created_at`,
+  `responded_at`. Created (all `pending`) right after `batch.py` persists a match via the existing
+  `db.save_match`, for every member whose id came from a resident (not the demo cast).
+- `GET /api/my-match`: resolves the caller's resident id from the session (never a client-supplied
+  id, same pattern as `_require_consented_resident`). While their acceptance is `pending`: returns
+  the match's `reason` text and group size, WITHOUT the other members' names -- "N neighbors. A
+  reason. Yes or no," mirroring the video. While `accepted` and waiting on others: a waiting
+  state. Once every member has `accepted` (the match is "sealed"): full reveal -- other members'
+  first names, and the existing `negotiation.py` -> `popup.py` flow (unmodified) runs for that
+  match for the first time, so the returned payload includes the resulting meetup card once ready.
+  If anyone `declined`: every other member's row also resolves to a "didn't come together" state.
+- `POST /api/my-match/respond` (`{"match_id", "response": "accept"|"decline"}`): updates only the
+  caller's own row (enforced via session, same IDOR-safe pattern already used throughout auth.py/
+  app.py). On the accept that completes the set, seal the match and kick off negotiation/popup.
+  On a decline, dissolve the match for everyone and release its resident members back into the
+  eligible pool for the next batch trigger (new `db` helper -- do not make them redo onboarding).
+- `web/my-match.html`: pending (reason + Accept/Decline), waiting, sealed (full reveal + meetup
+  card -- date/time/place, "I'll be there" / "Need a different time," matching the video), and
+  dissolved ("this one didn't come together -- you're still in the pool"). "Need a different
+  time" can be a lightweight note-to-admin for a first pass, not live re-negotiation.
+- The video's post-meetup "did you meet / would you meet again" screen maps directly onto the
+  already-planned Milestone 8 (structured feedback, not yet built, currently global/unlinked to a
+  match). Natural to build in the same pass as `my-match.html` since it's the same page's later
+  state, but can also stay a separate fast-follow if scope needs trimming.
+
 ## Key architecture decisions
 
 **Auth.** Extend `db.py` (same style: plain `sqlite3`, module-level functions, JSON-in-TEXT
@@ -138,7 +197,9 @@ failures surfaced from the existing `error` field on interview records.
 **Frontend.** New plain HTML/JS pages, same no-build-step style as the existing `web/index.html`
 (including its `esc()` XSS-safe rendering pattern) -- `web/join.html` (neighborhood landing +
 login), `web/onboarding.html` (the chat), `web/my-match.html` (a resident's result once matched),
-`web/admin.html` (the dashboard). Not visually polished yet -- functional first.
+`web/admin.html` (the dashboard). Resident-facing pages (`join`/`consent`/`onboarding`/`my-match`)
+adopt the brand video's visual language (serif display face, cream/sage palette) per the 2026-09-01
+addendum above; `admin.html` stays plain/functional -- it's an internal tool, not resident-facing.
 
 ## Build sequence
 
@@ -156,7 +217,10 @@ stages rather than one pass, the same way Milestone 1 went:
    extraction call but never block completion, per your call when this stage was planned.)
 4. **Batch trigger + real-pipeline wiring** -- `batch.py`, resident->profile-dict mapping, reusing
    `run_pipeline` and the existing persistence helpers.
-5. **Resident-facing results page** -- "my match" lookup and display.
+5. **Match acceptance (mutual reveal gate) + resident-facing results page** -- reshaped by the
+   2026-09-01 addendum above: `match_acceptances` table, `/api/my-match` + `/api/my-match/respond`,
+   `web/my-match.html` (pending/waiting/sealed/dissolved states), negotiation/popup only runs once
+   a match is sealed. Fold in Milestone 8's structured post-meetup feedback if scope allows.
 6. **Admin dashboard** -- progress view, resident list, manual trigger override, usage visibility.
 
 ## Tests

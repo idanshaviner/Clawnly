@@ -47,6 +47,9 @@ in stages.
 single invite-link-scoped neighborhood cohort, "geography" for now just means
 "whoever registered through this neighborhood's link" -- real radius-based
 matching across multiple neighborhoods is deferred until there's more than one.
+The confirmed real pilot cohort is "Ten Trails" (confirmed 2026-09-01, from
+the brand pitch video review) -- use it as the actual invite-link slug/name
+at launch.
 
 ## Milestone 6 -- Group negotiation
 **Status: DONE**, no changes needed. Already bounded (max 4 rounds), cheap
@@ -158,8 +161,18 @@ the same profile-dict shape `run_pipeline` already expects (id prefixed
 `"r"`, e.g. `"r17"`, so no collision with the demo cast's `"u01"` ids), then
 calls the existing, **unmodified** `run_pipeline()`.
 
-**Stage 5 -- Resident-facing results page: NOT STARTED.**
-In-app only (confirmed decision -- no email notification for the pilot).
+**Stage 5 -- Match acceptance (mutual reveal gate) + resident-facing results
+page: NOT STARTED.** Reshaped 2026-09-01 after reviewing a brand pitch video
+(see `docs/PILOT_PLAN.md`'s addendum) -- adds a step that doesn't exist in
+code today: before a resident sees who else is in their formed group, they
+see only the match's reason + group size and accept/decline; once every
+member accepts, the match is sealed (full reveal, and `negotiation.py` ->
+`popup.py` run for the first time for that match); a decline dissolves the
+match and releases its members back into the pool for the next batch,
+without redoing onboarding. New `match_acceptances` table,
+`/api/my-match` + `/api/my-match/respond`, `web/my-match.html`. In-app only
+(confirmed decision -- no email notification for the pilot). Fold in
+Milestone 8's structured post-meetup feedback if scope allows.
 
 **Stage 6 -- Admin dashboard: NOT STARTED.**
 Neighborhood progress, resident list + status, manual "trigger batch now"

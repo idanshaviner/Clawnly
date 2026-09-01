@@ -1,0 +1,234 @@
+"""Tests for my_match.py -- the mutual reveal gate (PILOT_PLAN.md addendum,
+2026-09-01 -- reshaped stage 5)."""
+
+import db
+import my_match
+from users import USERS
+
+
+def reset():
+    db.reset_all(USERS)
+
+
+def make_neighborhood(threshold=3):
+    return db.get_or_create_neighborhood("ten-trails", "Ten Trails", threshold)
+
+
+def make_resident(nb, email, name):
+    resident = db.get_or_create_resident(nb["id"], email, "google")
+    db.update_resident_profile(resident["id"], {"name": name})
+    return db.mark_profile_complete(resident["id"])
+
+
+def make_match(nb, residents, agreed=True, with_meetup=True):
+    member_ids = ["r" + str(r["id"]) for r in residents]
+    run_id = db.create_run("live", "sig-" + str(nb["id"]), nb["id"])
+    match_id = db.save_match(run_id, 0, {
+        "group": member_ids, "reason": "Shared weekend hikes and quiet evenings.",
+        "scores": {}, "why_not": [],
+    })
+    db.create_pending_acceptances(match_id, [r["id"] for r in residents])
+    db.save_negotiation(match_id, {
+        "activity": "a short hike", "agreed": agreed, "concern": "", "rounds": 1, "transcript": [],
+    })
+    if with_meetup and agreed:
+        db.save_meetup(match_id, {
+            "options": [], "event_name": "Trailhead Meetup", "activity": "a short hike",
+            "location": "Ten Trails trailhead", "time": "Saturday morning",
+            "reason": "Everyone's free and into the outdoors.",
+            "matched_users": [r["name"] for r in residents],
+        })
+    return match_id
+
+
+# ----- get_state: no match yet ------------------------------------------------
+
+def test_not_yet_batched_before_the_neighborhood_triggers():
+    reset()
+    nb = make_neighborhood()
+    resident = make_resident(nb, "a@example.com", "Alex")
+    state = my_match.get_state(resident)
+    assert state["state"] == "not_yet_batched"
+
+
+def test_no_match_once_batched_but_never_grouped():
+    reset()
+    nb = make_neighborhood()
+    resident = make_resident(nb, "a@example.com", "Alex")
+    db.try_trigger_batch(nb["id"])
+    state = my_match.get_state(resident)
+    assert state["state"] == "no_match"
+
+
+# ----- get_state: pending -----------------------------------------------------
+
+def test_pending_shows_only_reason_and_group_size():
+    reset()
+    nb = make_neighborhood()
+    alex = make_resident(nb, "a@example.com", "Alex")
+    bao = make_resident(nb, "b@example.com", "Bao")
+    cleo = make_resident(nb, "c@example.com", "Cleo")
+    make_match(nb, [alex, bao, cleo])
+
+    state = my_match.get_state(alex)
+    assert state["state"] == "pending"
+    assert state["group_size"] == 3
+    assert "Shared weekend hikes" in state["reason"]
+    assert "other_first_names" not in state
+    assert "Bao" not in str(state)
+
+
+# ----- respond: accept / decline / waiting / sealed --------------------------
+
+def test_accept_alone_moves_to_waiting_not_sealed():
+    reset()
+    nb = make_neighborhood()
+    alex = make_resident(nb, "a@example.com", "Alex")
+    bao = make_resident(nb, "b@example.com", "Bao")
+    match_id = make_match(nb, [alex, bao])
+
+    state, error = my_match.respond(alex, match_id, "accept")
+    assert error is None
+    assert state["state"] == "waiting"
+    assert state["group_size"] == 2
+    # bao (still pending) can't see alex's acceptance leaking any names either.
+    bao_state = my_match.get_state(bao)
+    assert bao_state["state"] == "pending"
+
+
+def test_everyone_accepting_seals_the_match_with_full_reveal():
+    reset()
+    nb = make_neighborhood()
+    alex = make_resident(nb, "a@example.com", "Alex")
+    bao = make_resident(nb, "b@example.com", "Bao Lin")
+    match_id = make_match(nb, [alex, bao])
+
+    my_match.respond(alex, match_id, "accept")
+    state, error = my_match.respond(bao, match_id, "accept")
+    assert error is None
+    assert state["state"] == "sealed"
+    assert state["other_first_names"] == ["Alex"]   # first name only
+    assert state["meetup"]["event_name"] == "Trailhead Meetup"
+
+    # alex's own view is sealed too, revealing Bao's first name (not "Bao Lin").
+    alex_state = my_match.get_state(alex)
+    assert alex_state["state"] == "sealed"
+    assert alex_state["other_first_names"] == ["Bao"]
+
+    assert db.get_match(match_id)["sealed_at"] is not None
+
+
+def test_sealed_without_agreement_has_no_meetup_but_a_note():
+    reset()
+    nb = make_neighborhood()
+    alex = make_resident(nb, "a@example.com", "Alex")
+    bao = make_resident(nb, "b@example.com", "Bao")
+    match_id = make_match(nb, [alex, bao], agreed=False, with_meetup=False)
+
+    my_match.respond(alex, match_id, "accept")
+    state, error = my_match.respond(bao, match_id, "accept")
+    assert error is None
+    assert state["state"] == "sealed"
+    assert state["meetup"] is None
+    assert state["note"] is not None
+
+
+def test_decline_dissolves_the_match_for_everyone():
+    reset()
+    nb = make_neighborhood()
+    alex = make_resident(nb, "a@example.com", "Alex")
+    bao = make_resident(nb, "b@example.com", "Bao")
+    cleo = make_resident(nb, "c@example.com", "Cleo")
+    match_id = make_match(nb, [alex, bao, cleo])
+
+    my_match.respond(alex, match_id, "accept")
+    state, error = my_match.respond(bao, match_id, "decline")
+    assert error is None
+    assert state["state"] == "dissolved"
+
+    # alex (who already accepted) and cleo (who never responded) both see it dissolved too.
+    assert my_match.get_state(alex)["state"] == "dissolved"
+    assert my_match.get_state(cleo)["state"] == "dissolved"
+    assert db.get_match(match_id)["dissolved_at"] is not None
+
+
+def test_declined_members_are_released_back_into_the_eligible_pool():
+    reset()
+    nb = make_neighborhood()
+    alex = make_resident(nb, "a@example.com", "Alex")
+    bao = make_resident(nb, "b@example.com", "Bao")
+    match_id = make_match(nb, [alex, bao])
+    assert db.list_eligible_residents(nb["id"]) == []
+
+    my_match.respond(alex, match_id, "decline")
+    eligible_ids = {r["id"] for r in db.list_eligible_residents(nb["id"])}
+    assert eligible_ids == {alex["id"], bao["id"]}
+
+
+# ----- respond: IDOR safety ---------------------------------------------------
+
+def test_respond_rejects_a_resident_who_is_not_a_member_of_the_match():
+    reset()
+    nb = make_neighborhood()
+    alex = make_resident(nb, "a@example.com", "Alex")
+    bao = make_resident(nb, "b@example.com", "Bao")
+    outsider = make_resident(nb, "z@example.com", "Zoe")
+    match_id = make_match(nb, [alex, bao])
+
+    state, error = my_match.respond(outsider, match_id, "accept")
+    assert state is None
+    assert error is not None
+    assert db.get_acceptance(match_id, outsider["id"]) is None
+
+
+def test_respond_only_ever_touches_the_callers_own_row():
+    reset()
+    nb = make_neighborhood()
+    alex = make_resident(nb, "a@example.com", "Alex")
+    bao = make_resident(nb, "b@example.com", "Bao")
+    match_id = make_match(nb, [alex, bao])
+
+    my_match.respond(alex, match_id, "accept")
+    # bao's row is untouched by alex's response.
+    assert db.get_acceptance(match_id, bao["id"])["status"] == "pending"
+    assert db.get_acceptance(match_id, alex["id"])["status"] == "accepted"
+
+
+def test_respond_rejects_an_invalid_response_value():
+    reset()
+    nb = make_neighborhood()
+    alex = make_resident(nb, "a@example.com", "Alex")
+    bao = make_resident(nb, "b@example.com", "Bao")
+    match_id = make_match(nb, [alex, bao])
+
+    state, error = my_match.respond(alex, match_id, "maybe")
+    assert state is None
+    assert error is not None
+    assert db.get_acceptance(match_id, alex["id"])["status"] == "pending"
+
+
+def test_respond_on_an_already_dissolved_match_is_rejected():
+    reset()
+    nb = make_neighborhood()
+    alex = make_resident(nb, "a@example.com", "Alex")
+    bao = make_resident(nb, "b@example.com", "Bao")
+    match_id = make_match(nb, [alex, bao])
+    my_match.respond(alex, match_id, "decline")
+
+    state, error = my_match.respond(bao, match_id, "accept")
+    assert state is None
+    assert error is not None
+    assert db.get_acceptance(match_id, bao["id"])["status"] == "pending"
+
+
+def test_respond_a_second_time_does_not_flip_the_first_answer():
+    reset()
+    nb = make_neighborhood()
+    alex = make_resident(nb, "a@example.com", "Alex")
+    bao = make_resident(nb, "b@example.com", "Bao")
+    match_id = make_match(nb, [alex, bao])
+
+    my_match.respond(alex, match_id, "accept")
+    my_match.respond(alex, match_id, "decline")   # too late -- already accepted
+    assert db.get_acceptance(match_id, alex["id"])["status"] == "accepted"
+    assert db.get_match(match_id)["dissolved_at"] is None

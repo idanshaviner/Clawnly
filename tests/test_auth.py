@@ -466,6 +466,100 @@ def test_api_onboarding_message_round_trip(monkeypatch):
         client.cookies.clear()
 
 
+# ----- routes: my-match (mutual reveal gate, stage 5) -------------------------
+
+def test_my_match_page_serves():
+    reset_state()
+    r = client.get("/my-match")
+    assert r.status_code == 200
+    assert "text/html" in r.headers["content-type"]
+
+
+def test_api_my_match_requires_login():
+    reset_state()
+    r = client.get("/api/my-match")
+    assert r.status_code == 401
+
+
+def test_api_my_match_requires_consent():
+    reset_state()
+    nb = db.get_or_create_neighborhood("ballard", "Ballard", 100)
+    resident = db.get_or_create_resident(nb["id"], "a@example.com", "magic_link")
+    token = auth.start_session("a@example.com", "resident", resident["id"], nb["id"])
+    client.cookies.set(auth.SESSION_COOKIE_NAME, token)
+    try:
+        r = client.get("/api/my-match")
+        assert r.status_code == 403
+    finally:
+        client.cookies.clear()
+
+
+def test_api_my_match_reflects_pending_state():
+    reset_state()
+    resident, token = _consented_resident_session()
+    other = db.get_or_create_resident(resident["neighborhood_id"], "other@example.com", "magic_link")
+    run_id = db.create_run("live", "sig", resident["neighborhood_id"])
+    match_id = db.save_match(run_id, 0, {
+        "group": ["r" + str(resident["id"]), "r" + str(other["id"])],
+        "reason": "Shared weekend hikes.", "scores": {}, "why_not": [],
+    })
+    db.create_pending_acceptances(match_id, [resident["id"], other["id"]])
+    client.cookies.set(auth.SESSION_COOKIE_NAME, token)
+    try:
+        r = client.get("/api/my-match")
+        assert r.status_code == 200
+        data = r.json()
+        assert data["state"] == "pending"
+        assert data["group_size"] == 2
+        assert "other_first_names" not in data
+    finally:
+        client.cookies.clear()
+
+
+def test_api_my_match_respond_requires_login():
+    reset_state()
+    r = client.post("/api/my-match/respond", json={"match_id": 1, "response": "accept"})
+    assert r.status_code == 401
+
+
+def test_api_my_match_respond_rejects_a_non_member_match_id():
+    reset_state()
+    resident, token = _consented_resident_session()
+    other_nb = db.get_or_create_neighborhood("fremont", "Fremont", 100)
+    other = db.get_or_create_resident(other_nb["id"], "other@example.com", "magic_link")
+    run_id = db.create_run("live", "sig", other_nb["id"])
+    match_id = db.save_match(run_id, 0, {
+        "group": ["r" + str(other["id"])], "reason": "not yours", "scores": {}, "why_not": [],
+    })
+    db.create_pending_acceptances(match_id, [other["id"]])
+    client.cookies.set(auth.SESSION_COOKIE_NAME, token)
+    try:
+        r = client.post("/api/my-match/respond", json={"match_id": match_id, "response": "accept"})
+        assert r.status_code == 400
+        assert db.get_acceptance(match_id, other["id"])["status"] == "pending"
+    finally:
+        client.cookies.clear()
+
+
+def test_api_my_match_respond_accept_round_trip():
+    reset_state()
+    resident, token = _consented_resident_session()
+    other = db.get_or_create_resident(resident["neighborhood_id"], "other@example.com", "magic_link")
+    run_id = db.create_run("live", "sig", resident["neighborhood_id"])
+    match_id = db.save_match(run_id, 0, {
+        "group": ["r" + str(resident["id"]), "r" + str(other["id"])],
+        "reason": "Shared weekend hikes.", "scores": {}, "why_not": [],
+    })
+    db.create_pending_acceptances(match_id, [resident["id"], other["id"]])
+    client.cookies.set(auth.SESSION_COOKIE_NAME, token)
+    try:
+        r = client.post("/api/my-match/respond", json={"match_id": match_id, "response": "accept"})
+        assert r.status_code == 200
+        assert r.json()["state"] == "waiting"
+    finally:
+        client.cookies.clear()
+
+
 def test_full_magic_link_login_redirects_a_resident_into_the_consent_flow(monkeypatch, capsys):
     reset_state()
     clear_env(monkeypatch)

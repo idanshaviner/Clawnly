@@ -23,6 +23,8 @@ Tables:
   sessions          -- durable login sessions (replaces the in-memory _SESSIONS dict)
   magic_link_tokens -- single-use, hashed, expiring email login tokens
   oauth_states      -- single-use, expiring Google OAuth CSRF state tokens
+  match_acceptances -- one row per resident member of a formed match (mutual
+                       reveal gate); matches also gains sealed_at/dissolved_at
 """
 
 import datetime
@@ -130,9 +132,21 @@ def init_db():
         id INTEGER PRIMARY KEY AUTOINCREMENT, token_hash TEXT, neighborhood_id INTEGER,
         created_at TEXT, expires_at TEXT, used_at TEXT
     )""")
+    conn.execute("""CREATE TABLE IF NOT EXISTS match_acceptances (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, match_id INTEGER, resident_id INTEGER,
+        status TEXT, created_at TEXT, responded_at TEXT,
+        UNIQUE(match_id, resident_id)
+    )""")
 
     # runs predates neighborhoods; add the column rather than recreate the table.
     _ensure_column(conn, "runs", "neighborhood_id", "INTEGER")
+    # matches predates the mutual-reveal gate (Stage 5): sealed_at is set once
+    # every resident member has accepted; dissolved_at once anyone declines.
+    # Group-level lifecycle state lives here rather than being inferred solely
+    # from match_acceptances rows, so it survives even a match with zero
+    # resident members (an all-demo-cast admin-console group).
+    _ensure_column(conn, "matches", "sealed_at", "TEXT")
+    _ensure_column(conn, "matches", "dissolved_at", "TEXT")
 
     conn.commit()
 
@@ -305,6 +319,45 @@ def save_match(run_id, group_index, match):
     return cur.lastrowid
 
 
+def _row_to_match(row):
+    return {
+        "id": row["id"], "run_id": row["run_id"], "group_index": row["group_index"],
+        "member_ids": json.loads(row["member_ids"]), "reason": row["reason"],
+        "scores": json.loads(row["scores"]), "why_not": json.loads(row["why_not"]),
+        "created_at": row["created_at"], "sealed_at": row["sealed_at"],
+        "dissolved_at": row["dissolved_at"],
+    }
+
+
+def get_match(match_id):
+    conn = _get_conn()
+    row = conn.execute("SELECT * FROM matches WHERE id = ?", (match_id,)).fetchone()
+    if row is None:
+        return None
+    return _row_to_match(row)
+
+
+def get_negotiation(match_id):
+    # single-negotiation lookup (load_run_result reconstructs a whole run's
+    # worth at once; my_match.py only ever needs one match's).
+    conn = _get_conn()
+    row = conn.execute("SELECT * FROM negotiations WHERE match_id = ?", (match_id,)).fetchone()
+    if row is None:
+        return None
+    return {"activity": row["activity"], "agreed": bool(row["agreed"]), "concern": row["concern"],
+            "rounds": row["rounds"], "transcript": json.loads(row["transcript"])}
+
+
+def get_meetup(match_id):
+    conn = _get_conn()
+    row = conn.execute("SELECT * FROM meetups WHERE match_id = ?", (match_id,)).fetchone()
+    if row is None:
+        return None
+    return {"options": json.loads(row["options"]), "event_name": row["event_name"],
+            "activity": row["activity"], "location": row["location"], "time": row["time"],
+            "reason": row["reason"], "matched_users": json.loads(row["matched_users"])}
+
+
 def save_negotiation(match_id, plan):
     conn = _get_conn()
     conn.execute(
@@ -328,12 +381,29 @@ def save_meetup(match_id, popup):
     conn.commit()
 
 
+def _resident_member_ids(member_ids):
+    # batch.py always prefixes a resident-sourced member "r" + resident id
+    # (e.g. "r17") specifically so it can never collide with the demo cast's
+    # "u01"-style ids -- pick those out and recover the real resident id.
+    out = []
+    i = 0
+    while i < len(member_ids):
+        mid = member_ids[i]
+        if isinstance(mid, str) and mid.startswith("r") and mid[1:].isdigit():
+            out.append(int(mid[1:]))
+        i += 1
+    return out
+
+
 def persist_run_result(mode, signature, result, neighborhood_id=None):
     # save a completed pipeline run (interviews, every group formed, each
     # group's negotiation + meetup) so it survives a restart. Shared by
     # app.py's admin-console runs (neighborhood_id=None) and batch.py's
     # real-pilot batch runs (Stage 4), so this persistence sequence only
-    # lives in one place.
+    # lives in one place. Every resident member of a formed group also gets a
+    # pending match_acceptances row here (Stage 5's mutual reveal gate) -- a
+    # no-op for an admin-console run, since none of its member ids start
+    # with "r".
     run_id = create_run(mode, signature, neighborhood_id)
     save_interviews(run_id, result["interviews"])
     groups = result["groups"]
@@ -345,6 +415,9 @@ def persist_run_result(mode, signature, result, neighborhood_id=None):
             save_negotiation(match_id, entry["negotiation"])
         if entry.get("popup") is not None:
             save_meetup(match_id, entry["popup"])
+        resident_ids = _resident_member_ids(entry["match"].get("group", []))
+        if len(resident_ids) > 0:
+            create_pending_acceptances(match_id, resident_ids)
         gi += 1
     finish_run(run_id, result["unmatched"])
     return run_id
@@ -611,6 +684,34 @@ def list_complete_residents(neighborhood_id):
     return out
 
 
+def list_eligible_residents(neighborhood_id):
+    # profile-complete AND not currently tied to a LIVE (non-dissolved) match
+    # -- either never matched yet, or their last match was dissolved by a
+    # decline and they've been released back into the pool without redoing
+    # onboarding. A pending/waiting/sealed match's members stay excluded
+    # (their match's dissolved_at stays NULL), so nobody is ever double-
+    # booked into two matches at once. Builds on list_complete_residents
+    # rather than duplicating its row-building.
+    complete = list_complete_residents(neighborhood_id)
+    conn = _get_conn()
+    rows = conn.execute(
+        "SELECT DISTINCT ma.resident_id FROM match_acceptances ma "
+        "JOIN matches m ON ma.match_id = m.id WHERE m.dissolved_at IS NULL"
+    ).fetchall()
+    active_ids = set()
+    i = 0
+    while i < len(rows):
+        active_ids.add(rows[i]["resident_id"])
+        i += 1
+    out = []
+    i = 0
+    while i < len(complete):
+        if complete[i]["id"] not in active_ids:
+            out.append(complete[i])
+        i += 1
+    return out
+
+
 def mark_profile_complete(resident_id):
     # idempotent -- same first-write-wins guard as record_consent.
     conn = _get_conn()
@@ -740,6 +841,90 @@ def consume_oauth_state(token_hash):
     return {"neighborhood_id": row["neighborhood_id"]}
 
 
+# ----- real-user pilot: match acceptances (mutual reveal gate) -----------------
+
+def create_pending_acceptances(match_id, resident_ids):
+    conn = _get_conn()
+    now = _now()
+    i = 0
+    while i < len(resident_ids):
+        conn.execute(
+            "INSERT INTO match_acceptances (match_id, resident_id, status, created_at, responded_at) "
+            "VALUES (?, ?, 'pending', ?, NULL)",
+            (match_id, resident_ids[i], now),
+        )
+        i += 1
+    conn.commit()
+
+
+def _row_to_acceptance(row):
+    return {"id": row["id"], "match_id": row["match_id"], "resident_id": row["resident_id"],
+            "status": row["status"], "created_at": row["created_at"], "responded_at": row["responded_at"]}
+
+
+def get_acceptance(match_id, resident_id):
+    conn = _get_conn()
+    row = conn.execute(
+        "SELECT * FROM match_acceptances WHERE match_id = ? AND resident_id = ?",
+        (match_id, resident_id),
+    ).fetchone()
+    if row is None:
+        return None
+    return _row_to_acceptance(row)
+
+
+def list_match_acceptances(match_id):
+    conn = _get_conn()
+    rows = conn.execute(
+        "SELECT * FROM match_acceptances WHERE match_id = ? ORDER BY id", (match_id,)
+    ).fetchall()
+    out = []
+    i = 0
+    while i < len(rows):
+        out.append(_row_to_acceptance(rows[i]))
+        i += 1
+    return out
+
+
+def latest_match_acceptance(resident_id):
+    # the resident's own most recent match, whichever state it's in (pending/
+    # waiting/sealed/dissolved) -- my_match.py resolves the whole /api/my-match
+    # state from this single row plus its match, never a client-supplied id.
+    conn = _get_conn()
+    row = conn.execute(
+        "SELECT * FROM match_acceptances WHERE resident_id = ? ORDER BY id DESC LIMIT 1",
+        (resident_id,),
+    ).fetchone()
+    if row is None:
+        return None
+    return _row_to_acceptance(row)
+
+
+def respond_to_acceptance(match_id, resident_id, status):
+    # first response wins -- same idempotency guard as record_consent, so a
+    # double-click can't flip an already-recorded accept/decline.
+    conn = _get_conn()
+    cur = conn.execute(
+        "UPDATE match_acceptances SET status = ?, responded_at = ? "
+        "WHERE match_id = ? AND resident_id = ? AND status = 'pending'",
+        (status, _now(), match_id, resident_id),
+    )
+    conn.commit()
+    return cur.rowcount == 1
+
+
+def mark_match_sealed(match_id):
+    conn = _get_conn()
+    conn.execute("UPDATE matches SET sealed_at = ? WHERE id = ? AND sealed_at IS NULL", (_now(), match_id))
+    conn.commit()
+
+
+def mark_match_dissolved(match_id):
+    conn = _get_conn()
+    conn.execute("UPDATE matches SET dissolved_at = ? WHERE id = ? AND dissolved_at IS NULL", (_now(), match_id))
+    conn.commit()
+
+
 # ----- full reset (ops / tests) -------------------------------------------------
 
 def reset_all(default_users):
@@ -748,7 +933,7 @@ def reset_all(default_users):
     conn = _get_conn()
     tables = ["runs", "interviews", "matches", "negotiations", "meetups", "feedback",
               "neighborhoods", "residents", "onboarding_messages", "sessions",
-              "magic_link_tokens", "oauth_states"]
+              "magic_link_tokens", "oauth_states", "match_acceptances"]
     i = 0
     while i < len(tables):
         conn.execute("DELETE FROM " + tables[i])

@@ -139,8 +139,12 @@ async def check_and_trigger_batch(neighborhood_id, client=None):
     if neighborhood is None:
         return
 
-    complete = db.list_complete_residents(neighborhood_id)
-    if len(complete) < neighborhood["batch_threshold"]:
+    # eligible = profile-complete AND not already tied up in a live match --
+    # includes anyone released back into the pool by a Stage 5 decline (see
+    # db.list_eligible_residents), so a dissolved match's members are
+    # naturally back in the running for the neighborhood's next trigger.
+    eligible = db.list_eligible_residents(neighborhood_id)
+    if len(eligible) < neighborhood["batch_threshold"]:
         return
 
     won = db.try_trigger_batch(neighborhood_id)
@@ -149,8 +153,8 @@ async def check_and_trigger_batch(neighborhood_id, client=None):
 
     profiles = []
     i = 0
-    while i < len(complete):
-        profiles.append(resident_to_profile(complete[i], neighborhood))
+    while i < len(eligible):
+        profiles.append(resident_to_profile(eligible[i], neighborhood))
         i += 1
 
     if client is None:

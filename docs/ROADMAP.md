@@ -187,17 +187,64 @@ crash), and confirmed both the CAS state and the persisted run survive a
 server restart.
 
 **Stage 5 -- Match acceptance (mutual reveal gate) + resident-facing results
-page: NOT STARTED.** Reshaped 2026-09-01 after reviewing a brand pitch video
-(see `docs/PILOT_PLAN.md`'s addendum) -- adds a step that doesn't exist in
-code today: before a resident sees who else is in their formed group, they
-see only the match's reason + group size and accept/decline; once every
-member accepts, the match is sealed (full reveal, and `negotiation.py` ->
-`popup.py` run for the first time for that match); a decline dissolves the
-match and releases its members back into the pool for the next batch,
-without redoing onboarding. New `match_acceptances` table,
-`/api/my-match` + `/api/my-match/respond`, `web/my-match.html`. In-app only
-(confirmed decision -- no email notification for the pilot). Fold in
-Milestone 8's structured post-meetup feedback if scope allows.
+page: DONE.** New `match_acceptances` table (one row per resident member of a
+formed match, `status` pending/accepted/declined) plus `sealed_at`/
+`dissolved_at` columns on the existing `matches` table. Rows are created
+automatically by `db.persist_run_result` for every "r"-prefixed member of a
+formed group (a no-op for admin-console runs, whose members are all
+"u01"-style ids) -- so Stage 4's batch persistence and Stage 5's reveal gate
+share one code path with no duplication.
+
+New `src/my_match.py` (pure DB/routing logic, no AI calls of its own):
+`get_state(resident)` resolves state strictly from the caller's own most
+recent `match_acceptances` row (`db.latest_match_acceptance`, never a
+client-supplied id) -- `not_yet_batched` / `no_match` / `pending` (reason +
+group size only, no other names) / `waiting` (accepted, not sealed yet) /
+`sealed` (first-name reveal of every other member + the meetup card, which
+was already computed by `batch.py`'s pipeline run -- see `my_match.py`'s
+docstring for why negotiation/popup run eagerly during the batch rather than
+lazily on seal) / `dissolved`. `respond(resident, match_id, response)` writes
+only the caller's own row (`db.respond_to_acceptance`, guarded the same
+first-response-wins way as `record_consent`); the accept that completes the
+set calls `db.mark_match_sealed`, a decline calls `db.mark_match_dissolved`
+which dissolves the match for every member. Releasing dissolved members back
+into the pool needed no new resident-level column: `db.list_eligible_residents`
+(profile-complete AND not tied to a match whose `dissolved_at IS NULL`)
+naturally re-includes them once their match is marked dissolved;
+`batch.check_and_trigger_batch` now calls this instead of the plain
+completeness count.
+
+New routes `GET /api/my-match`, `POST /api/my-match/respond`, and
+`GET /my-match` (`web/my-match.html`, same cream/sage/serif style as
+`join.html`/`consent.html`/`onboarding.html`), both API routes gated by the
+existing `_require_consented_resident`. In-app only (confirmed decision -- no
+email notification for the pilot). Milestone 8's structured post-meetup
+feedback was left as a fast-follow, not folded in, to keep this stage
+reviewable on its own.
+
+28 new tests (`tests/test_my_match.py`, plus additions to `tests/test_db.py`
+and `tests/test_auth.py`), 274 passing. A `security-review` pass on the new
+routes/table found no high-confidence issues (parameterized SQL throughout,
+every dynamic value in `my-match.html` written via `textContent` not
+`innerHTML`, `respond` scoped to `(match_id, resident_id)` from the session
+so one resident's request can never touch another's row). Live-verified
+against a running server with an isolated DB: seeded a 3-person match and
+drove the real `/api/my-match` + `/api/my-match/respond` routes with three
+separate session cookies through pending -> waiting -> sealed (confirmed the
+pending payload never leaks names, and each sealed viewer sees only the
+OTHER two first names), confirmed an IDOR attempt against a match the caller
+isn't a member of is rejected, confirmed sealed state survives a server
+restart, and separately confirmed a decline dissolves a second match for both
+members and both re-appear in `db.list_eligible_residents` immediately after.
+
+**Known caveat carried into Stage 6:** `check_and_trigger_batch`'s
+compare-and-swap is one-shot per neighborhood (`batch_triggered_at` is never
+reset), so residents released by a decline are correctly eligible again in
+`db.list_eligible_residents`, but nothing currently fires a *second* trigger
+to actually re-match them -- that needs Stage 6's planned manual "trigger
+batch now" admin override (or a future reset-on-release design), not
+engineered around here per CLAUDE.md's guidance not to build ahead of an
+actual need.
 
 **Stage 6 -- Admin dashboard: NOT STARTED.**
 Neighborhood progress, resident list + status, manual "trigger batch now"

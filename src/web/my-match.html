@@ -1,0 +1,247 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clawnly -- Your match</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f3efe3; --card:#fbf9f2; --ink:#2b2a22; --muted:#7c7663; --line:#e3dcc9;
+    --accent:#6f7d4f; --accent-soft:#e9ecdd; --accent-dark:#54613b; --amber:#b98a4a; --green:#5c8a5c;
+  }
+  body { margin:0; background:var(--bg); color:var(--ink); line-height:1.5;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }
+  h1, .brand-word { font-family:"Lora",Georgia,"Times New Roman",serif; }
+  .wrap { max-width:520px; margin:0 auto; padding:0 20px 60px; }
+  .banner { background:var(--amber); color:#fff; font-weight:600; font-size:13px;
+    text-align:center; padding:8px; }
+  .brand { display:flex; align-items:center; gap:8px; margin:22px 0 4px; color:var(--accent-dark); }
+  .brand-word { font-size:17px; font-weight:600; letter-spacing:0.02em; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:16px;
+    padding:26px; margin-top:16px; box-shadow:0 1px 2px rgba(43,42,34,0.04); }
+  h1 { font-size:22px; font-weight:600; margin:0 0 6px; }
+  p.sub { color:var(--muted); margin-top:0; }
+  .reason { background:var(--accent-soft); border-radius:10px; padding:14px; font-size:15px;
+    margin:16px 0; color:var(--accent-dark); font-style:italic; }
+  .pill { display:inline-block; background:var(--accent-soft); color:var(--accent-dark);
+    border-radius:999px; padding:4px 12px; font-size:13px; font-weight:600; margin-bottom:6px; }
+  .names { font-size:19px; font-weight:600; margin:10px 0 4px; }
+  .row { display:flex; gap:10px; margin-top:18px; }
+  button { font-size:15px; border-radius:10px; padding:11px 14px; flex:1; box-sizing:border-box;
+    border:none; background:var(--accent); color:#fff; font-weight:600; cursor:pointer; font-family:inherit; }
+  button:hover:not(:disabled) { background:var(--accent-dark); }
+  button:disabled { background:#d8d3c2; color:#8f8a78; cursor:not-allowed; }
+  button.secondary { background:transparent; color:var(--accent-dark); border:1px solid var(--line); }
+  button.secondary:hover:not(:disabled) { background:var(--accent-soft); }
+  button.decline { background:transparent; color:#a44a3f; border:1px solid #e3c9c3; }
+  button.decline:hover:not(:disabled) { background:#f6ebe8; }
+  .meetup { border:1px solid var(--line); border-radius:12px; padding:16px; margin-top:16px;
+    background:#fff; }
+  .meetup .event { font-family:"Lora",Georgia,serif; font-size:18px; font-weight:600; margin:0 0 8px; }
+  .meetup .field { font-size:14px; margin:4px 0; }
+  .meetup .field b { color:var(--accent-dark); }
+  #status { font-size:14px; margin-top:12px; color:var(--muted); }
+  #status.err { color:#a44a3f; }
+  .ack { display:none; background:var(--green); color:#fff; font-weight:600; font-size:13px;
+    text-align:center; padding:10px; border-radius:10px; margin-top:14px; }
+</style>
+</head>
+<body>
+<div class="banner">ALPHA -- Clawnly is an early experiment. Expect rough edges.</div>
+<div class="wrap">
+  <div class="brand">🌲 <span class="brand-word">Clawnly</span></div>
+  <div class="card" id="loading"><p>Loading...</p></div>
+
+  <div class="card" id="loggedout" style="display:none">
+    <h1>You're not logged in</h1>
+    <p class="sub">Head back to your neighborhood's invite link to sign in.</p>
+  </div>
+
+  <div class="card" id="not-yet-batched" style="display:none">
+    <h1>Still getting to know your neighbors</h1>
+    <p class="sub">Once enough neighbors finish their conversation, matching runs automatically --
+      we'll show your match right here.</p>
+  </div>
+
+  <div class="card" id="no-match" style="display:none">
+    <h1>No group this round</h1>
+    <p class="sub">Matching already ran and didn't find a strong enough group for you this time.
+      You're still in the pool for a future round.</p>
+  </div>
+
+  <div class="card" id="pending" style="display:none">
+    <span class="pill" id="pending-size"></span>
+    <h1>You have a match</h1>
+    <p class="sub">A reason. Yes or no. You won't see who else is in the group unless everyone says yes.</p>
+    <div class="reason" id="pending-reason"></div>
+    <div class="row">
+      <button id="accept-btn">Yes, I'm in</button>
+      <button id="decline-btn" class="decline">No thanks</button>
+    </div>
+    <div id="respond-status"></div>
+  </div>
+
+  <div class="card" id="waiting" style="display:none">
+    <span class="pill" id="waiting-size"></span>
+    <h1>You said yes</h1>
+    <p class="sub">Waiting on the rest of the group. We'll show everyone's names here the moment
+      the last person says yes too.</p>
+  </div>
+
+  <div class="card" id="sealed" style="display:none">
+    <h1>You're all in!</h1>
+    <div class="reason" id="sealed-reason"></div>
+    <p class="sub">Meet:</p>
+    <div class="names" id="sealed-names"></div>
+
+    <div class="meetup" id="meetup-block" style="display:none">
+      <p class="event" id="meetup-event"></p>
+      <p class="field"><b>Activity:</b> <span id="meetup-activity"></span></p>
+      <p class="field"><b>Where:</b> <span id="meetup-location"></span></p>
+      <p class="field"><b>When:</b> <span id="meetup-time"></span></p>
+      <p class="field"><b>Why:</b> <span id="meetup-reason"></span></p>
+      <div class="row">
+        <button id="there-btn">I'll be there</button>
+        <button id="different-time-btn" class="secondary">Need a different time</button>
+      </div>
+      <div class="ack" id="ack">Thanks -- noted!</div>
+    </div>
+
+    <p class="sub" id="no-meetup-note" style="display:none"></p>
+  </div>
+
+  <div class="card" id="dissolved" style="display:none">
+    <h1>This one didn't come together</h1>
+    <p class="sub">Not everyone in the group was ready to meet -- you're still in the pool for the
+      next round, no need to do anything else.</p>
+  </div>
+</div>
+<script>
+function esc(s){ return (s==null?"":String(s)).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+
+var STATES = ["loading", "loggedout", "not-yet-batched", "no-match", "pending", "waiting", "sealed", "dissolved"];
+function show(id){
+  STATES.forEach(function(other){ document.getElementById(other).style.display = (other === id) ? "block" : "none"; });
+}
+
+function sizeLabel(n){
+  return n + (n === 1 ? " neighbor" : " neighbors");
+}
+
+function renderState(data){
+  var state = data.state;
+  if (state === "not_yet_batched") { show("not-yet-batched"); return; }
+  if (state === "no_match") { show("no-match"); return; }
+  if (state === "dissolved") { show("dissolved"); return; }
+
+  if (state === "pending") {
+    document.getElementById("pending-size").textContent = sizeLabel(data.group_size);
+    document.getElementById("pending-reason").textContent = data.reason;
+    document.getElementById("accept-btn").dataset.matchId = data.match_id;
+    document.getElementById("decline-btn").dataset.matchId = data.match_id;
+    show("pending");
+    return;
+  }
+
+  if (state === "waiting") {
+    document.getElementById("waiting-size").textContent = sizeLabel(data.group_size);
+    show("waiting");
+    return;
+  }
+
+  if (state === "sealed") {
+    document.getElementById("sealed-reason").textContent = data.reason;
+    document.getElementById("sealed-names").textContent = data.other_first_names.join(", ");
+    var meetupBlock = document.getElementById("meetup-block");
+    var noteEl = document.getElementById("no-meetup-note");
+    if (data.meetup) {
+      document.getElementById("meetup-event").textContent = data.meetup.event_name;
+      document.getElementById("meetup-activity").textContent = data.meetup.activity;
+      document.getElementById("meetup-location").textContent = data.meetup.location;
+      document.getElementById("meetup-time").textContent = data.meetup.time;
+      document.getElementById("meetup-reason").textContent = data.meetup.reason;
+      meetupBlock.style.display = "block";
+      noteEl.style.display = "none";
+    } else {
+      meetupBlock.style.display = "none";
+      noteEl.textContent = data.note || "Still working out a plan -- check back soon.";
+      noteEl.style.display = "block";
+    }
+    show("sealed");
+    return;
+  }
+
+  show("loggedout");
+}
+
+function loadState(){
+  return fetch("/api/my-match").then(function(r){
+    if (!r.ok) { show("loggedout"); return null; }
+    return r.json();
+  }).then(function(data){
+    if (data != null) { renderState(data); }
+  }).catch(function(){ show("loggedout"); });
+}
+
+function respond(matchId, response, btn){
+  var status = document.getElementById("respond-status");
+  document.getElementById("accept-btn").disabled = true;
+  document.getElementById("decline-btn").disabled = true;
+  status.className = "";
+  status.textContent = "";
+  fetch("/api/my-match/respond", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ match_id: Number(matchId), response: response }),
+  }).then(function(r){
+    return r.json().then(function(data){ return { ok: r.ok, data: data }; });
+  }).then(function(res){
+    if (res.ok) {
+      renderState(res.data);
+    } else {
+      document.getElementById("accept-btn").disabled = false;
+      document.getElementById("decline-btn").disabled = false;
+      status.className = "err";
+      status.textContent = res.data.error || "Something went wrong.";
+    }
+  }).catch(function(){
+    document.getElementById("accept-btn").disabled = false;
+    document.getElementById("decline-btn").disabled = false;
+    status.className = "err";
+    status.textContent = "Something went wrong. Try again.";
+  });
+}
+
+document.getElementById("accept-btn").addEventListener("click", function(){
+  respond(this.dataset.matchId, "accept", this);
+});
+document.getElementById("decline-btn").addEventListener("click", function(){
+  respond(this.dataset.matchId, "decline", this);
+});
+document.getElementById("there-btn").addEventListener("click", function(){
+  var ack = document.getElementById("ack");
+  ack.textContent = "Thanks -- see you there!";
+  ack.style.display = "block";
+});
+// lightweight note-to-admin for this first pass -- not live re-negotiation.
+document.getElementById("different-time-btn").addEventListener("click", function(){
+  var ack = document.getElementById("ack");
+  ack.textContent = "Thanks -- noted. We'll follow up about timing.";
+  ack.style.display = "block";
+});
+
+fetch("/api/me").then(function(r){
+  if (!r.ok) { show("loggedout"); return null; }
+  return r.json();
+}).then(function(me){
+  if (me == null) { return; }
+  if (!me.resident_id) { show("loggedout"); return null; }
+  if (!me.consent_agreed_at) { window.location.href = "/consent"; return null; }
+  return loadState();
+}).catch(function(){ show("loggedout"); });
+</script>
+</body>
+</html>

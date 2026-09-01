@@ -26,6 +26,7 @@ from claw import Claw
 from demo import DemoClient
 from explain import explain_decision, context_summary
 from main import run_pipeline
+import my_match
 import onboarding
 from persona_gen import generate_users, nudge_user, DEFAULT_THEME
 from users import USERS, HOBBY_CATEGORIES, AVAILABILITY_WINDOWS
@@ -97,6 +98,7 @@ _INDEX = os.path.join(_HERE, "web", "index.html")
 _JOIN = os.path.join(_HERE, "web", "join.html")
 _CONSENT = os.path.join(_HERE, "web", "consent.html")
 _ONBOARDING = os.path.join(_HERE, "web", "onboarding.html")
+_MY_MATCH = os.path.join(_HERE, "web", "my-match.html")
 
 
 def _users_signature(users):
@@ -643,6 +645,41 @@ async def api_onboarding_message(body: dict, request: Request):
         return await onboarding.take_turn(resident, message)
     except Exception as error:
         return JSONResponse(status_code=500, content={"error": str(error)})
+
+
+# ============================================================================
+# Real-user pilot: match acceptance (mutual reveal gate). See my_match.py's
+# module docstring for the pending/waiting/sealed/dissolved state machine.
+# ============================================================================
+
+@app.get("/my-match")
+async def my_match_page():
+    return FileResponse(_MY_MATCH)
+
+
+@app.get("/api/my-match")
+async def api_my_match(request: Request):
+    resident, error_response = _require_consented_resident(request)
+    if error_response is not None:
+        return error_response
+    return my_match.get_state(resident)
+
+
+@app.post("/api/my-match/respond")
+async def api_my_match_respond(body: dict, request: Request):
+    resident, error_response = _require_consented_resident(request)
+    if error_response is not None:
+        return error_response
+    match_id = body.get("match_id")
+    try:
+        match_id = int(match_id)
+    except (TypeError, ValueError):
+        return JSONResponse(status_code=400, content={"error": "match_id is required."})
+    response = body.get("response")
+    state, error = my_match.respond(resident, match_id, response)
+    if error is not None:
+        return JSONResponse(status_code=400, content={"error": error})
+    return state
 
 
 if __name__ == "__main__":

@@ -308,6 +308,130 @@ def test_expired_oauth_state_is_rejected():
     assert db.consume_oauth_state("state-hash-2") is None
 
 
+# ----- real-user pilot: match acceptances (mutual reveal gate) --------------
+
+def test_persist_run_result_creates_pending_acceptances_for_resident_members():
+    reset()
+    nb = db.get_or_create_neighborhood("ten-trails", "Ten Trails", 3)
+    r1 = db.get_or_create_resident(nb["id"], "a@example.com", "google")
+    r2 = db.get_or_create_resident(nb["id"], "b@example.com", "google")
+    result = {
+        "interviews": {},
+        "groups": [{"match": {"group": ["r" + str(r1["id"]), "r" + str(r2["id"])],
+                              "reason": "grounded reason", "scores": {}, "why_not": []},
+                    "negotiation": None, "popup": None}],
+        "unmatched": [],
+    }
+    run_id = db.persist_run_result("live", "sig", result, neighborhood_id=nb["id"])
+    conn = db._get_conn()
+    row = conn.execute("SELECT id FROM matches WHERE run_id = ?", (run_id,)).fetchone()
+    match_id = row["id"]
+
+    acceptances = db.list_match_acceptances(match_id)
+    assert len(acceptances) == 2
+    assert {a["resident_id"] for a in acceptances} == {r1["id"], r2["id"]}
+    assert all(a["status"] == "pending" for a in acceptances)
+
+
+def test_persist_run_result_does_not_create_acceptances_for_demo_cast_ids():
+    reset()
+    result = {
+        "interviews": {},
+        "groups": [{"match": {"group": ["u01", "u04", "u10"], "reason": "x", "scores": {}, "why_not": []},
+                    "negotiation": None, "popup": None}],
+        "unmatched": [],
+    }
+    run_id = db.persist_run_result("demo", "sig", result)
+    conn = db._get_conn()
+    row = conn.execute("SELECT id FROM matches WHERE run_id = ?", (run_id,)).fetchone()
+    assert db.list_match_acceptances(row["id"]) == []
+
+
+def test_respond_to_acceptance_first_response_wins():
+    reset()
+    nb = db.get_or_create_neighborhood("ten-trails", "Ten Trails", 3)
+    r1 = db.get_or_create_resident(nb["id"], "a@example.com", "google")
+    match_id = db.save_match(db.create_run("live", "sig", nb["id"]), 0, _sample_match())
+    db.create_pending_acceptances(match_id, [r1["id"]])
+
+    changed = db.respond_to_acceptance(match_id, r1["id"], "accepted")
+    assert changed is True
+    assert db.get_acceptance(match_id, r1["id"])["status"] == "accepted"
+
+    # a second response can't flip an already-recorded one.
+    changed_again = db.respond_to_acceptance(match_id, r1["id"], "declined")
+    assert changed_again is False
+    assert db.get_acceptance(match_id, r1["id"])["status"] == "accepted"
+
+
+def test_mark_match_sealed_and_dissolved_are_idempotent():
+    reset()
+    match_id = db.save_match(db.create_run("live", "sig"), 0, _sample_match())
+    db.mark_match_sealed(match_id)
+    first = db.get_match(match_id)["sealed_at"]
+    db.mark_match_sealed(match_id)
+    assert db.get_match(match_id)["sealed_at"] == first
+
+    db.mark_match_dissolved(match_id)
+    first_dissolved = db.get_match(match_id)["dissolved_at"]
+    db.mark_match_dissolved(match_id)
+    assert db.get_match(match_id)["dissolved_at"] == first_dissolved
+
+
+def test_latest_match_acceptance_picks_the_most_recent():
+    reset()
+    nb = db.get_or_create_neighborhood("ten-trails", "Ten Trails", 3)
+    r1 = db.get_or_create_resident(nb["id"], "a@example.com", "google")
+    run_id = db.create_run("live", "sig", nb["id"])
+    match1 = db.save_match(run_id, 0, _sample_match())
+    match2 = db.save_match(run_id, 1, _sample_match())
+    db.create_pending_acceptances(match1, [r1["id"]])
+    db.create_pending_acceptances(match2, [r1["id"]])
+    latest = db.latest_match_acceptance(r1["id"])
+    assert latest["match_id"] == match2
+
+
+def test_get_negotiation_and_get_meetup_single_match_lookup():
+    reset()
+    match_id = db.save_match(db.create_run("live", "sig"), 0, _sample_match())
+    assert db.get_negotiation(match_id) is None
+    assert db.get_meetup(match_id) is None
+    db.save_negotiation(match_id, _sample_negotiation())
+    db.save_meetup(match_id, _sample_popup())
+    negotiation = db.get_negotiation(match_id)
+    meetup = db.get_meetup(match_id)
+    assert negotiation["activity"] == "coffee"
+    assert negotiation["agreed"] is True
+    assert meetup["event_name"] == "Coffee"
+
+
+def test_list_eligible_residents_excludes_members_of_a_live_match():
+    reset()
+    nb = db.get_or_create_neighborhood("ten-trails", "Ten Trails", 3)
+    r1 = db.mark_profile_complete(db.get_or_create_resident(nb["id"], "a@example.com", "google")["id"])
+    r2 = db.mark_profile_complete(db.get_or_create_resident(nb["id"], "b@example.com", "google")["id"])
+    assert len(db.list_eligible_residents(nb["id"])) == 2
+
+    match_id = db.save_match(db.create_run("live", "sig", nb["id"]), 0, _sample_match())
+    db.create_pending_acceptances(match_id, [r1["id"], r2["id"]])
+    eligible = db.list_eligible_residents(nb["id"])
+    assert eligible == []
+
+
+def test_list_eligible_residents_includes_members_of_a_dissolved_match():
+    reset()
+    nb = db.get_or_create_neighborhood("ten-trails", "Ten Trails", 3)
+    r1 = db.mark_profile_complete(db.get_or_create_resident(nb["id"], "a@example.com", "google")["id"])
+    match_id = db.save_match(db.create_run("live", "sig", nb["id"]), 0, _sample_match())
+    db.create_pending_acceptances(match_id, [r1["id"]])
+    assert db.list_eligible_residents(nb["id"]) == []
+
+    db.mark_match_dissolved(match_id)
+    eligible = db.list_eligible_residents(nb["id"])
+    assert len(eligible) == 1
+    assert eligible[0]["id"] == r1["id"]
+
+
 # ----- full reset ------------------------------------------------------------
 
 def test_reset_all_wipes_history_and_reseeds_users():

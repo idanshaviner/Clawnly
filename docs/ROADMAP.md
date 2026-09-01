@@ -153,13 +153,38 @@ during live verification surfaced that this dev machine's configured
 issue, not a code bug -- the route correctly returned a clean 500 with no
 partial DB writes). 235 tests passing.
 
-**Stage 4 -- Batch trigger + real-pipeline wiring: NOT STARTED.**
-New `src/batch.py`: `check_and_trigger_batch(neighborhood_id)`, called
-synchronously right after a resident's profile is marked complete (no
-scheduler/poller -- see the plan doc for why). Maps complete residents into
-the same profile-dict shape `run_pipeline` already expects (id prefixed
-`"r"`, e.g. `"r17"`, so no collision with the demo cast's `"u01"` ids), then
-calls the existing, **unmodified** `run_pipeline()`.
+**Stage 4 -- Batch trigger + real-pipeline wiring: DONE.**
+New `src/batch.py`: `check_and_trigger_batch(neighborhood_id, client=None)`,
+called synchronously (fire-and-forget via `asyncio.create_task`, same pattern
+`/api/run-stream` already uses) right after `db.mark_profile_complete` in
+`onboarding.py`'s `take_turn`. Counts `db.list_complete_residents`, and once
+the count meets the neighborhood's snapshotted `batch_threshold`, does the
+compare-and-swap (`db.try_trigger_batch` -- `UPDATE ... WHERE
+batch_triggered_at IS NULL`, guarded by `sqlite3`'s `cursor.rowcount`) so two
+near-simultaneous completions can't double-trigger. `batch.resident_to_profile`
+maps each complete resident into the exact profile-dict shape
+`run_pipeline`/`MasterClaw`/`Claw(simulated=True)` already require (id
+prefixed `"r"`, e.g. `"r17"`; every field is mandatory there, so anything
+onboarding's best-effort extraction never caught gets a plain, honest,
+schema-valid default -- never blocks or crashes the run). Calls the existing,
+**unmodified** `run_pipeline()`, then persists via a new shared
+`db.persist_run_result(mode, signature, result, neighborhood_id=None)` --
+extracted from app.py's old inline `_persist_run` body so admin-console runs
+and real-pilot batch runs share one save path; `runs.neighborhood_id` (Stage
+1's nullable column) tags a batch run. A pipeline exception after the CAS has
+fired is caught and logged, not raised (the fire-and-forget task must never
+surface an error through an unrelated resident's chat reply) -- an accepted
+alpha limitation: the neighborhood's one-shot trigger is then spent with
+nothing persisted, needing operator intervention (Stage 6). 12 new tests
+(`tests/test_batch.py`), 246 passing. Live-verified against a running server
+with an isolated DB: seeded 3 complete residents at `batch_threshold=3`,
+confirmed the CAS fires exactly once (a second call is a no-op, one `runs`
+row), confirmed `resident_to_profile`'s output is a well-formed request that
+reaches the real Anthropic API (this dev machine's expired key returns a
+clean per-interview 401, isolated by `master_claw.py`'s existing per-Claw
+error handling -- the run still completes and persists with 0 groups, not a
+crash), and confirmed both the CAS state and the persisted run survive a
+server restart.
 
 **Stage 5 -- Match acceptance (mutual reveal gate) + resident-facing results
 page: NOT STARTED.** Reshaped 2026-09-01 after reviewing a brand pitch video

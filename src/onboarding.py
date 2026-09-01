@@ -16,6 +16,9 @@ ChatGPT-history import -- the Claw conversation is the only way the system
 learns about someone").
 """
 
+import asyncio
+
+import batch
 import config
 import db
 from claw import Claw
@@ -249,6 +252,10 @@ async def take_turn(resident, message, client=None):
     complete = all(slots.values()) or turn_count >= MAX_ONBOARDING_TURNS
     if complete:
         updated = db.mark_profile_complete(resident_id)
+        # fire-and-forget, same pattern /api/run-stream already uses -- the
+        # resident's reply above must not wait on (or fail because of) a
+        # neighborhood-wide batch run that this one completion might trigger.
+        asyncio.create_task(batch.check_and_trigger_batch(resident["neighborhood_id"]))
 
     return {
         "reply": reply,

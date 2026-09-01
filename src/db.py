@@ -227,11 +227,15 @@ def update_user(uid, changes):
 
 # ----- runs + interviews -------------------------------------------------------
 
-def create_run(mode, users_signature):
+def create_run(mode, users_signature, neighborhood_id=None):
+    # neighborhood_id is None for an admin-console demo/live run on the fixed
+    # cast, and set for a real-pilot batch run (Stage 4) -- lets the two kinds
+    # of run share one table without a parallel history table.
     conn = _get_conn()
     cur = conn.execute(
-        "INSERT INTO runs (mode, users_signature, unmatched_ids, created_at) VALUES (?, ?, ?, ?)",
-        (mode, users_signature, json.dumps([]), _now()),
+        "INSERT INTO runs (mode, users_signature, unmatched_ids, created_at, neighborhood_id) "
+        "VALUES (?, ?, ?, ?, ?)",
+        (mode, users_signature, json.dumps([]), _now(), neighborhood_id),
     )
     conn.commit()
     return cur.lastrowid
@@ -322,6 +326,28 @@ def save_meetup(match_id, popup):
          popup.get("reason", ""), json.dumps(popup.get("matched_users", []))),
     )
     conn.commit()
+
+
+def persist_run_result(mode, signature, result, neighborhood_id=None):
+    # save a completed pipeline run (interviews, every group formed, each
+    # group's negotiation + meetup) so it survives a restart. Shared by
+    # app.py's admin-console runs (neighborhood_id=None) and batch.py's
+    # real-pilot batch runs (Stage 4), so this persistence sequence only
+    # lives in one place.
+    run_id = create_run(mode, signature, neighborhood_id)
+    save_interviews(run_id, result["interviews"])
+    groups = result["groups"]
+    gi = 0
+    while gi < len(groups):
+        entry = groups[gi]
+        match_id = save_match(run_id, gi, entry["match"])
+        if entry.get("negotiation") is not None:
+            save_negotiation(match_id, entry["negotiation"])
+        if entry.get("popup") is not None:
+            save_meetup(match_id, entry["popup"])
+        gi += 1
+    finish_run(run_id, result["unmatched"])
+    return run_id
 
 
 def load_run_result(run_id):
@@ -452,6 +478,19 @@ def get_or_create_neighborhood(slug, name, batch_threshold):
     return get_neighborhood_by_slug(slug)
 
 
+def try_trigger_batch(neighborhood_id):
+    # compare-and-swap: only the caller that actually flips batch_triggered_at
+    # from NULL wins (rowcount 1), so two near-simultaneous onboarding
+    # completions crossing the threshold at once can't both trigger a run.
+    conn = _get_conn()
+    cur = conn.execute(
+        "UPDATE neighborhoods SET batch_triggered_at = ? WHERE id = ? AND batch_triggered_at IS NULL",
+        (_now(), neighborhood_id),
+    )
+    conn.commit()
+    return cur.rowcount == 1
+
+
 # ----- real-user pilot: residents -----------------------------------------------
 
 def _row_to_resident(row):
@@ -552,6 +591,24 @@ def update_resident_profile(resident_id, fields):
         i += 1
     conn.commit()
     return get_resident(resident_id)
+
+
+def list_complete_residents(neighborhood_id):
+    # every resident in this cohort whose onboarding has crossed the five-slot
+    # completeness bar -- the pool batch.py counts against batch_threshold and
+    # maps into run_pipeline profiles.
+    conn = _get_conn()
+    rows = conn.execute(
+        "SELECT * FROM residents WHERE neighborhood_id = ? AND profile_complete_at IS NOT NULL "
+        "ORDER BY id",
+        (neighborhood_id,),
+    ).fetchall()
+    out = []
+    i = 0
+    while i < len(rows):
+        out.append(_row_to_resident(rows[i]))
+        i += 1
+    return out
 
 
 def mark_profile_complete(resident_id):

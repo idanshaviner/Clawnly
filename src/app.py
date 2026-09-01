@@ -323,22 +323,10 @@ async def api_set_key(body: dict):
 
 
 def _persist_run(mode, signature, result, reused):
-    # save a completed pipeline run (interviews, every group formed, each
-    # group's negotiation + meetup) so it survives a restart and can be
-    # explained later by /api/master-chat.
-    run_id = db.create_run(mode, signature)
-    db.save_interviews(run_id, result["interviews"])
-    groups = result["groups"]
-    gi = 0
-    while gi < len(groups):
-        entry = groups[gi]
-        match_id = db.save_match(run_id, gi, entry["match"])
-        if entry.get("negotiation") is not None:
-            db.save_negotiation(match_id, entry["negotiation"])
-        if entry.get("popup") is not None:
-            db.save_meetup(match_id, entry["popup"])
-        gi += 1
-    db.finish_run(run_id, result["unmatched"])
+    # admin-console runs are never neighborhood-scoped (neighborhood_id=None);
+    # the actual save sequence lives in db.persist_run_result, shared with
+    # batch.py's real-pilot batch runs so it's written in exactly one place.
+    db.persist_run_result(mode, signature, result)
     result["interviews_reused"] = reused
 
 

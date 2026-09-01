@@ -12,3 +12,7 @@ tests/test_clawnly.db
 tests/test_clawnly.db-journal
 tests/test_clawnly.db-wal
 tests/test_clawnly.db-shm
+clawnly_dryrun.db
+clawnly_dryrun.db-journal
+clawnly_dryrun.db-wal
+clawnly_dryrun.db-shm

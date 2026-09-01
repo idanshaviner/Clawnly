@@ -1,0 +1,142 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clawnly -- Getting to know you</title>
+<style>
+  :root{
+    --bg:#f7f6f3; --card:#fff; --ink:#1d1d1f; --muted:#6b6b70; --line:#e4e2dd;
+    --accent:#6c5ce7; --accent-soft:#efedfd; --amber:#c98a2b; --green:#2f9e6e;
+  }
+  body { margin:0; background:var(--bg); color:var(--ink); line-height:1.5;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }
+  .wrap { max-width:560px; margin:0 auto; padding:0 20px 24px; }
+  .banner { background:var(--amber); color:#fff; font-weight:600; font-size:13px;
+    text-align:center; padding:8px; }
+  .done-banner { background:var(--green); color:#fff; font-weight:600; font-size:13px;
+    text-align:center; padding:10px; border-radius:10px; margin-top:16px; display:none; }
+  h1 { font-size:19px; margin:20px 0 4px; }
+  p.sub { color:var(--muted); margin-top:0; font-size:14px; }
+  #thread { display:flex; flex-direction:column; gap:10px; margin-top:16px;
+    min-height:200px; }
+  .msg { max-width:80%; padding:10px 14px; border-radius:14px; font-size:15px;
+    white-space:pre-wrap; }
+  .msg.claw { background:var(--card); border:1px solid var(--line); align-self:flex-start; }
+  .msg.resident { background:var(--accent); color:#fff; align-self:flex-end; }
+  #composer { display:flex; gap:8px; margin-top:16px; position:sticky; bottom:16px; }
+  #composer input { flex:1; font-size:15px; border-radius:10px; padding:11px 14px;
+    border:1px solid var(--line); box-sizing:border-box; }
+  #composer button { font-size:15px; border-radius:10px; padding:11px 18px;
+    border:none; background:var(--accent); color:#fff; font-weight:600; cursor:pointer; }
+  #composer button:disabled { background:#c9c6e6; cursor:not-allowed; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:14px;
+    padding:24px; margin-top:20px; }
+</style>
+</head>
+<body>
+<div class="banner">ALPHA -- Clawnly is an early experiment. Expect rough edges.</div>
+<div class="wrap">
+  <div class="card" id="loading"><p>Loading...</p></div>
+
+  <div class="card" id="loggedout" style="display:none">
+    <h1>You're not logged in</h1>
+    <p class="sub">Head back to your neighborhood's invite link to sign in.</p>
+  </div>
+
+  <div id="chat" style="display:none">
+    <h1>Getting to know you</h1>
+    <p class="sub">Chat with your Claw -- it'll ask about you a little at a time.</p>
+    <div class="done-banner" id="done-banner">You're all set! We'll let you know right here once your group is ready.</div>
+    <div id="thread"></div>
+    <div id="composer">
+      <input type="text" id="msg-input" placeholder="Type a reply...">
+      <button id="send-btn">Send</button>
+    </div>
+  </div>
+</div>
+<script>
+function esc(s){ return (s==null?"":String(s)).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+
+function show(id){
+  var ids = ["loading", "loggedout", "chat"];
+  ids.forEach(function(other){ document.getElementById(other).style.display = (other === id) ? "block" : "none"; });
+}
+
+var thread = document.getElementById("thread");
+var input = document.getElementById("msg-input");
+var sendBtn = document.getElementById("send-btn");
+var doneBanner = document.getElementById("done-banner");
+
+function addMessage(role, content){
+  var div = document.createElement("div");
+  div.className = "msg " + (role === "assistant" ? "claw" : "resident");
+  div.innerHTML = esc(content);
+  thread.appendChild(div);
+  div.scrollIntoView({ behavior: "smooth", block: "end" });
+}
+
+function setComplete(complete){
+  doneBanner.style.display = complete ? "block" : "none";
+}
+
+function setBusy(busy){
+  input.disabled = busy;
+  sendBtn.disabled = busy;
+}
+
+function sendMessage(){
+  var text = input.value.trim();
+  if (text.length === 0) { return; }
+  addMessage("user", text);
+  input.value = "";
+  setBusy(true);
+  fetch("/api/onboarding/message", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ message: text }),
+  }).then(function(r){ return r.json().then(function(data){ return { ok: r.ok, data: data }; }); })
+    .then(function(res){
+      setBusy(false);
+      if (res.ok) {
+        addMessage("assistant", res.data.reply);
+        setComplete(res.data.complete);
+      } else {
+        addMessage("assistant", "(something went wrong: " + (res.data.error || "try again") + ")");
+      }
+      input.focus();
+    })
+    .catch(function(){
+      setBusy(false);
+      addMessage("assistant", "(something went wrong -- try again)");
+    });
+}
+
+sendBtn.addEventListener("click", sendMessage);
+input.addEventListener("keydown", function(event){
+  if (event.key === "Enter") { sendMessage(); }
+});
+
+fetch("/api/me").then(function(r){
+  if (!r.ok) { show("loggedout"); return null; }
+  return r.json();
+}).then(function(me){
+  if (me == null) { return; }
+  if (!me.resident_id) { show("loggedout"); return null; }
+  if (!me.consent_agreed_at) { window.location.href = "/consent"; return null; }
+  return fetch("/api/onboarding/history").then(function(r){ return r.json(); });
+}).then(function(history){
+  if (history == null) { return; }
+  show("chat");
+  history.messages.forEach(function(m){ addMessage(m.role, m.content); });
+  setComplete(history.complete);
+  if (history.messages.length === 0) {
+    addMessage("assistant", "Hey! I'm your Claw -- I'm here to get to know you a bit so we can " +
+      "find you a good group of neighbors to meet up with. What's on your mind lately, or what " +
+      "would you like people to know about you?");
+  }
+  input.focus();
+}).catch(function(){ show("loggedout"); });
+</script>
+</body>
+</html>

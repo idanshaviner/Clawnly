@@ -524,6 +524,73 @@ def record_consent(resident_id):
     return get_resident(resident_id)
 
 
+# fields onboarding is allowed to fill in over the course of a conversation --
+# the same profile columns EDITABLE_USER_FIELDS already whitelists for the
+# demo cast, plus slots_status (which tracks the five gating slots, not a
+# profile fact itself).
+RESIDENT_PROFILE_FIELDS = EDITABLE_USER_FIELDS + ["slots_status"]
+_RESIDENT_JSON_FIELDS = ("hobbies", "availability", "preferred_group_size", "slots_status")
+
+
+def update_resident_profile(resident_id, fields):
+    # partial update -- onboarding fills fields in gradually, one turn's worth
+    # of extraction at a time, so only whitelisted keys actually present in
+    # `fields` are touched (same whitelist-then-string-build pattern as
+    # update_user).
+    conn = _get_conn()
+    keys = list(fields.keys())
+    i = 0
+    while i < len(keys):
+        key = keys[i]
+        if key in RESIDENT_PROFILE_FIELDS:
+            value = fields[key]
+            if key in _RESIDENT_JSON_FIELDS:
+                value = json.dumps(value)
+            # safe: `key` is checked against RESIDENT_PROFILE_FIELDS above,
+            # never taken directly from the raw request, so this cannot inject SQL.
+            conn.execute("UPDATE residents SET " + key + " = ? WHERE id = ?", (value, resident_id))
+        i += 1
+    conn.commit()
+    return get_resident(resident_id)
+
+
+def mark_profile_complete(resident_id):
+    # idempotent -- same first-write-wins guard as record_consent.
+    conn = _get_conn()
+    conn.execute(
+        "UPDATE residents SET profile_complete_at = ? WHERE id = ? AND profile_complete_at IS NULL",
+        (_now(), resident_id),
+    )
+    conn.commit()
+    return get_resident(resident_id)
+
+
+# ----- real-user pilot: onboarding messages --------------------------------------
+
+def save_onboarding_message(resident_id, role, content):
+    conn = _get_conn()
+    conn.execute(
+        "INSERT INTO onboarding_messages (resident_id, role, content, created_at) VALUES (?, ?, ?, ?)",
+        (resident_id, role, content, _now()),
+    )
+    conn.commit()
+
+
+def get_onboarding_messages(resident_id):
+    # ordered transcript, shaped exactly like the history list Claw.chat expects.
+    conn = _get_conn()
+    rows = conn.execute(
+        "SELECT role, content FROM onboarding_messages WHERE resident_id = ? ORDER BY id ASC",
+        (resident_id,),
+    ).fetchall()
+    messages = []
+    i = 0
+    while i < len(rows):
+        messages.append({"role": rows[i]["role"], "content": rows[i]["content"]})
+        i += 1
+    return messages
+
+
 # ----- real-user pilot: sessions ------------------------------------------------
 
 def create_session(token, email, role, resident_id, neighborhood_id, ttl_seconds):

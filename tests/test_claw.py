@@ -124,3 +124,54 @@ def test_question_is_passed_through():
     run(claw.describe("a very specific question"))
     _, kwargs = fake.calls[0]
     assert kwargs["messages"][0]["content"] == "a very specific question"
+
+
+# ----- simulated=False: real-resident onboarding mode (PILOT_PLAN stage 3) ----
+
+def _blank_resident(**overrides):
+    resident = {"id": 1, "name": None, "age": None, "gender": None, "hobbies": None,
+                "personality": None, "occupation": None, "availability": None,
+                "location": None, "bio": None, "preferred_group_size": None}
+    resident.update(overrides)
+    return resident
+
+
+def test_simulated_defaults_to_true_and_is_unchanged():
+    # regression guard: every existing call site/test gets today's behavior.
+    claw = Claw(find("u01"), client=FakeClient())
+    assert claw.simulated is True
+    prompt = claw._system_prompt()
+    assert "embody this character" in prompt
+
+
+def test_real_mode_never_invents_and_uses_the_onboarding_style():
+    claw = Claw(_blank_resident(name="Sam"), client=FakeClient(), simulated=False)
+    prompt = claw._system_prompt()
+    assert "fully invent" not in prompt.lower()
+    assert "embody this character" not in prompt.lower()
+    assert "REAL person" in prompt
+    assert "Name: Sam" in prompt
+    assert "Age:" not in prompt          # unknown fields are omitted, not invented
+
+
+def test_real_mode_with_no_known_facts_says_so_plainly():
+    claw = Claw(_blank_resident(), client=FakeClient(), simulated=False)
+    prompt = claw._system_prompt()
+    assert "nothing yet" in prompt.lower()
+
+
+def test_real_mode_size_text_not_invoked_when_group_size_unknown():
+    # preferred_group_size is None for a brand-new resident -- must not crash
+    # the way the simulated _size_text() would on a None value.
+    claw = Claw(_blank_resident(), client=FakeClient(), simulated=False)
+    claw._system_prompt()   # no exception
+
+
+def test_real_mode_chat_uses_the_onboarding_model_and_style():
+    fake = FakeClient(onboarding_text="Nice to meet you, Sam!")
+    claw = Claw(_blank_resident(name="Sam"), client=fake, simulated=False)
+    reply = run(claw.chat("hi"))
+    assert reply == "Nice to meet you, Sam!"
+    kind, kwargs = fake.calls[0]
+    assert kind == "onboarding_chat"
+    assert kwargs["model"] == config.MODEL_ONBOARDING_CHAT

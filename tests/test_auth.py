@@ -14,6 +14,7 @@ import app as webapp
 import auth
 import config
 import db
+import onboarding
 from users import USERS
 
 client = TestClient(webapp.app)
@@ -367,6 +368,100 @@ def test_api_consent_records_agreement_and_api_me_reflects_it():
 
         r = client.get("/api/me")
         assert r.json()["consent_agreed_at"] is not None
+    finally:
+        client.cookies.clear()
+
+
+# ----- routes: onboarding (PILOT_PLAN stage 3) --------------------------------
+
+def _consented_resident_session():
+    nb = db.get_or_create_neighborhood("ballard", "Ballard", 100)
+    resident = db.get_or_create_resident(nb["id"], "a@example.com", "magic_link")
+    db.record_consent(resident["id"])
+    token = auth.start_session("a@example.com", "resident", resident["id"], nb["id"])
+    return resident, token
+
+
+def test_onboarding_page_serves():
+    reset_state()
+    r = client.get("/onboarding")
+    assert r.status_code == 200
+    assert "text/html" in r.headers["content-type"]
+
+
+def test_api_onboarding_history_requires_login():
+    reset_state()
+    r = client.get("/api/onboarding/history")
+    assert r.status_code == 401
+
+
+def test_api_onboarding_history_requires_consent():
+    reset_state()
+    nb = db.get_or_create_neighborhood("ballard", "Ballard", 100)
+    resident = db.get_or_create_resident(nb["id"], "a@example.com", "magic_link")
+    token = auth.start_session("a@example.com", "resident", resident["id"], nb["id"])
+    client.cookies.set(auth.SESSION_COOKIE_NAME, token)
+    try:
+        r = client.get("/api/onboarding/history")
+        assert r.status_code == 403
+    finally:
+        client.cookies.clear()
+
+
+def test_api_onboarding_history_reflects_persisted_state():
+    reset_state()
+    resident, token = _consented_resident_session()
+    db.save_onboarding_message(resident["id"], "user", "hi")
+    db.save_onboarding_message(resident["id"], "assistant", "hello!")
+    client.cookies.set(auth.SESSION_COOKIE_NAME, token)
+    try:
+        r = client.get("/api/onboarding/history")
+        assert r.status_code == 200
+        data = r.json()
+        assert data["messages"] == [{"role": "user", "content": "hi"},
+                                     {"role": "assistant", "content": "hello!"}]
+        assert data["complete"] is False
+    finally:
+        client.cookies.clear()
+
+
+def test_api_onboarding_message_requires_login():
+    reset_state()
+    r = client.post("/api/onboarding/message", json={"message": "hi"})
+    assert r.status_code == 401
+
+
+def test_api_onboarding_message_rejects_empty_message():
+    reset_state()
+    resident, token = _consented_resident_session()
+    client.cookies.set(auth.SESSION_COOKIE_NAME, token)
+    try:
+        r = client.post("/api/onboarding/message", json={"message": "   "})
+        assert r.status_code == 400
+    finally:
+        client.cookies.clear()
+
+
+def test_api_onboarding_message_round_trip(monkeypatch):
+    reset_state()
+    from conftest import FakeClient, json_body
+    resident, token = _consented_resident_session()
+    slots = {name: False for name in onboarding.SLOT_NAMES}
+    fake = FakeClient(onboarding_text="Nice to meet you!",
+                       extraction_queue=[json_body({"slots": slots, "fields": {}})])
+    monkeypatch.setattr(config, "get_client", lambda: fake)
+    client.cookies.set(auth.SESSION_COOKIE_NAME, token)
+    try:
+        r = client.post("/api/onboarding/message", json={"message": "hi there"})
+        assert r.status_code == 200
+        data = r.json()
+        assert data["reply"] == "Nice to meet you!"
+        assert data["complete"] is False
+        assert data["slots_status"] == slots
+        assert db.get_onboarding_messages(resident["id"]) == [
+            {"role": "user", "content": "hi there"},
+            {"role": "assistant", "content": "Nice to meet you!"},
+        ]
     finally:
         client.cookies.clear()
 

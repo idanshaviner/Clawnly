@@ -26,6 +26,7 @@ from claw import Claw
 from demo import DemoClient
 from explain import explain_decision, context_summary
 from main import run_pipeline
+import onboarding
 from persona_gen import generate_users, nudge_user, DEFAULT_THEME
 from users import USERS, HOBBY_CATEGORIES, AVAILABILITY_WINDOWS
 
@@ -95,6 +96,7 @@ _HERE = os.path.dirname(os.path.abspath(__file__))
 _INDEX = os.path.join(_HERE, "web", "index.html")
 _JOIN = os.path.join(_HERE, "web", "join.html")
 _CONSENT = os.path.join(_HERE, "web", "consent.html")
+_ONBOARDING = os.path.join(_HERE, "web", "onboarding.html")
 
 
 def _users_signature(users):
@@ -601,6 +603,58 @@ async def api_me(request: Request):
         if resident is not None:
             result["consent_agreed_at"] = resident["consent_agreed_at"]
     return result
+
+
+# ============================================================================
+# Real-user pilot: onboarding (the open-ended chat that fills in a profile).
+# Private, authenticated, real-data routes -- always live (see onboarding.py's
+# module docstring for why demo/BYOK don't apply here).
+# ============================================================================
+
+def _require_consented_resident(request):
+    # the auth/consent gate both onboarding API routes need. Returns
+    # (resident, None) on success, or (None, an error JSONResponse) otherwise.
+    session = auth.current_session(request)
+    if session is None:
+        return None, JSONResponse(status_code=401, content={"error": "not logged in"})
+    resident_id = session.get("resident_id")
+    if resident_id is None:
+        return None, JSONResponse(status_code=400, content={"error": "Only residents onboard."})
+    resident = db.get_resident(resident_id)
+    if resident is None:
+        return None, JSONResponse(status_code=404, content={"error": "resident not found"})
+    if resident["consent_agreed_at"] is None:
+        return None, JSONResponse(status_code=403, content={"error": "Consent is required before onboarding."})
+    return resident, None
+
+
+@app.get("/onboarding")
+async def onboarding_page():
+    return FileResponse(_ONBOARDING)
+
+
+@app.get("/api/onboarding/history")
+async def api_onboarding_history(request: Request):
+    resident, error_response = _require_consented_resident(request)
+    if error_response is not None:
+        return error_response
+    messages = db.get_onboarding_messages(resident["id"])
+    return {"messages": messages, "slots_status": resident["slots_status"],
+            "complete": resident["profile_complete_at"] is not None}
+
+
+@app.post("/api/onboarding/message")
+async def api_onboarding_message(body: dict, request: Request):
+    resident, error_response = _require_consented_resident(request)
+    if error_response is not None:
+        return error_response
+    message = (body.get("message") or "").strip()
+    if len(message) == 0:
+        return JSONResponse(status_code=400, content={"error": "Message can't be empty."})
+    try:
+        return await onboarding.take_turn(resident, message)
+    except Exception as error:
+        return JSONResponse(status_code=500, content={"error": str(error)})
 
 
 if __name__ == "__main__":

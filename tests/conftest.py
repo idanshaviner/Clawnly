@@ -43,6 +43,18 @@ class FakeMessages:
 
         # route by distinctive markers in the system prompt (assistant-prefill is
         # no longer used, so every call ends with a user message).
+        if "actual human on the other end" in low:
+            # a real (simulated=False) resident's onboarding chat reply.
+            outer.calls.append(("onboarding_chat", kwargs))
+            content = messages[-1]["content"]
+            answer = outer.onboarding_text
+            if outer.onboarding_fn is not None:
+                answer = outer.onboarding_fn(system, content)
+            return text_response(answer)
+        if "personality_energy" in low:
+            # the per-turn slot-completeness + field-extraction call.
+            outer.calls.append(("onboarding_extract", kwargs))
+            return text_response(outer.extraction_queue.pop(0))
         if "embody this character" in low:
             # a Claw persona call (interview describe/batch, or free-style chat)
             outer.calls.append(("interview", kwargs))
@@ -93,7 +105,9 @@ class FakeClient:
     def __init__(self, interview_text="canned interview answer", interview_fn=None,
                  match_queue=None, popup_queue=None, propose_queue=None,
                  assess_queue=None, explain_queue=None, generation_queue=None,
-                 nudge_queue=None, fail_names=None):
+                 nudge_queue=None, fail_names=None,
+                 onboarding_text="canned onboarding reply", onboarding_fn=None,
+                 extraction_queue=None):
         self.interview_text = interview_text
         self.interview_fn = interview_fn
         self.match_queue = list(match_queue or [])
@@ -104,6 +118,9 @@ class FakeClient:
         self.generation_queue = list(generation_queue or [])
         self.nudge_queue = list(nudge_queue or [])
         self.fail_names = set(fail_names or [])
+        self.onboarding_text = onboarding_text
+        self.onboarding_fn = onboarding_fn
+        self.extraction_queue = list(extraction_queue or [])
         self.calls = []
         self.messages = FakeMessages(self)
 

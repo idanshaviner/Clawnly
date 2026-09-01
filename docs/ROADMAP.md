@@ -120,13 +120,35 @@ this dev machine's real Resend/Google creds are already configured and
 sending a real email wasn't needed to exercise the new routes). 211 tests
 passing.
 
-**Stage 3 -- Onboarding chat + completeness tracking: NOT STARTED.**
-Add `simulated=False` mode to `Claw.__init__` (default `True` -- zero change
-to existing behavior/tests) so a real resident's Claw only speaks from stored
-profile fields + persisted conversation, never invents. Persist the chat in
-`onboarding_messages`. Slot-tracking completeness check on `MODEL_ONBOARDING_COMPLETENESS`
-(cheap tier, already defined in `config.py`) after every turn; hard ~20-turn
-cap that force-completes rather than looping forever.
+**Stage 3 -- Onboarding chat + completeness tracking: DONE.**
+`Claw.__init__` gained `simulated=True` (default -- zero change to existing
+behavior, regression-tested in `test_claw.py`); `simulated=False` builds its
+system prompt (`REAL_ONBOARDING_STYLE` in `claw.py`) strictly from stored
+profile fields actually known so far + persisted conversation, explicitly
+never inventing. New flat module `src/onboarding.py`: `take_turn(resident,
+message, client=None)` runs the chat reply (now correctly on
+`config.MODEL_ONBOARDING_CHAT`, previously-unused since Stage 1) + a second
+structured call on `MODEL_ONBOARDING_COMPLETENESS` that reports which of the
+five gating slots (`onboarding.SLOT_NAMES`) are genuinely evidenced plus
+best-effort values for the rest of the resident row; extracted
+hobbies/availability/group-size are validated against the same closed
+vocabularies `persona_gen.py` uses before being persisted (anything invalid
+is dropped, never trusted blindly). Hard 20-turn cap
+(`MAX_ONBOARDING_TURNS`) force-completes. A bookkeeping (extraction) failure
+never turns an already-successful reply into a visible error -- both sides
+of the exchange are persisted first; the reply always reaches the resident.
+New routes: `GET /onboarding`, `GET /api/onboarding/history`, `POST
+/api/onboarding/message` (all gated by `_require_consented_resident` in
+`app.py` -- resident resolved only from the session cookie, 403 without
+consent). Onboarding always uses the server's real client (no demo/BYOK
+toggle -- this is private authenticated real-user data, deliberately never
+tested against scripted fake replies). Live-verified against a running
+server: auth/consent gating (401/403), restart-durability of persisted
+messages + profile fields + slots_status. The one real end-to-end chat call
+during live verification surfaced that this dev machine's configured
+`ANTHROPIC_API_KEY` is currently invalid/expired (a pre-existing environment
+issue, not a code bug -- the route correctly returned a clean 500 with no
+partial DB writes). 235 tests passing.
 
 **Stage 4 -- Batch trigger + real-pipeline wiring: NOT STARTED.**
 New `src/batch.py`: `check_and_trigger_batch(neighborhood_id)`, called

@@ -150,7 +150,10 @@ stages rather than one pass, the same way Milestone 1 went:
 2. **Registration + consent** -- the invite-link landing page, neighborhood creation, consent
    capture. **DONE.**
 3. **Onboarding chat + completeness tracking** -- the `simulated=False` Claw mode, persisted
-   conversation, the slot-tracking completeness check, the turn cap.
+   conversation, the slot-tracking completeness check, the turn cap. **DONE.** (Field
+   coverage note: the five named slots gate `profile_complete_at`; the extra resident columns
+   -- name/age/gender/location/occupation/bio -- are filled in best-effort by the same
+   extraction call but never block completion, per your call when this stage was planned.)
 4. **Batch trigger + real-pipeline wiring** -- `batch.py`, resident->profile-dict mapping, reusing
    `run_pipeline` and the existing persistence helpers.
 5. **Resident-facing results page** -- "my match" lookup and display.

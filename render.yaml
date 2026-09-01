@@ -1,6 +1,15 @@
 # Render Blueprint for deploying Clawnly as a public web app.
 # In Render: New -> Blueprint -> pick this repo. Or configure a Web Service by
 # hand with the build/start commands below.
+#
+# Two DIFFERENT deployments live in this one file -- pick the right service
+# when you set up Render, don't merge their env vars:
+#   "clawnly"       -- the public demo/BYOK site. No server-side Anthropic key,
+#                      ever (see its own comments below).
+#   "clawnly-pilot" -- the real neighborhood pilot. The OPPOSITE: the server
+#                      needs its own real keys, because real residents log in
+#                      and the app calls Claude on their behalf. Never set
+#                      CLAWNLY_BYOK or CLAWNLY_DEMO_ONLY on this service.
 services:
   - type: web
     name: clawnly
@@ -19,3 +28,31 @@ services:
         value: "3.12.6"
       # IMPORTANT: do NOT set ANTHROPIC_API_KEY here -- in BYOK the server must
       # have no key of its own, so no visitor can ever spend yours.
+
+  - type: web
+    name: clawnly-pilot
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app:app --host 0.0.0.0 --port $PORT --app-dir src
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.6"
+      # No CLAWNLY_BYOK / CLAWNLY_DEMO_ONLY here -- real residents need the
+      # server's own key, not their own, and the pilot must never silently
+      # fall back to demo mode.
+      #
+      # `sync: false` = Render prompts you to type the value in its dashboard
+      # during setup and never stores it in this repo. Fill in all four:
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      # Admin allowlist (comma-separated emails) -- see auth.is_admin /
+      # config.parse_admin_emails. Fill in your own email(s).
+      - key: CLAWNLY_ADMIN_EMAILS
+        sync: false

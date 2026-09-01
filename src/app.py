@@ -103,6 +103,7 @@ _CONSENT = os.path.join(_HERE, "web", "consent.html")
 _ONBOARDING = os.path.join(_HERE, "web", "onboarding.html")
 _MY_MATCH = os.path.join(_HERE, "web", "my-match.html")
 _ADMIN = os.path.join(_HERE, "web", "admin.html")
+_PRIVACY = os.path.join(_HERE, "web", "privacy.html")
 
 
 def _users_signature(users):
@@ -475,6 +476,13 @@ def _post_login_response(result):
 @app.get("/join/{slug}")
 async def join(slug: str):
     return FileResponse(_JOIN)
+
+
+@app.get("/privacy")
+async def privacy_page():
+    # ungated, public -- linked from the Google OAuth consent screen and
+    # from join.html's consent framing.
+    return FileResponse(_PRIVACY)
 
 
 @app.get("/consent")

@@ -1,0 +1,83 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clawnly -- Privacy</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f3efe3; --card:#fbf9f2; --ink:#2b2a22; --muted:#7c7663; --line:#e3dcc9;
+    --accent:#6f7d4f; --accent-soft:#e9ecdd; --accent-dark:#54613b; --amber:#b98a4a;
+  }
+  body { margin:0; background:var(--bg); color:var(--ink); line-height:1.6;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }
+  h1, h2, .brand-word { font-family:"Lora",Georgia,"Times New Roman",serif; }
+  .wrap { max-width:640px; margin:0 auto; padding:24px 20px 60px; }
+  .banner { background:var(--amber); color:#fff; font-weight:600; font-size:13px;
+    text-align:center; padding:8px; }
+  .brand { display:flex; align-items:center; gap:8px; margin:22px 0 4px; color:var(--accent-dark); }
+  .brand-word { font-size:17px; font-weight:600; letter-spacing:0.02em; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:16px;
+    padding:32px; margin-top:16px; box-shadow:0 1px 2px rgba(43,42,34,0.04); }
+  h1 { font-size:26px; font-weight:600; margin:0 0 4px; }
+  p.updated { color:var(--muted); font-size:13px; margin-top:0; }
+  h2 { font-size:17px; font-weight:600; margin:28px 0 8px; }
+  p, li { font-size:15px; }
+  ul { padding-left:20px; }
+  .alpha-note { background:var(--accent-soft); border-radius:10px; padding:14px; font-size:14px;
+    margin:20px 0; color:var(--accent-dark); }
+</style>
+</head>
+<body>
+<div class="banner">ALPHA -- Clawnly is an early experiment. Expect rough edges.</div>
+<div class="wrap">
+  <div class="brand">🌲 <span class="brand-word">Clawnly</span></div>
+  <div class="card">
+    <h1>Privacy</h1>
+    <p class="updated">Plain-language, alpha-stage version -- last updated September 2026.</p>
+
+    <div class="alpha-note">
+      Clawnly is an early, small-scale pilot. This page explains in plain language what we
+      collect and why. It is written in good faith but is <b>not a substitute for professional
+      legal advice</b>, and will be replaced with a proper policy before any wider launch.
+    </div>
+
+    <h2>What we collect</h2>
+    <ul>
+      <li>Your email address, used to sign you in (Google or an emailed sign-in link).</li>
+      <li>Whatever you tell your Claw during onboarding -- your own words, used to build a
+        profile (things like your personality/energy, interests, availability, the group size
+        you're after, and what you're hoping to get out of this). Nothing here is invented or
+        imported from anywhere else; the conversation is the only source.</li>
+      <li>Whether you accept or decline a proposed match, and any feedback you give after a
+        meetup.</li>
+    </ul>
+
+    <h2>How it's used</h2>
+    <p>An AI ("Master Claw") reads profiles across your neighborhood to try to form small,
+      genuinely compatible groups for a real-world meetup, and explains its reasoning. It is not
+      reviewed by a human before it reaches you, unless something goes wrong and we need to look
+      into it.</p>
+
+    <h2>Who else sees it</h2>
+    <ul>
+      <li>Anthropic (Claude) processes your onboarding conversation and profile to build matches
+        -- this is the core of how the product works.</li>
+      <li>Google or Resend, only as needed to sign you in, depending on which login method you
+        use.</li>
+      <li>We do not sell your data or use it for advertising.</li>
+    </ul>
+
+    <h2>Your choices</h2>
+    <p>You can stop at any time. Self-service account/data deletion is planned but not live yet
+      -- until then, contact us and we'll handle it manually.</p>
+
+    <h2>Contact</h2>
+    <p>[operator: add a real contact email here before publishing]</p>
+  </div>
+</div>
+</body>
+</html>

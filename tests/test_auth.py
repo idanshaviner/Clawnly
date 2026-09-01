@@ -333,6 +333,13 @@ def test_consent_page_serves():
     assert "text/html" in r.headers["content-type"]
 
 
+def test_privacy_page_serves_and_is_public():
+    reset_state()
+    r = client.get("/privacy")
+    assert r.status_code == 200
+    assert "text/html" in r.headers["content-type"]
+
+
 def test_api_consent_requires_login():
     reset_state()
     r = client.post("/api/consent")

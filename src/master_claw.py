@@ -22,6 +22,14 @@ QUESTION_2 = "What is your availability like, and what energy do you bring to gr
 # how many times to ask the matcher to fix a constraint-violating (or too-weak) group.
 MAX_MATCH_ATTEMPTS = 3
 
+# cap on how many pairwise compatibility hints go in one match call. At demo
+# scale (12 people) this never binds. At real-neighborhood scale (dozens to
+# hundreds of candidates in the early rounds) an uncapped pair list can grow
+# unboundedly and dwarf the profiles themselves in prompt size -- the model
+# still has every full profile to reason from regardless, so this is capping
+# the highest-value ASSIST, not the only signal available to it.
+MAX_HINT_PAIRS = 20
+
 # the four group-level score dimensions the matcher must return (SPEC 6a).
 SCORE_DIMENSIONS = ["personality", "availability", "interests", "size_fit"]
 
@@ -211,8 +219,8 @@ class MasterClaw:
         # no longer has to spot every overlap by hand) and grounding (SPEC 6c):
         # every pair listed here is a fact the model can cite and a reviewer can
         # re-derive from the profiles above.
-        hobby_lines = []
-        availability_lines = []
+        hobby_pairs = []
+        availability_pairs = []
         i = 0
         while i < len(candidate_ids):
             a = self.users_by_id[candidate_ids[i]]
@@ -222,16 +230,38 @@ class MasterClaw:
 
                 shared_hobbies = _shared_items(a["hobbies"], b["hobbies"])
                 if len(shared_hobbies) > 0:
-                    hobby_lines.append("  {} & {}: {}".format(a["name"], b["name"], ", ".join(shared_hobbies)))
+                    hobby_pairs.append((len(shared_hobbies), a["name"], b["name"], shared_hobbies))
 
                 # only surface STRONG overlap (2+ windows); a bare 1-window
                 # overlap is common and already visible on each person's own
                 # availability line above, so listing every such pair is noise.
                 shared_windows = _shared_items(a["availability"], b["availability"])
                 if len(shared_windows) >= 2:
-                    availability_lines.append("  {} & {}: {} shared windows -- {}".format(
-                        a["name"], b["name"], len(shared_windows), ", ".join(shared_windows)))
+                    availability_pairs.append((len(shared_windows), a["name"], b["name"], shared_windows))
                 j += 1
+            i += 1
+
+        # strongest pairs first, then cap -- at real scale this keeps the
+        # highest-value signals and drops the long, weak tail rather than
+        # truncating arbitrarily by candidate order.
+        hobby_pairs.sort(key=lambda pair: pair[0], reverse=True)
+        availability_pairs.sort(key=lambda pair: pair[0], reverse=True)
+        hobby_pairs = hobby_pairs[:MAX_HINT_PAIRS]
+        availability_pairs = availability_pairs[:MAX_HINT_PAIRS]
+
+        hobby_lines = []
+        i = 0
+        while i < len(hobby_pairs):
+            _, name_a, name_b, shared = hobby_pairs[i]
+            hobby_lines.append("  {} & {}: {}".format(name_a, name_b, ", ".join(shared)))
+            i += 1
+
+        availability_lines = []
+        i = 0
+        while i < len(availability_pairs):
+            count, name_a, name_b, shared = availability_pairs[i]
+            availability_lines.append("  {} & {}: {} shared windows -- {}".format(
+                name_a, name_b, count, ", ".join(shared)))
             i += 1
 
         lines = []

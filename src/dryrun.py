@@ -19,8 +19,24 @@ extraction per persona turn, plus one real match/negotiation/popup run).
 Writes to an ISOLATED database by default (never clawnly.db) -- see DB_PATH
 below. Sequential, not concurrent, so the printed transcript stays readable.
 
-Run:  .venv/bin/python src/dryrun.py
-Override persona count / theme:  DRYRUN_COUNT=4 DRYRUN_THEME="..." .venv/bin/python src/dryrun.py
+Two modes (DRYRUN_MODE):
+  chat (default) -- each persona has a full simulated onboarding conversation
+    (a second Claw, simulated=True, plays the resident) before the batch
+    trigger. Faithful end-to-end test of onboarding INCLUDING the chat/
+    extraction loop, but that's O(turns) real calls per persona -- fine for a
+    handful of people, not for a realistic-size cohort.
+  bulk -- for testing matching QUALITY/DIVERSITY at real scale (e.g. the
+    actual 100-person batch threshold). Skips the chat simulation (already
+    proven by "chat" mode) and seeds each resident's profile directly from
+    its generated persona, then runs ONE real batch. Still 100% the real,
+    unmodified run_pipeline/master_claw/negotiation/popup code -- just not
+    re-paying for the chat-to-extraction step every time.
+
+Run:              .venv/bin/python src/dryrun.py
+Override count:   DRYRUN_COUNT=4 DRYRUN_THEME="..." .venv/bin/python src/dryrun.py
+Bulk at scale:     DRYRUN_MODE=bulk DRYRUN_COUNT=100 .venv/bin/python src/dryrun.py
+Cheaper matching:  DRYRUN_MATCH_EFFORT=low  (overrides config.MATCH_EFFORT for THIS
+                   process only -- never the real deployment; costs some match quality)
 """
 
 import asyncio
@@ -41,9 +57,31 @@ import onboarding
 from claw import Claw
 from persona_gen import generate_users, DEFAULT_THEME
 
+# dry-run-only cost lever: overrides the in-memory config.MATCH_EFFORT value
+# for THIS PROCESS ONLY -- never touches config.py or any real deployment.
+# Lower effort = cheaper/faster match-forming calls at some quality cost;
+# fine for iterating on a throwaway dry run, never for the real launch
+# (config.MATCH_EFFORT stays "medium" there, untouched).
+_effort_override = os.environ.get("DRYRUN_MATCH_EFFORT")
+if _effort_override:
+    config.MATCH_EFFORT = _effort_override
+
 PERSONA_COUNT = int(os.environ.get("DRYRUN_COUNT", "3"))
 THEME = os.environ.get("DRYRUN_THEME", DEFAULT_THEME)
+MODE = os.environ.get("DRYRUN_MODE", "chat")
 MAX_ONBOARDING_TURNS = 15   # a safety margin under onboarding.MAX_ONBOARDING_TURNS (20)
+
+_BULK_PROFILE_FIELDS = ["name", "age", "gender", "hobbies", "personality", "occupation",
+                         "availability", "location", "bio", "preferred_group_size"]
+
+
+def _all_slots_true():
+    slots = {}
+    i = 0
+    while i < len(onboarding.SLOT_NAMES):
+        slots[onboarding.SLOT_NAMES[i]] = True
+        i += 1
+    return slots
 
 
 def _rule(title):
@@ -96,8 +134,106 @@ def _profile_diff_lines(persona_profile, resident):
     return lines
 
 
+def _bulk_seed_resident(resident, persona):
+    # skips the onboarding conversation entirely -- directly writes the
+    # generated persona's fields onto the resident row, same field names
+    # throughout, and marks the profile complete. Only for bulk-mode
+    # scale-testing; a real resident always goes through the real chat.
+    fields = {}
+    i = 0
+    while i < len(_BULK_PROFILE_FIELDS):
+        key = _BULK_PROFILE_FIELDS[i]
+        fields[key] = persona[key]
+        i += 1
+    fields["slots_status"] = _all_slots_true()
+    db.update_resident_profile(resident["id"], fields)
+    db.mark_profile_complete(resident["id"])
+
+
+def _lookup_by_rid(residents):
+    lookup = {}
+    i = 0
+    while i < len(residents):
+        persona, resident = residents[i]
+        lookup["r" + str(resident["id"])] = (persona, resident)
+        i += 1
+    return lookup
+
+
+def _print_bulk_summary(run_id, lookup):
+    result = db.load_run_result(run_id)
+    groups = result["groups"]
+    unmatched = result["unmatched"]
+    _rule("{} group(s) formed, {} unmatched (of {})".format(
+        len(groups), len(unmatched), len(lookup)))
+
+    i = 0
+    while i < len(groups):
+        match = groups[i]["match"]
+        names = []
+        j = 0
+        while j < len(match["group"]):
+            member = lookup.get(match["group"][j])
+            if member is not None:
+                names.append(member[0]["name"])
+            j += 1
+        print("\nGroup {}: {}".format(i + 1, ", ".join(names)))
+        print("  Reason: " + match["reason"])
+        negotiation = groups[i]["negotiation"]
+        if negotiation is not None:
+            print("  Negotiation: agreed={} activity={}".format(
+                negotiation["agreed"], negotiation.get("activity")))
+        popup = groups[i]["popup"]
+        if popup is not None:
+            print("  Meetup: {} -- {} @ {}".format(
+                popup.get("event_name"), popup.get("time"), popup.get("location")))
+        i += 1
+
+    if len(unmatched) > 0:
+        names = []
+        i = 0
+        while i < len(unmatched):
+            member = lookup.get(unmatched[i])
+            if member is not None:
+                names.append(member[0]["name"])
+            i += 1
+        print("\nUnmatched ({}): {}".format(len(names), ", ".join(names)))
+
+
+def _accept_all_pending(lookup):
+    # cheap (no AI calls) -- exercises the real accept/seal DB path for
+    # every resident in every formed group, not just a sample.
+    keys = list(lookup.keys())
+    accepted = 0
+    sealed_sample = None
+    i = 0
+    while i < len(keys):
+        persona, resident = lookup[keys[i]]
+        resident_row = db.get_resident(resident["id"])
+        state = my_match.get_state(resident_row)
+        if state["state"] == "pending":
+            state, error = my_match.respond(resident_row, state["match_id"], "accept")
+            if error is None:
+                accepted += 1
+                if state["state"] == "sealed" and sealed_sample is None:
+                    sealed_sample = (persona, state)
+        i += 1
+    print("\nAccepted {} pending response(s).".format(accepted))
+    if sealed_sample is not None:
+        persona, state = sealed_sample
+        _rule("Example sealed match, from {}'s perspective".format(persona["name"]))
+        print("  Reason: " + state["reason"])
+        print("  Other members: " + ", ".join(state["other_first_names"]))
+        if state["meetup"] is not None:
+            meetup = state["meetup"]
+            print("  Meetup: {} -- {} @ {} ({})".format(
+                meetup.get("event_name"), meetup.get("time"),
+                meetup.get("location"), meetup.get("reason")))
+
+
 async def main():
     print("Using database: " + db.DB_PATH)
+    print("Mode: {}  |  match effort: {}".format(MODE, config.MATCH_EFFORT))
     if db.DB_PATH == os.path.join(os.path.dirname(_HERE), "clawnly.db"):
         print("REFUSING to run against the real clawnly.db -- set CLAWNLY_DB_PATH "
               "explicitly if you really mean to (not recommended).")
@@ -124,12 +260,21 @@ async def main():
         residents.append((persona, resident))
         i += 1
 
-    i = 0
-    while i < len(residents):
-        persona, resident = residents[i]
-        _rule("Onboarding: {}".format(persona["name"]))
-        await _run_onboarding_for(resident, persona, client)
-        i += 1
+    if MODE == "bulk":
+        _rule("Bulk-seeding {} profiles directly (skipping the chat simulation)".format(len(residents)))
+        i = 0
+        while i < len(residents):
+            persona, resident = residents[i]
+            _bulk_seed_resident(resident, persona)
+            i += 1
+        print("All {} profiles marked complete.".format(len(residents)))
+    else:
+        i = 0
+        while i < len(residents):
+            persona, resident = residents[i]
+            _rule("Onboarding: {}".format(persona["name"]))
+            await _run_onboarding_for(resident, persona, client)
+            i += 1
 
     _rule("Triggering the batch run for real (match + negotiation + popup)")
     run_id, error = await batch.force_trigger_batch(neighborhood["id"], client=client)
@@ -137,6 +282,12 @@ async def main():
         print("Batch did not run: " + error)
         return
     print("Batch run id: " + str(run_id))
+
+    if MODE == "bulk":
+        lookup = _lookup_by_rid(residents)
+        _print_bulk_summary(run_id, lookup)
+        _accept_all_pending(lookup)
+        return
 
     _rule("Everyone accepts their match")
     i = 0

@@ -180,6 +180,37 @@ def test_compatibility_hints_only_flags_strong_availability_overlap():
     assert "Maya & Daniel" not in hints_one
 
 
+def test_compatibility_hints_caps_pairs_and_keeps_the_strongest():
+    from master_claw import MAX_HINT_PAIRS
+
+    # a large synthetic pool where every pair shares a hobby, so the RAW pair
+    # count (n choose 2) blows well past the cap -- at real-neighborhood
+    # scale this is exactly the unbounded-prompt-growth scenario the cap
+    # protects against.
+    n = MAX_HINT_PAIRS + 15
+    people = []
+    i = 0
+    while i < n:
+        hobbies = ["reading"]
+        if i == 0:
+            # one standout pair with an extra shared hobby -- should survive
+            # the cap even though it's near the end of iteration order.
+            hobbies = ["reading", "chess"]
+        people.append({"id": "p{}".format(i), "name": "Person{}".format(i),
+                        "hobbies": hobbies, "availability": []})
+        i += 1
+    people[-1]["hobbies"] = ["reading", "chess"]   # pairs with person0 on BOTH hobbies
+
+    mc = MasterClaw(people, client=FakeClient())
+    ids = [p["id"] for p in people]
+    hints = mc._compatibility_hints(ids)
+
+    lines = [line for line in hints.splitlines() if line.startswith("  Person")]
+    assert len(lines) == MAX_HINT_PAIRS
+    # the one 2-shared-hobby pair is strictly the strongest and must survive.
+    assert "Person0 & Person{}".format(n - 1) in hints
+
+
 def test_compatibility_hints_empty_when_no_overlap_in_pool():
     mc = MasterClaw(USERS, client=FakeClient())
     # a lone candidate has no pairs to compute at all.

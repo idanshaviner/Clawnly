@@ -463,10 +463,16 @@ def _login_success_html(result):
 
 
 def _post_login_response(result):
-    # residents land on the consent step next (captured once, before any
-    # onboarding conversation exists); admins get the plain proof-of-login page.
-    if result["role"] == "resident":
+    # branch on whether a resident row exists, not on role -- an admin email
+    # that signs in through a real invite link (/join/<slug>) still gets a
+    # resident row (see auth._resolve_role_and_resident) and should be able to
+    # experience the actual resident flow through it, same as anyone else.
+    # Only a pure admin login (no neighborhood link at all, so no resident row)
+    # skips straight to the dashboard.
+    if result["resident_id"] is not None:
         response = RedirectResponse(url="/consent", status_code=302)
+    elif result["role"] == "admin":
+        response = RedirectResponse(url="/admin", status_code=302)
     else:
         response = HTMLResponse(_login_success_html(result))
     auth.set_session_cookie(response, result["token"])

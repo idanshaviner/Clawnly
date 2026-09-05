@@ -273,7 +273,9 @@ def test_magic_link_request_and_verify_route_round_trip(monkeypatch, capsys):
     assert auth.SESSION_COOKIE_NAME in r2.cookies
 
 
-def test_magic_link_verify_route_admin_gets_the_plain_success_page(monkeypatch, capsys):
+def test_magic_link_verify_route_pure_admin_login_goes_to_dashboard(monkeypatch, capsys):
+    # a pure admin login -- no neighborhood, so no resident row exists at
+    # all -- lands straight on the dashboard rather than a placeholder page.
     reset_state()
     clear_env(monkeypatch)
     monkeypatch.setenv("CLAWNLY_ADMIN_EMAILS", "boss@example.com")
@@ -286,8 +288,31 @@ def test_magic_link_verify_route_admin_gets_the_plain_success_page(monkeypatch, 
     path_and_query = verify_url.split("testserver", 1)[1]
 
     r2 = client.get(path_and_query, follow_redirects=False)
-    assert r2.status_code == 200
-    assert "boss@example.com" in r2.text
+    assert r2.status_code == 302
+    assert r2.headers["location"] == "/admin"
+    assert auth.SESSION_COOKIE_NAME in r2.cookies
+
+
+def test_magic_link_verify_route_admin_via_invite_link_still_gets_consent_flow(monkeypatch, capsys):
+    # an admin email that signs in through a REAL invite link still gets a
+    # resident row created (see auth._resolve_role_and_resident) and should
+    # be able to experience the actual resident flow through it, same as
+    # anyone else -- not silently redirected to the admin dashboard instead.
+    reset_state()
+    clear_env(monkeypatch)
+    monkeypatch.setenv("CLAWNLY_ADMIN_EMAILS", "boss@example.com")
+    monkeypatch.delenv("RESEND_API_KEY", raising=False)
+    r = client.post("/api/auth/magic-link/request",
+                     json={"email": "boss@example.com", "neighborhood": "ten-trails"})
+    assert r.status_code == 200
+    out = capsys.readouterr().out
+    link = [line for line in out.splitlines() if "[DEV MODE]" in line][0]
+    verify_url = link.split(": ", 1)[1]
+    path_and_query = verify_url.split("testserver", 1)[1]
+
+    r2 = client.get(path_and_query, follow_redirects=False)
+    assert r2.status_code == 302
+    assert r2.headers["location"] == "/consent"
     assert auth.SESSION_COOKIE_NAME in r2.cookies
 
 

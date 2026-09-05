@@ -22,6 +22,7 @@
   .brand-word { font-size:17px; font-weight:600; letter-spacing:0.02em; }
   .done-banner { background:var(--green); color:#fff; font-weight:600; font-size:13px;
     text-align:center; padding:10px; border-radius:10px; margin-top:16px; display:none; }
+  .done-banner a { color:#fff; text-decoration:underline; }
   h1 { font-size:20px; font-weight:600; margin:20px 0 4px; }
   p.sub { color:var(--muted); margin-top:0; font-size:14px; }
   #thread { display:flex; flex-direction:column; gap:10px; margin-top:16px;
@@ -55,7 +56,7 @@
   <div id="chat" style="display:none">
     <h1>Getting to know you</h1>
     <p class="sub">Chat with your Claw -- it'll ask about you a little at a time.</p>
-    <div class="done-banner" id="done-banner">You're all set! We'll let you know right here once your group is ready.</div>
+    <div class="done-banner" id="done-banner">You're all set! <a href="/my-match">Check your match status</a> any time.</div>
     <div id="thread"></div>
     <div id="composer">
       <input type="text" id="msg-input" placeholder="Type a reply...">

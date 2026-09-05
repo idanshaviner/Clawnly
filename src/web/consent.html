@@ -62,8 +62,7 @@
 
   <div class="card" id="done">
     <h1><span class="check">&#10003;</span> You're all set</h1>
-    <p class="sub">Your neighborhood's onboarding conversation is coming soon -- we'll let you know
-      right here when it's ready.</p>
+    <p class="sub">Taking you to your onboarding conversation...</p>
   </div>
 
   <div class="card" id="loggedout" style="display:none">
@@ -77,13 +76,18 @@ function show(id){
   ids.forEach(function(other){ document.getElementById(other).style.display = (other === id) ? "block" : "none"; });
 }
 
+function goToOnboarding(){
+  show("done");
+  window.location.href = "/onboarding";
+}
+
 fetch("/api/me").then(function(r){
   if (!r.ok) { show("loggedout"); return null; }
   return r.json();
 }).then(function(me){
   if (me == null) { return; }
   if (me.consent_agreed_at) {
-    show("done");
+    goToOnboarding();
   } else {
     show("ask");
   }
@@ -99,7 +103,7 @@ document.getElementById("agree-btn").addEventListener("click", function(){
     return r.json().then(function(data){ return { ok: r.ok, data: data }; });
   }).then(function(res){
     if (res.ok) {
-      show("done");
+      goToOnboarding();
     } else {
       btn.disabled = false;
       status.className = "err";

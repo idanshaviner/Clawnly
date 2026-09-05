@@ -17,6 +17,149 @@ sides say yes), and an admin dashboard. **Read
 what's not, and what's needed before a real launch. The frozen design for the
 pilot lives in [docs/PILOT_PLAN.md](docs/PILOT_PLAN.md).
 
+`src/app.py` is the one FastAPI server behind everything below — every route,
+demo console and real pilot alike, is defined there and calls into the modules
+described further down. It is not legacy code; it's actively maintained and
+is the current entry point for the whole application.
+
+## Two experiences in one app
+
+The server hosts two mostly-separate things side by side, sharing the same
+matching engine underneath:
+
+1. **The original demo console** (`/`) — for the *simulated* 12-person cast.
+   Edit people, run the matcher (free Demo mode or real Live mode), chat with
+   personas, ask the Master Claw why it did something. Predates the pilot and
+   has nothing to do with real residents.
+2. **The real-user pilot** (`/join/<slug>` onward) — real accounts, a real
+   onboarding conversation, real matching, real (small) meetups.
+
+Don't confuse the two "admin"-ish surfaces this produces — see below.
+
+## The resident (real user) walkthrough
+
+Start the server (`.venv/bin/python src/app.py`), then walk through these
+URLs in order — there is currently no in-app navigation linking them together
+(see the caveat after step 2), so you need to know the next URL yourself:
+
+**1. `/join/<slug>`** (e.g. `/join/ten-trails`) — the invite link a resident
+gets. A static page (`web/join.html`); no login required to view it. Check
+"I understand," then either:
+- **Continue with Google** → `/auth/google/login` → `auth.py`'s OAuth flow
+  (needs `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` in `.env`), or
+- Enter an email → `POST /api/auth/magic-link/request` (needs
+  `RESEND_API_KEY`; without it, the sign-in link is printed to the **server
+  console** instead of emailed — this is how you test the whole flow locally
+  without a Resend account).
+
+Either path ends in `auth.py` creating a `residents` row for that neighborhood
+(`db.get_or_create_resident`), starting a session (cookie), and redirecting
+to `/consent`.
+
+**2. `/consent`** — the consent text; "I agree" → `POST /api/consent` →
+`db.record_consent` stamps `consent_agreed_at` (first agreement wins, a
+double-click is a no-op).
+
+> **Known gap:** after agreeing, the page just says "you're all set" — it does
+> not link or redirect to `/onboarding`. The same is true between finishing
+> onboarding and `/my-match`. Today a resident (or you, testing) has to
+> already know the next URL. Worth fixing before a real launch.
+
+**3. `/onboarding`** — the actual chat. Each message → `POST
+/api/onboarding/message` → `onboarding.take_turn`, which does two AI calls:
+1. The resident's own Claw (`claw.py`, `simulated=False`) replies — grounded
+   *only* in what's actually been said so far in this conversation, never
+   invented (see `REAL_ONBOARDING_STYLE` in `claw.py`).
+2. A second, cheap call re-reads the whole transcript and extracts profile
+   fields (hobbies, availability, personality, bio, etc.), plus checks 5
+   gating "slots": personality/energy, interests, availability, group size,
+   and what they're seeking.
+
+Once all 5 slots are genuinely evidenced (or a hard 20-turn safety cap is
+hit), the profile is marked complete, which fires `batch.check_and_trigger_
+batch` in the background: it checks whether the neighborhood has reached its
+batch threshold (`config.MATCH_BATCH_THRESHOLD = 100` by default, snapshotted
+per-neighborhood at creation) among *eligible* residents (profile-complete and
+not already tied up in a live match), and if so, runs the real engine
+(interview → match → negotiate → venue) across everyone at once.
+
+**4. `/my-match`** — polls `GET /api/my-match` for status:
+- `not_yet_batched` — still waiting for the cohort to fill up.
+- `pending` — a match was formed; shows **only the reason + group size, no
+  names** — this is the mutual-accept reveal gate.
+- `waiting` — you accepted; waiting on the rest of the group.
+- `sealed` — everyone accepted → full first-name reveal of the other members
+  + the real meetup card (venue, time, the grounded reason for that plan).
+- `dissolved` — someone declined → the match is void and you're released back
+  into the pool. Nothing automatically re-triggers a new batch for you yet —
+  today that needs an admin to hit "trigger batch now" (see below).
+
+**5. `/privacy`** — a static, plain-language privacy page, linked from the
+join page's consent text.
+
+## Admin — there are two different panels, don't mix them up
+
+**`/` (the demo console)** — for the *simulated* 12-person cast only, as
+described above. No login/role check at all; it's a local dev tool. Nothing
+here touches real residents.
+
+**`/admin` (the real pilot dashboard)** — for monitoring actual
+neighborhoods/residents. Every route under it is gated by `_require_admin` in
+`app.py`: your session's `role` must be `"admin"`, decided once, server-side,
+the moment you log in — `auth.is_admin(email)` checks your email against the
+`CLAWNLY_ADMIN_EMAILS` env var (comma-separated list). It is never
+client-supplied or editable after the fact. Add your email to that env var,
+then log in through `/join/<any-slug>` (or without one) with that address —
+you land in the admin flow instead of the resident one. Shows:
+- Every neighborhood's progress (`complete-profiles / threshold`)
+- Per-neighborhood resident list with status (`onboarding` /
+  `complete_unmatched` / `match_pending` / `match_waiting` / `sealed` /
+  `dissolved`) — computed live from existing data, nothing separately tracked
+- Recent runs with group/unmatched counts, usage (API call counts), and any
+  interview errors
+- A **"trigger batch now"** button (`batch.force_trigger_batch`) that bypasses
+  the threshold entirely — the only current way to re-match residents
+  released by a decline, and handy for testing with a small cohort
+
+## How it works underneath (architecture)
+
+**Core matching engine** — shared by both the demo console and the real
+pilot; do not modify its core logic without an explicit request (new
+capability gets added around it, not into it):
+
+```
+claw.py          one AI agent that speaks for one person (simulated persona
+                 OR a real resident, via the simulated=True/False flag)
+   ↓
+master_claw.py   interviews every Claw, forms a group, VALIDATES hard
+                 constraints in code (group size, availability overlap —
+                 never trusted to the model alone), retries or refuses
+                 rather than shipping a bad/weak match
+   ↓
+negotiation.py   the formed group tries to agree on one shared activity
+                 (bounded rounds; ships nothing if they never agree)
+   ↓
+popup.py         the agreed plan → a concrete, grounded venue/time card
+```
+
+**Real-user pilot layer** — built around that engine, wraps it for real
+people:
+
+| Module | Job |
+|---|---|
+| `auth.py` | Google OAuth + email magic-link login, sessions (cookie → DB row, never a JWT) |
+| `db.py` | all persistence — one SQLite file; see its module docstring for the full table list |
+| `onboarding.py` | the real onboarding chat + per-turn profile extraction |
+| `batch.py` | decides *when* and *how* to run the core engine on real residents (threshold trigger + manual admin override), maps resident rows into the exact profile shape the engine expects |
+| `my_match.py` | the mutual-accept reveal gate — pure DB/routing logic, no AI calls of its own |
+| `admin.py` | read-only aggregation for the admin dashboard, reusing data the other modules already persist |
+| `usage.py` | wraps any client to tally API call counts for the usage view |
+| `dryrun.py` | a dev/ops tool — drives AI-generated personas through the *real* pipeline end to end, for pre-launch validation (see its own docstring: `chat` vs `bulk` mode, real cost) |
+
+`app.py` is the glue: every URL described above is a route in that one file,
+and each route is a thin wrapper that calls into the modules above — it holds
+almost no logic of its own.
+
 ## Project layout
 
 ```
@@ -55,7 +198,7 @@ Clawnly/
 │   ├── dryrun.py           ← pre-launch tool: AI personas through the real pipeline
 │   ├── app.py              ← FastAPI backend tying all routes together
 │   └── web/                ← plain HTML/JS pages, no build step
-│       ├── index.html      ← admin console (run the PoC pipeline, edit the cast)
+│       ├── index.html      ← demo console (run the PoC pipeline, edit the cast)
 │       ├── join.html       ← resident invite-link landing + login
 │       ├── consent.html    ← resident consent capture
 │       ├── onboarding.html ← the resident's onboarding chat
@@ -84,9 +227,10 @@ RESEND_API_KEY=...                 # optional -- email magic links (dev mode
 ```
 
 Also useful, set as real env vars (not `.env`) when running the pilot:
-`CLAWNLY_ADMIN_EMAILS` (comma-separated admin allowlist), `CLAWNLY_DEMO_ONLY` /
-`CLAWNLY_BYOK` (public-demo-deploy safety switches -- leave both unset for a
-real pilot deploy), `CLAWNLY_DB_PATH` (override the SQLite file location).
+`CLAWNLY_ADMIN_EMAILS` (comma-separated admin allowlist — see "Admin" above),
+`CLAWNLY_DEMO_ONLY` / `CLAWNLY_BYOK` (public-demo-deploy safety switches --
+leave both unset for a real pilot deploy), `CLAWNLY_DB_PATH` (override the
+SQLite file location).
 
 ## Run
 
@@ -100,7 +244,7 @@ real pilot deploy), `CLAWNLY_DB_PATH` (override the SQLite file location).
                                      #   (see its module docstring -- chat vs. bulk mode, cost notes)
 ```
 
-Inside the app: the admin console (`/`) has a free **Demo mode**; Live mode
+Inside the app: the demo console (`/`) has a free **Demo mode**; Live mode
 (chatting/editing/running with real Claude) needs `ANTHROPIC_API_KEY`. The
 resident-facing pilot (`/join/<slug>` onward) always uses the server's real
 key -- there is no demo mode for real resident data.

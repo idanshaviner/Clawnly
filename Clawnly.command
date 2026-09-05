@@ -26,7 +26,7 @@ fi
 
 # keep dependencies current: if anything the app needs is missing (e.g. after a
 # pull that added a package), install from requirements. Fast no-op otherwise.
-if ! .venv/bin/python -c "import fastapi, uvicorn, anthropic" >/dev/null 2>&1; then
+if ! .venv/bin/python -c "import fastapi, uvicorn, anthropic, authlib, httpx" >/dev/null 2>&1; then
   echo "Updating dependencies..."
   .venv/bin/python -m pip install -r requirements.txt
 fi

@@ -109,8 +109,12 @@ neighborhoods/residents. Every route under it is gated by `_require_admin` in
 the moment you log in — `auth.is_admin(email)` checks your email against the
 `CLAWNLY_ADMIN_EMAILS` env var (comma-separated list). It is never
 client-supplied or editable after the fact. Add your email to that env var,
-then log in through `/join/<any-slug>` (or without one) with that address —
-you land in the admin flow instead of the resident one. Shows:
+then sign in at **`/admin/login`** with that address — a plain login page
+that never attaches a neighborhood, so you land straight on the dashboard.
+(Logging in through `/join/<slug>` with an admin email is a *different*,
+intentional path: it still creates a resident row for that neighborhood, so
+an admin can experience the real resident flow too, through their own
+email — but it lands you on `/consent`, not the dashboard.) Shows:
 - Every neighborhood's progress (`complete-profiles / threshold`)
 - Per-neighborhood resident list with status (`onboarding` /
   `complete_unmatched` / `match_pending` / `match_waiting` / `sealed` /

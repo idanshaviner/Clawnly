@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clawnly Admin -- Sign in</title>
+<style>
+  :root {
+    --bg:#f7f6f3; --card:#fff; --ink:#1d1d1f; --muted:#6b6b70; --line:#e4e2dd;
+    --accent:#6c5ce7; --red:#b3261e; --green:#2f9e6e;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); line-height:1.5;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }
+  .wrap { max-width:380px; margin:60px auto; padding:0 20px; }
+  h1 { font-size:22px; margin:0 0 4px; letter-spacing:-.5px; }
+  p.tagline { color:var(--muted); margin:0 0 20px; font-size:13.5px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:20px; }
+  button, input[type=email] { font-size:15px; border-radius:10px; padding:10px 13px; width:100%;
+    box-sizing:border-box; border:1px solid var(--line); font-family:inherit; }
+  button { background:var(--accent); color:#fff; border:none; font-weight:600; cursor:pointer; margin-top:10px; }
+  button:hover { opacity:.92; }
+  .divider { text-align:center; color:var(--muted); font-size:12px; margin:14px 0; }
+  #status { font-size:13.5px; margin-top:10px; }
+  #status.ok { color:var(--green); }
+  #status.err { color:var(--red); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Clawnly Admin</h1>
+  <p class="tagline">This is not a neighborhood invite link -- it signs you in as an operator, not a resident.</p>
+  <div class="card">
+    <button id="google-btn">Continue with Google</button>
+    <div class="divider">or</div>
+    <input type="email" id="email-input" placeholder="you@example.com">
+    <button id="email-btn">Email me a sign-in link</button>
+    <div id="status"></div>
+  </div>
+</div>
+<script>
+document.getElementById("google-btn").addEventListener("click", function(){
+  window.location.href = "/auth/google/login";
+});
+
+document.getElementById("email-btn").addEventListener("click", function(){
+  var email = document.getElementById("email-input").value.trim();
+  var status = document.getElementById("status");
+  status.className = "";
+  status.textContent = "Sending...";
+  fetch("/api/auth/magic-link/request", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email: email }),
+  }).then(function(r){ return r.json().then(function(data){ return { ok: r.ok, data: data }; }); })
+    .then(function(res){
+      if (res.ok) {
+        status.className = "ok";
+        status.textContent = "Check your email for a sign-in link.";
+      } else {
+        status.className = "err";
+        status.textContent = res.data.error || "Something went wrong.";
+      }
+    })
+    .catch(function(){
+      status.className = "err";
+      status.textContent = "Something went wrong. Try again.";
+    });
+});
+</script>
+</body>
+</html>

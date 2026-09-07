@@ -155,6 +155,7 @@ people:
 | `admin.py` | read-only aggregation for the admin dashboard, reusing data the other modules already persist |
 | `usage.py` | wraps any client to tally API call counts for the usage view |
 | `dryrun.py` | a dev/ops tool — drives AI-generated personas through the *real* pipeline end to end, for pre-launch validation (see its own docstring: `chat` vs `bulk` mode, real cost) |
+| `pilot_demo.py` | a dev/ops tool — the free, offline, zero-cost counterpart to `dryrun.py`: scripted replies, same real production code path, good for a quick sanity check of the plumbing before spending anything |
 
 `app.py` is the glue: every URL described above is a route in that one file,
 and each route is a thin wrapper that calls into the modules above — it holds
@@ -196,6 +197,7 @@ Clawnly/
 │   ├── admin.py            ← admin dashboard data (progress, residents, usage)
 │   ├── usage.py            ← call-count usage tracking wrapper
 │   ├── dryrun.py           ← pre-launch tool: AI personas through the real pipeline
+│   ├── pilot_demo.py       ← free/offline counterpart to dryrun.py, zero cost
 │   ├── app.py              ← FastAPI backend tying all routes together
 │   └── web/                ← plain HTML/JS pages, no build step
 │       ├── index.html      ← demo console (run the PoC pipeline, edit the cast)
@@ -237,6 +239,8 @@ SQLite file location).
 ```bash
 .venv/bin/python src/app.py         # the whole app (or double-click Clawnly.command) — http://127.0.0.1:8000
 .venv/bin/python src/demo.py        # FREE: full PoC pipeline offline, scripted AI (no API, no cost)
+.venv/bin/python src/pilot_demo.py  # FREE: real PILOT flow offline -- onboarding, batch trigger,
+                                     #   matching, and the mutual-accept reveal gate incl. a decline
 .venv/bin/python src/users.py       # FREE: print the 12 simulated users as JSON
 .venv/bin/python src/main.py        # COSTS ~cents: interview -> match -> negotiate -> popup, real Claude
 .venv/bin/python src/eval.py        # COSTS ~cents: evaluation harness across many pools

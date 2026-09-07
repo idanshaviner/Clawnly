@@ -12,12 +12,15 @@ from llm_io import join_text, extract_json
 
 def _popup_system_prompt():
     lines = [
-        "You plan 2-3 real-world meetup OPTIONS for a small group in the Seattle, Washington area, so they can pick.",
-        "Use the people's hobbies, neighborhoods, and availability. Give the options some variety",
-        "(different vibes or venues), and put the best one first.",
+        "You plan 2-3 real-world meetup OPTIONS for a small group, so they can pick.",
+        "Use the people's hobbies, neighborhoods, and availability. Base the location on the",
+        "group's OWN stated neighborhoods below -- never assume any specific city or region.",
+        "Give the options some variety (different vibes or venues), and put the best one first.",
         "",
         "Rules for EVERY option:",
-        "- Pick a SPECIFIC, real-sounding Seattle venue or park (not a generic 'a cafe').",
+        "- Pick a SPECIFIC, real-sounding venue or park near the group's own stated",
+        "  neighborhoods (not a generic 'a cafe', and not a made-up place in a city they",
+        "  never mentioned).",
         "- The day and time must fit the group's shared availability windows.",
         "- The reason must be ONE sentence, personal and specific to these people,",
         "  and consistent with the matcher's reason below (do not contradict it).",
@@ -35,7 +38,7 @@ def _popup_system_prompt():
 
 
 def _fallback_option(match_reason):
-    return {"event_name": "Meetup", "activity": "casual hangout", "location": "a spot in Seattle",
+    return {"event_name": "Meetup", "activity": "casual hangout", "location": "a spot near the group",
             "time": "this weekend", "reason": match_reason}
 
 

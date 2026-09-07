@@ -32,12 +32,24 @@ services:
   - type: web
     name: clawnly-pilot
     runtime: python
-    plan: free
+    # NOT "free" -- real resident data (accounts, onboarding transcripts,
+    # matches) lives in db.py's SQLite file, and Render's free plan has no
+    # persistent disk (the filesystem resets on every deploy/restart). The
+    # disk below only attaches to a paid instance type.
+    plan: starter
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn app:app --host 0.0.0.0 --port $PORT --app-dir src
+    disk:
+      name: clawnly-pilot-data
+      mountPath: /var/data
+      sizeGB: 1
     envVars:
       - key: PYTHON_VERSION
         value: "3.12.6"
+      # points db.py at the persistent disk above, not the container's
+      # ephemeral filesystem -- see db.py's DB_PATH / CLAWNLY_DB_PATH.
+      - key: CLAWNLY_DB_PATH
+        value: /var/data/clawnly.db
       # No CLAWNLY_BYOK / CLAWNLY_DEMO_ONLY here -- real residents need the
       # server's own key, not their own, and the pilot must never silently
       # fall back to demo mode.

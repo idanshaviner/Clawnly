@@ -16,3 +16,12 @@ clawnly_dryrun.db
 clawnly_dryrun.db-journal
 clawnly_dryrun.db-wal
 clawnly_dryrun.db-shm
+clawnly_pilot_demo.db
+clawnly_pilot_demo.db-journal
+clawnly_pilot_demo.db-wal
+clawnly_pilot_demo.db-shm
+clawnly_pilot_visual_demo.db
+clawnly_pilot_visual_demo.db-journal
+clawnly_pilot_visual_demo.db-wal
+clawnly_pilot_visual_demo.db-shm
+pilot_visual_demo_output/

@@ -103,6 +103,7 @@ _CONSENT = os.path.join(_HERE, "web", "consent.html")
 _ONBOARDING = os.path.join(_HERE, "web", "onboarding.html")
 _MY_MATCH = os.path.join(_HERE, "web", "my-match.html")
 _ADMIN = os.path.join(_HERE, "web", "admin.html")
+_ADMIN_LOGIN = os.path.join(_HERE, "web", "admin-login.html")
 _PRIVACY = os.path.join(_HERE, "web", "privacy.html")
 
 
@@ -699,6 +700,17 @@ def _require_admin(request):
 @app.get("/admin")
 async def admin_page():
     return FileResponse(_ADMIN)
+
+
+@app.get("/admin/login")
+async def admin_login_page():
+    # a plain login entry point that never attaches a neighborhood, so an
+    # admin email resolves with resident_id=None and _post_login_response
+    # sends them straight to /admin -- /join/<slug> always attaches a
+    # neighborhood (even for an admin email), which is the intentional path
+    # for an admin to experience the real resident flow, not a way to reach
+    # the dashboard.
+    return FileResponse(_ADMIN_LOGIN)
 
 
 @app.get("/api/admin/neighborhoods")

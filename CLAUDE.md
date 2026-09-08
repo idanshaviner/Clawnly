@@ -88,6 +88,14 @@ product is built to prove.
   pattern to reuse) without stopping to ask. Stop and ask only when a decision
   is genuinely the user's to make -- a product/business tradeoff, anything
   destructive, anything needing a credential or account only they have.
+- **`git fetch` and check `git log HEAD..origin/main` before starting new
+  work, every session.** The user runs multiple Claude Code sessions against
+  this same repo (including cloud/PR-based ones) -- confirmed in practice
+  when a separate session's PR merged 7 commits (new demo tooling, an admin
+  login route, a Render disk fix) that this session only discovered by
+  accident. `docs/ROADMAP.md` is the source of truth, but only if it's
+  actually current -- if local is behind, pull first and skim what changed
+  before trusting ROADMAP.md's account of "done."
 
 ## Model routing (product's own AI calls, not Claude Code's own model)
 

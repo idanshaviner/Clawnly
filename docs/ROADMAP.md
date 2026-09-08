@@ -318,6 +318,75 @@ correctly bypassed the threshold and ran a real pipeline call, which
 correctly declined to form a group of 2 (H4) rather than shipping a bad one,
 and confirmed all of the above survives a server restart.
 
+**Post-Stage-6 fixes and tooling.** All 6 build stages above were done as of
+commit `81de12e`. Since then, two separate efforts landed on `main` -- this
+session's own follow-up fixes, and a second, independent Claude Code session
+that opened and merged its own PR (`claude/ten-trails-alpha-sim-2jz01d`,
+merged as PR #1, commit `4806775`) without this session's direct involvement.
+Recording both here since neither was captured at the time:
+
+*This session's fixes (live-testing-driven):*
+- `join.html`'s "Continue with Google" button could be clicked through even
+  while visually disabled (a disabled `<button>` inside an `<a>` lets clicks
+  fall through to the anchor in most browsers) -- fixed to gate navigation in
+  the click handler instead of relying on the anchor + disabled-button trick.
+- `consent.html` never forwarded to `/onboarding` after agreeing (or on a
+  repeat visit once already consented); `onboarding.html` never linked to
+  `/my-match` once complete. Both now auto-advance.
+- `_post_login_response` routed purely on session `role`, so an
+  admin-allowlisted email signing in through a real `/join/<slug>` link got
+  stuck on a placeholder page even though a real resident row existed for
+  them. Now routes on whether a resident row exists instead.
+- `master_claw._compatibility_hints` was unbounded -- harmless at demo scale
+  (12 people) but the pairwise hint list can hit hundreds of lines at
+  real-neighborhood scale, inflating the priciest input tokens on every one
+  of the ~25-30 sequential match-forming calls a large batch needs. Capped to
+  the 20 strongest pairs by signal strength (`MAX_HINT_PAIRS`).
+- `Clawnly.command`'s dependency-freshness check only verified
+  `fastapi`/`uvicorn`/`anthropic` importable, not `authlib`/`httpx` -- an
+  existing venv predating the pilot's auth work would falsely pass and then
+  crash on startup. Widened the check.
+- New `src/dryrun.py`: drives AI-generated personas through the real pilot
+  pipeline end to end for pre-launch validation (`chat` mode -- full
+  simulated onboarding conversation; `bulk` mode -- skips the chat and seeds
+  profiles directly, for testing matching quality/diversity at real scale
+  without paying for hundreds of chat turns). Real API cost. Run twice this
+  session: correctly refused an unsatisfiable 6-person pool, and produced a
+  real sealed 3-person match with a grounded reason and a real venue.
+
+*The independent session's PR (`4806775`), not yet cross-checked in depth by
+this session beyond confirming the full test suite still passes (298) and
+skimming each module's docstring -- treat as verified-by-a-different-session,
+not by this one:*
+- New `src/pilot_demo.py` -- a **free, offline** simulation of the real
+  onboarding -> batch -> match -> reveal-gate cycle (scripted AI replies, zero
+  cost), explicitly positioned as a companion to `dryrun.py` for sanity-
+  checking the pilot's plumbing without spending money.
+- New `src/pilot_visual_demo.py` -- same idea, but drives the real `app.py`
+  server through an actual browser (Playwright, an added-only-for-this
+  optional dependency) instead of a terminal transcript, to see what a
+  resident actually clicks through. Outputs a screen recording + screenshots
+  to a gitignored `pilot_visual_demo_output/`.
+- New `GET /admin/login` (`web/admin-login.html`) -- a dedicated admin login
+  page that never attaches a neighborhood, landing straight on `/admin`.
+  Complements (does not replace) this session's resident-row-based routing
+  fix above: logging in via `/join/<slug>` with an admin email still creates
+  a resident row and lands on `/consent`, intentionally, so an admin can
+  still experience the resident flow through their own account.
+- Removed hardcoded "Seattle" from `persona_gen.py`'s generated-neighborhood
+  field and from `master_claw.py`/`popup.py`'s match/venue prompts for real
+  (non-simulated) neighborhoods -- real neighborhoods like Ten Trails aren't
+  Seattle-based; the demo cast's Seattle theming is unaffected.
+- `render.yaml`'s `clawnly-pilot` service moved off the free plan onto
+  `starter` with a persistent disk mounted at `/var/data` (`CLAWNLY_DB_PATH`
+  pointed there) -- Render's free tier has no persistent disk, so `db.py`'s
+  SQLite file would have been silently wiped on every deploy/restart.
+
+**Before doing new pilot work, reconcile: read the actual current
+`src/app.py`, `src/pilot_demo.py`, and `src/web/admin-login.html` rather than
+trusting this summary alone** -- two independently-written accounts of the
+same stretch of work were only just merged together here.
+
 ---
 
 ## Highest-priority items if picking up fresh work (not already covered above)

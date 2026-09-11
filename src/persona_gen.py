@@ -3,10 +3,15 @@
 `generate_users(count, theme)` invents a diverse, schema-valid cast of people.
 For speed, every person is invented by its OWN call, all fired concurrently, so
 a 12-person cast takes about as long as inventing one person -- not twelve times
-as long. Each slot is nudged toward a different personality / occupation /
+as long. Callers can pass `count` (default 12, max 100) and a `theme` string.
+Each slot is nudged toward a different personality / occupation /
 group-size / hobby lean so the set still spans the whole space. Output is
 validated in code (and each slot re-tried if the model breaks the schema), so
 callers always get clean data.
+
+`build_demo_cast(count, theme)` is the offline counterpart: a schema-valid
+cast with no API calls, used by the demo console so a 100-person Black Diamond
+run is playable without Anthropic.
 
 Run: python src/persona_gen.py        (prints a fresh cast as JSON)
 """
@@ -20,12 +25,19 @@ from llm_io import join_text, extract_json
 from users import HOBBY_CATEGORIES, AVAILABILITY_WINDOWS
 
 
-DEFAULT_THEME = "young adults (ages 24-35) living in the Seattle, Washington area"
+DEFAULT_THEME = (
+    "neighbors in Black Diamond, Washington (ages 24-40, platonic friendship "
+    "/ activity partners -- not dating)"
+)
+DEFAULT_COUNT = 12
+MAX_GEN_COUNT = 100
+MIN_AGE = 24
+MAX_AGE = 40
 
-# how many person-generation calls may be in flight at once. Fanning out all 12
-# at once is fast but can trip API rate limits on lower tiers; a small cap keeps
-# it quick while staying well under burst limits.
-GEN_CONCURRENCY = 4
+# how many person-generation calls may be in flight at once. Fanning out a small
+# cast at once is fast but can trip API rate limits on lower tiers; a modest cap
+# keeps a 100-person roll moving without bursting unbounded.
+GEN_CONCURRENCY = 8
 
 
 def _hobby_menu():
@@ -75,7 +87,7 @@ def _gen_one_system_prompt(theme, spec):
         "  availability, location, bio, preferred_group_size",
         "",
         "Rules:",
-        "- age: integer 24-35.",
+        "- age: integer {}-{}.".format(MIN_AGE, MAX_AGE),
         "- personality: one of introverted / extroverted / mixed.",
         "- occupation: one of student / working professional / freelancer.",
         "- availability: a non-empty list from: {}.".format(", ".join(AVAILABILITY_WINDOWS)),
@@ -188,7 +200,35 @@ async def _generate_one_inner(client, theme, spec, seed, attempts):
     return None
 
 
+def clamp_count(count):
+    # keep generation bounded: default 12, never above 100, never below 1.
+    if count is None:
+        return DEFAULT_COUNT
+    try:
+        n = int(count)
+    except (TypeError, ValueError):
+        return DEFAULT_COUNT
+    if n < 1:
+        return 1
+    if n > MAX_GEN_COUNT:
+        return MAX_GEN_COUNT
+    return n
+
+
+def clamp_theme(theme):
+    if theme is None:
+        return DEFAULT_THEME
+    if not isinstance(theme, str):
+        return DEFAULT_THEME
+    stripped = theme.strip()
+    if len(stripped) == 0:
+        return DEFAULT_THEME
+    return stripped
+
+
 async def generate_users(count=12, theme=DEFAULT_THEME, client=None, attempts=3):
+    count = clamp_count(count)
+    theme = clamp_theme(theme)
     if client is None:
         client = config.get_client()
     specs = _slot_specs(count)
@@ -233,8 +273,8 @@ def validate_users(users):
             continue
 
         age = u.get("age")
-        if not isinstance(age, int) or age < 24 or age > 35:
-            problems.append("{} age {} not an int in 24-35".format(tag, age))
+        if not isinstance(age, int) or age < MIN_AGE or age > MAX_AGE:
+            problems.append("{} age {} not an int in {}-{}".format(tag, age, MIN_AGE, MAX_AGE))
         if u.get("personality") not in valid_personality:
             problems.append("{} bad personality {}".format(tag, u.get("personality")))
         if u.get("occupation") not in valid_occupation:
@@ -338,6 +378,133 @@ async def nudge_user(user, instruction, client=None):
     if changes is None:
         return {}
     return changes
+
+
+
+# first names / last names / Black Diamond-area neighborhoods used only by the
+# offline demo cast -- Live generation invents its own via the model.
+_DEMO_FIRST = [
+    "Ava", "Ben", "Cora", "Drew", "Elena", "Felix", "Gia", "Hugo", "Iris", "Jules",
+    "Kai", "Lena", "Milo", "Nora", "Owen", "Priya", "Quinn", "Rosa", "Sam", "Tia",
+    "Uri", "Vera", "Wes", "Xena", "Yves", "Zara", "Amir", "Bea", "Chris", "Dana",
+    "Eli", "Faye", "Gabe", "Hana", "Ian", "Jade", "Kira", "Leo", "Maya", "Nate",
+    "Omar", "Pia", "Reed", "Sage", "Tess", "Uma", "Vince", "Willa", "Yara", "Zoe",
+]
+_DEMO_LAST = [
+    "Park", "Nguyen", "Shah", "Ortiz", "Kim", "Patel", "Brooks", "Chen", "Ali",
+    "Diaz", "Singh", "Walsh", "Okoye", "Berg", "Sato", "Ibrahim", "Cole", "Reed",
+]
+_DEMO_PLACES = [
+    "Ten Trails, Black Diamond",
+    "Lawson Hills, Black Diamond",
+    "Downtown Black Diamond",
+    "Lake Sawyer, Black Diamond",
+    "Morgan Creek, Black Diamond",
+    "Black Diamond Ridge",
+    "Palmer Coking, Black Diamond",
+    "The Villages, Black Diamond",
+    "Maple Valley edge near Black Diamond",
+    "Enumclaw plateau near Black Diamond",
+]
+_DEMO_GENDERS = ["female", "male", "nonbinary"]
+
+
+def _all_hobbies():
+    out = []
+    cats = list(HOBBY_CATEGORIES.keys())
+    i = 0
+    while i < len(cats):
+        items = HOBBY_CATEGORIES[cats[i]]
+        j = 0
+        while j < len(items):
+            out.append(items[j])
+            j += 1
+        i += 1
+    return out
+
+
+def _demo_hobbies(focus, seed_i):
+    # 4-6 hobbies, starting from the slot's focus category so the cast still spans.
+    lookup_cats = list(HOBBY_CATEGORIES.keys())
+    focused = list(HOBBY_CATEGORIES.get(focus, HOBBY_CATEGORIES[lookup_cats[0]]))
+    pool = _all_hobbies()
+    n = 4 + (seed_i % 3)
+    picked = []
+    # take two from the focus category first.
+    k = 0
+    while k < len(focused) and len(picked) < 2:
+        item = focused[(seed_i + k) % len(focused)]
+        if item not in picked:
+            picked.append(item)
+        k += 1
+    k = 0
+    while k < len(pool) and len(picked) < n:
+        item = pool[(seed_i * 3 + k) % len(pool)]
+        if item not in picked:
+            picked.append(item)
+        k += 1
+    return picked
+
+
+def _demo_availability(seed_i):
+    # 1-3 windows, rotated so the pool still has overlap AND disjoint pairs.
+    n = 1 + (seed_i % 3)
+    out = []
+    k = 0
+    while k < n:
+        out.append(AVAILABILITY_WINDOWS[(seed_i + k) % len(AVAILABILITY_WINDOWS)])
+        k += 1
+    return out
+
+
+def _demo_size(size_lean):
+    if "small" in size_lean:
+        return [2, 3]
+    if "big" in size_lean:
+        return [5, 8]
+    return "no preference"
+
+
+def build_demo_cast(count=12, theme=DEFAULT_THEME):
+    # schema-valid people with no API calls, so Demo mode can run a 100-person
+    # Black Diamond simulation end-to-end. Theme only flavors location/bio.
+    count = clamp_count(count)
+    theme = clamp_theme(theme)
+    specs = _slot_specs(count)
+    users = []
+    i = 0
+    while i < count:
+        spec = specs[i]
+        first = _DEMO_FIRST[i % len(_DEMO_FIRST)]
+        last = _DEMO_LAST[(i // len(_DEMO_FIRST) + i) % len(_DEMO_LAST)]
+        # suffix when the name pool wraps so 100 people stay distinct.
+        cycle = i // (len(_DEMO_FIRST) * len(_DEMO_LAST))
+        name = first + " " + last
+        if cycle > 0:
+            name = name + " " + str(cycle + 1)
+        age = MIN_AGE + ((i * 3) % (MAX_AGE - MIN_AGE + 1))
+        gender = _DEMO_GENDERS[i % len(_DEMO_GENDERS)]
+        place = _DEMO_PLACES[i % len(_DEMO_PLACES)]
+        hobbies = _demo_hobbies(spec["focus"], i)
+        bio = (
+            "I live around {} and I'm looking for platonic friends / activity "
+            "partners -- not dating. Theme of this cast: {}. I usually fill my "
+            "time with {}."
+        ).format(place, theme, ", ".join(hobbies[:2]))
+        users.append({
+            "name": name,
+            "age": age,
+            "gender": gender,
+            "hobbies": hobbies,
+            "personality": spec["personality"],
+            "occupation": spec["occupation"],
+            "availability": _demo_availability(i),
+            "location": place,
+            "bio": bio,
+            "preferred_group_size": _demo_size(spec["size"]),
+        })
+        i += 1
+    return _reid(users)
 
 
 async def main(client=None):

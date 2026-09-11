@@ -28,7 +28,7 @@ def test_validate_passes_on_the_real_seed_users():
 
 def test_validate_catches_bad_age_hobby_and_size():
     bad = [{
-        "id": "u01", "name": "X", "age": 40, "gender": "male",
+        "id": "u01", "name": "X", "age": 50, "gender": "male",
         "hobbies": ["underwater basket weaving"], "personality": "introverted",
         "occupation": "student", "availability": ["weekday_evening"],
         "location": "Shaw", "bio": "hi", "preferred_group_size": [1, 9],
@@ -91,7 +91,7 @@ def test_generate_users_invents_each_person_in_its_own_call():
 
 def test_generate_users_retries_only_the_failing_slot():
     # first person comes back with a bad age, then valid; the other two are fine.
-    bad = json_body(person("A", age=40))
+    bad = json_body(person("A", age=50))
     fake = FakeClient(generation_queue=[bad, json_body(person("A")),
                                         json_body(person("B")), json_body(person("C"))])
     users = run(persona_gen.generate_users(count=3, client=fake))
@@ -108,3 +108,62 @@ def test_generate_users_accepts_a_wrapped_person_object():
                                         json_body(person("C"))])
     users = run(persona_gen.generate_users(count=3, client=fake))
     assert [u["name"] for u in users] == ["A", "B", "C"]
+
+
+def test_clamp_count_defaults_and_caps_at_100():
+    assert persona_gen.clamp_count(None) == 12
+    assert persona_gen.clamp_count("nope") == 12
+    assert persona_gen.clamp_count(0) == 1
+    assert persona_gen.clamp_count(-3) == 1
+    assert persona_gen.clamp_count(5) == 5
+    assert persona_gen.clamp_count(100) == 100
+    assert persona_gen.clamp_count(500) == 100
+
+
+def test_clamp_theme_falls_back_to_black_diamond():
+    assert "Black Diamond" in persona_gen.clamp_theme(None)
+    assert "Black Diamond" in persona_gen.clamp_theme("  ")
+    assert persona_gen.clamp_theme("custom theme") == "custom theme"
+
+
+def test_validate_accepts_age_40():
+    u = person("A", age=40)
+    u["id"] = "u01"
+    assert persona_gen.validate_users([u]) == []
+
+
+def test_generate_users_honors_count_and_theme():
+    fake = FakeClient(generation_queue=[json_body(person("A")), json_body(person("B")),
+                                        json_body(person("C")), json_body(person("D"))])
+    users = run(persona_gen.generate_users(count=4, theme="Black Diamond neighbors", client=fake))
+    assert len(users) == 4
+    assert persona_gen.validate_users(users) == []
+    gen = [kw for k, kw in fake.calls if k == "generation"]
+    assert len(gen) == 4
+    assert "Black Diamond neighbors" in gen[0]["system"]
+
+
+def test_generate_users_clamps_count_before_firing_calls():
+    fake = FakeClient(generation_queue=[json_body(person("A"))])
+    users = run(persona_gen.generate_users(count=0, theme="", client=fake))
+    # clamped to 1
+    assert len(users) == 1
+    assert len([k for k in fake.kinds() if k == "generation"]) == 1
+
+
+def test_build_demo_cast_is_schema_valid_at_100():
+    users = persona_gen.build_demo_cast(count=100, theme="Black Diamond, Washington neighbors")
+    assert len(users) == 100
+    assert users[0]["id"] == "u01"
+    assert users[99]["id"] == "u100"
+    assert persona_gen.validate_users(users) == []
+    names = set(u["name"] for u in users)
+    assert len(names) == 100
+    # theme flavors the bios / locations stay in Black Diamond
+    assert any("Black Diamond" in u["location"] for u in users)
+    assert any("Black Diamond" in u["bio"] for u in users)
+
+
+def test_default_theme_is_black_diamond_platonic():
+    assert "Black Diamond" in persona_gen.DEFAULT_THEME
+    assert "not dating" in persona_gen.DEFAULT_THEME

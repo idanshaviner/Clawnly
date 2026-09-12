@@ -369,3 +369,42 @@ def test_extract_json_with_surrounding_noise():
 
 def test_extract_json_invalid_returns_none():
     assert extract_json("no json here") is None
+
+
+def test_find_all_matches_can_cover_a_pool_larger_than_twelve():
+    # tiny glue for N=100: the default group cap must scale with the pool, not
+    # stay stuck at the old 6 (which would leave most of a 21-person pool unmatched).
+    people = []
+    i = 0
+    while i < 21:
+        people.append({
+            "id": "p{:02d}".format(i),
+            "name": "Person{}".format(i),
+            "age": 27,
+            "gender": "female",
+            "hobbies": ["reading", "yoga"],
+            "personality": "mixed",
+            "occupation": "student",
+            "availability": ["weekday_evening"],
+            "location": "Black Diamond",
+            "bio": "Looking for platonic activity partners around town.",
+            "preferred_group_size": "no preference",
+        })
+        i += 1
+    queue = []
+    i = 0
+    while i < 21:
+        g = ["p{:02d}".format(i), "p{:02d}".format(i + 1), "p{:02d}".format(i + 2)]
+        queue.append(json_body({
+            "group": g,
+            "reason": "shared weekday evenings",
+            "scores": {"personality": 4, "availability": 4, "interests": 4, "size_fit": 4},
+            "why_not": [],
+        }))
+        i += 3
+    queue.append(json_body({"group": [], "reason": "none", "scores": {}, "why_not": []}))
+    fake = FakeClient(match_queue=queue)
+    mc = MasterClaw(people, client=fake)
+    out = run(mc.find_all_matches(run(mc.interview_claws())))
+    assert len(out["groups"]) == 7
+    assert out["unmatched"] == []

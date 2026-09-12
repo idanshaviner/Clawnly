@@ -60,6 +60,15 @@
   .keybar input { flex:1; min-width:200px; border:1px solid var(--line); border-radius:8px; padding:7px 10px; }
   .keybar .ok { color:var(--green); font-weight:600; }
   .keybar .warn { color:var(--amber); font-weight:600; }
+  .simflow { margin-top:18px; }
+  .simflow .flowrow { display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end; }
+  .simflow .flowrow .field { flex:1; min-width:180px; }
+  .simflow textarea { min-height:64px; resize:vertical; }
+  #cast { max-height:640px; overflow-y:auto; padding-right:4px; }
+  .groupnav { display:flex; flex-wrap:wrap; gap:6px; margin:0 0 12px; }
+  .groupnav a { font-size:12.5px; color:var(--accent); text-decoration:none; background:var(--accent-soft);
+    border-radius:999px; padding:4px 10px; }
+  .pilotnote { font-size:12.5px; color:var(--muted); margin:8px 0 0; }
 </style>
 </head>
 <body>
@@ -67,7 +76,7 @@
   <header>
     <div>
       <h1>Clawnly 🐾</h1>
-      <p class="tagline">Edit the people, chat with them, run the match, watch them negotiate, then ask the Master Claw why.</p>
+      <p class="tagline">Simulated demo console — generate a Black Diamond cast, run Demo (free) or Live, browse groups, then thumbs-up/down so the next run learns. Not the real-resident pilot at <code>/join</code>.</p>
     </div>
     <div class="controls">
       <select id="mode">
@@ -82,13 +91,32 @@
   <div class="status" id="status"></div>
   <div class="whisper" id="lessons" style="margin:-8px 0 8px"></div>
 
-  <div class="section">
-    <h2>The 12 people — edit or chat with anyone</h2>
-    <div class="rowbtns" style="margin-bottom:12px">
-      <button class="mini" id="genBtn" onclick="generateCast()">🎲 Generate new random cast (Live)</button>
-      <button class="mini" onclick="resetCast()">↺ Reset to defaults</button>
-      <span class="whisper" id="genStatus"></span>
+  <div class="section simflow" id="sim-flow">
+    <h2>Black Diamond · 100-person simulation</h2>
+    <div class="card">
+      <p class="pilotnote">This page is the <b>simulated</b> matcher console (AI-generated or scripted people). Real neighbors sign up at <code>/join/&lt;slug&gt;</code> — do not mix the two.</p>
+      <div class="flowrow">
+        <div class="field" style="flex:2">
+          <label>Theme</label>
+          <textarea id="castTheme">neighbors in Black Diamond, Washington (ages 24-40, platonic friendship / activity partners -- not dating)</textarea>
+        </div>
+        <div class="field" style="max-width:140px">
+          <label>People (1-100)</label>
+          <input type="number" id="castCount" min="1" max="100" value="100"/>
+        </div>
+      </div>
+      <div class="rowbtns">
+        <button class="mini" id="genBtn" onclick="generateCast()">1. Generate cast</button>
+        <button class="run" id="flowRunBtn">2. Run the matchmaker</button>
+        <button class="mini" onclick="resetCast()">Reset to original 12</button>
+        <span class="whisper" id="genStatus"></span>
+      </div>
+      <p class="pilotnote">Demo mode is free/offline (scripted people + scripted matcher). Live invents people with real Claude and is slow/costly at 100. Thumbs on a group feed the next run.</p>
     </div>
+  </div>
+
+  <div class="section">
+    <h2 id="castHeading">The people — edit or chat with anyone</h2>
     <div class="grid" id="cast"></div>
   </div>
 
@@ -101,6 +129,8 @@ const statusEl = document.getElementById("status");
 const resultsEl = document.getElementById("results");
 const castEl = document.getElementById("cast");
 document.getElementById("runBtn").addEventListener("click", run);
+const flowRun = document.getElementById("flowRunBtn");
+if (flowRun) flowRun.addEventListener("click", run);
 
 let WINDOWS = [];
 const chatHist = {};      // per-person chat history
@@ -116,6 +146,13 @@ async function loadConfig() {
   try {
     const c = await (await fetch("/api/config")).json();
     DEMO_ONLY = !!c.demo_only; BYOK = !!c.byok;
+    const themeEl = document.getElementById("castTheme");
+    const countEl = document.getElementById("castCount");
+    if (themeEl && c.default_theme) themeEl.value = c.default_theme;
+    if (countEl) {
+      if (c.max_count) countEl.max = c.max_count;
+      countEl.value = 100;
+    }
   } catch(e) { DEMO_ONLY = false; BYOK = false; }
   if (DEMO_ONLY) applyDemoOnly();
   else if (BYOK) renderByokBar();
@@ -123,14 +160,12 @@ async function loadConfig() {
 }
 
 function applyDemoOnly() {
-  // public demo: no Live mode, no key entry, no AI cast generation.
+  // public demo: no Live mode, no key entry. Offline generate still works.
   const mode = document.getElementById("mode");
   mode.value = "demo";
   mode.parentElement.removeChild(mode);   // lock to demo
   const kb = document.getElementById("keybar");
-  kb.innerHTML = '<span class="whisper">🌐 Public demo — free offline mode. Everything runs without an API key.</span>';
-  const gen = document.getElementById("genBtn");
-  if (gen) gen.style.display = "none";
+  kb.innerHTML = '<span class="whisper">Public demo — free offline mode. Generate + Run use scripted people, no API key.</span>';
 }
 
 // ---- bring-your-own-key mode: the key lives ONLY in this browser ----
@@ -186,31 +221,55 @@ async function saveKey() {
   else { const d = await r.json(); alert(d.error || "Could not save key"); }
 }
 
+function setCastHeading(n) {
+  const h = document.getElementById("castHeading");
+  if (h) h.textContent = "The " + n + " people — edit or chat with anyone";
+}
+
 async function loadCast() {
   const data = await (await fetch("/api/users")).json();
   WINDOWS = data.availability_windows;
+  setCastHeading((data.users || []).length);
   castEl.innerHTML = data.users.map(personCard).join("");
 }
 
 async function resetCast() {
-  if (!confirm("Reset all 12 people back to the originals? This discards your edits.")) return;
+  if (!confirm("Reset the cast back to the original 12 seed people? This discards the generated cast and your edits.")) return;
   const data = await (await fetch("/api/reset", {method:"POST"})).json();
   WINDOWS = WINDOWS.length ? WINDOWS : data.availability_windows;
+  setCastHeading((data.users || []).length);
   castEl.innerHTML = data.users.map(personCard).join("");
+}
+
+function readCastCount() {
+  const el = document.getElementById("castCount");
+  let n = 100;
+  if (el) n = parseInt(el.value, 10);
+  if (isNaN(n) || n < 1) n = 1;
+  if (n > 100) n = 100;
+  return n;
 }
 
 async function generateCast() {
   const btn = document.getElementById("genBtn");
   const gs = document.getElementById("genStatus");
-  btn.disabled = true; gs.textContent = "Inventing 12 new people with AI…";
+  const count = readCastCount();
+  const themeEl = document.getElementById("castTheme");
+  const theme = themeEl ? themeEl.value : "";
+  const mode = modeEl();
+  btn.disabled = true;
+  if (mode === "live") gs.textContent = "Inventing " + count + " people with real AI (Live — this can take a while)…";
+  else gs.textContent = "Building " + count + " scripted neighbors (Demo, no API)…";
   try {
-    const r = await fetch("/api/generate-cast", {method:"POST", headers:apiHeaders(), body:JSON.stringify({mode:modeEl()})});
+    const r = await fetch("/api/generate-cast", {method:"POST", headers:apiHeaders(),
+      body:JSON.stringify({mode:mode, count:count, theme:theme})});
     const data = await r.json();
     if (data.error) { gs.innerHTML = '<span class="err">'+esc(data.error)+'</span>'; return; }
     WINDOWS = WINDOWS.length ? WINDOWS : ["weekday_daytime","weekday_evening","weekend_daytime","weekend_evening"];
+    setCastHeading((data.users || []).length);
     castEl.innerHTML = data.users.map(personCard).join("");
     resultsEl.innerHTML = "";
-    gs.textContent = data.warning ? ("Cast ready — " + data.warning) : "Fresh cast ready ✓ — hit Run.";
+    gs.textContent = data.warning ? ("Cast ready — " + data.warning) : ("Cast of " + data.users.length + " ready — hit Run.");
   } catch(e) { gs.innerHTML = '<span class="err">'+esc(String(e))+'</span>'; }
   finally { btn.disabled = false; }
 }
@@ -366,13 +425,21 @@ async function run() {
       statusEl.textContent = "Done." + usageText(data.usage);
       const tail = document.getElementById("sec-tail");
       const groups = data.groups || [];
+      const unmatched = data.unmatched || [];
+      const secGroups = document.getElementById("sec-groups");
+      let nav = '<div class="card" style="margin-bottom:12px"><b>'+groups.length+' group'+(groups.length===1?"":"s")+'</b> · '
+        + unmatched.length + ' unmatched. Each group lists members, reason, scores, and why_not.</div>';
+      if (groups.length > 1) {
+        nav += '<div class="groupnav">' + groups.map(function(_,i){ return '<a href="#group-'+i+'">Group '+(i+1)+'</a>'; }).join("") + '</div>';
+      }
+      if (secGroups) secGroups.insertAdjacentHTML("afterbegin", nav);
       if (groups.length === 0) {
         tail.innerHTML = '<div class="whisper" style="margin-top:10px">No viable groups in this cast.</div>';
-      } else if (data.unmatched && data.unmatched.length) {
-        const un = data.unmatched.map(id=>esc(nameOf(id))).join(", ");
+      } else if (unmatched.length) {
+        const un = unmatched.map(id=>esc(nameOf(id))).join(", ");
         tail.innerHTML = section("Left over", '<div class="card whisper">No good group for: '+un+'</div>') + masterPanel();
       } else {
-        tail.innerHTML = '<div class="whisper" style="margin:10px 0">Everyone got matched 🎉</div>' + masterPanel();
+        tail.innerHTML = '<div class="whisper" style="margin:10px 0">Everyone got matched.</div>' + masterPanel();
       }
       es.close(); btn.disabled = false;
     }
@@ -405,7 +472,7 @@ function renderGroupSection(index, m, nameOf) {
   const sc = Object.keys(s).map(k=>`<div class="score"><div class="n">${s[k]}</div><div class="k">${esc(k)}</div></div>`).join("");
   let wn = "";
   if (m.why_not && m.why_not.length) wn = '<div class="whynot"><b>Why not these:</b><br>'+m.why_not.map(w=>`${esc(nameOf(w.id))} — ${esc(w.reason)}`).join("<br>")+"</div>";
-  return `<div class="section"><h2>Group ${index+1}</h2>
+  return `<div class="section" id="group-${index}"><h2>Group ${index+1}</h2>
     <div class="card">
       <div class="chips">${chips}</div>
       <div class="scores">${sc}</div>

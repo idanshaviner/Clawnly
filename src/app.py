@@ -31,7 +31,7 @@ import batch
 import my_match
 import onboarding
 import usage
-from persona_gen import generate_users, nudge_user, DEFAULT_THEME
+from persona_gen import generate_users, nudge_user, build_demo_cast, clamp_count, clamp_theme, DEFAULT_THEME, DEFAULT_COUNT, MAX_GEN_COUNT
 from users import USERS, HOBBY_CATEGORIES, AVAILABILITY_WINDOWS
 
 app = FastAPI(title="Clawnly")
@@ -151,7 +151,13 @@ async def index():
 async def api_config():
     # lets the front-end adapt: hide Live on a demo-only deploy, or ask for the
     # visitor's own key in bring-your-own-key mode.
-    return {"demo_only": DEMO_ONLY, "byok": BYOK}
+    return {
+        "demo_only": DEMO_ONLY,
+        "byok": BYOK,
+        "default_theme": DEFAULT_THEME,
+        "default_count": DEFAULT_COUNT,
+        "max_count": MAX_GEN_COUNT,
+    }
 
 
 @app.post("/api/session")
@@ -320,7 +326,7 @@ def _persist_run(mode, signature, result, reused):
 @app.post("/api/run")
 async def api_run(request: Request, mode: str = "demo"):
     # run the full pipeline on the (possibly edited) cast; persist the result.
-    # Reuse cached interviews when the cast + mode are unchanged (skips 12 calls).
+    # Reuse cached interviews when the cast + mode are unchanged (skips one call per person).
     mode = _effective_mode(mode)
     key = _request_key(request)
     try:
@@ -379,18 +385,20 @@ async def api_run_stream(mode: str = "demo", session: str = None):
 
 @app.post("/api/generate-cast")
 async def api_generate_cast(request: Request, body: dict):
-    # re-roll the 12 people with real AI -- a fresh, random, diverse cast each
-    # time (no theme). Uses the API -> live only.
-    if DEMO_ONLY:
-        return JSONResponse(status_code=403,
-                            content={"error": "Generating a fresh cast is disabled in this public demo."})
-    mode = body.get("mode", "demo")
-    if mode == "demo":
-        return JSONResponse(status_code=400,
-                            content={"error": "Generating a fresh cast uses real AI -- switch to Live mode."})
+    # re-roll the cast. Live uses real AI; Demo (and DEMO_ONLY deploys) builds a
+    # schema-valid cast locally so a 100-person Black Diamond run is playable
+    # without Anthropic. Callers pass count (default 12, max 100) and theme.
+    if body is None:
+        body = {}
+    count = clamp_count(body.get("count"))
+    theme = clamp_theme(body.get("theme"))
+    mode = _effective_mode(body.get("mode", "demo"))
     try:
-        users = await generate_users(count=12, theme=DEFAULT_THEME,
-                                     client=_client_for(mode, _request_key(request)))
+        if mode == "demo":
+            users = build_demo_cast(count=count, theme=theme)
+        else:
+            users = await generate_users(count=count, theme=theme,
+                                         client=_client_for(mode, _request_key(request)))
     except Exception as error:
         return JSONResponse(status_code=500, content={"error": str(error)})
     # generation fans out one call per person; if too many failed (e.g. rate limits)
@@ -401,9 +409,9 @@ async def api_generate_cast(request: Request, body: dict):
                      "Your current cast is unchanged -- try again in a moment.".format(len(users))})
     db.replace_users(users)
     warning = None
-    if len(users) < 12:
-        warning = "Only {} of 12 people came back this time (some AI calls failed).".format(len(users))
-    return {"users": db.list_users(), "warning": warning}
+    if len(users) < count:
+        warning = "Only {} of {} people came back this time (some AI calls failed).".format(len(users), count)
+    return {"users": db.list_users(), "warning": warning, "count": len(users), "theme": theme}
 
 
 @app.post("/api/chat")

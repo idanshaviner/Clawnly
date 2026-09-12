@@ -396,11 +396,17 @@ class MasterClaw:
 
     # ----- multi-group: partition the whole pool ----------------------------
 
-    async def find_all_matches(self, interviews, max_groups=6, on_group=None):
+    async def find_all_matches(self, interviews, max_groups=None, on_group=None):
         # form as many non-overlapping 3-5 person groups as the pool supports:
         # match -> remove those people -> match the rest -> stop when no viable
         # group remains. Each group still passes the hard-constraint validator.
         remaining = self._candidate_ids(interviews)
+        if max_groups is None:
+            # enough groups to cover the pool at the minimum size of 3. Floor of
+            # 6 keeps the original small-cast cap; a 100-person pool can form ~33.
+            max_groups = len(remaining) // 3
+            if max_groups < 6:
+                max_groups = 6
         groups = []
         formed = 0
         while formed < max_groups and len(remaining) >= 3:

@@ -27,14 +27,41 @@ is the current entry point for the whole application.
 The server hosts two mostly-separate things side by side, sharing the same
 matching engine underneath:
 
-1. **The original demo console** (`/`) — for the *simulated* 12-person cast.
-   Edit people, run the matcher (free Demo mode or real Live mode), chat with
+1. **The original demo console** (`/`) — for the *simulated* cast (the original
+   12 seed people, or a generated Black Diamond cohort of up to 100). Edit
+   people, run the matcher (free Demo mode or real Live mode), chat with
    personas, ask the Master Claw why it did something. Predates the pilot and
    has nothing to do with real residents.
 2. **The real-user pilot** (`/join/<slug>` onward) — real accounts, a real
    onboarding conversation, real matching, real (small) meetups.
 
 Don't confuse the two "admin"-ish surfaces this produces — see below.
+
+## Black Diamond 100 (demo console)
+
+A playable, reviewable simulation of ~100 platonic neighbors in Black Diamond,
+Washington. This lives entirely on `/` (the demo console) — it does **not**
+touch `/join`, onboarding, or real residents.
+
+1. Start the app: `.venv/bin/python src/app.py` then open http://127.0.0.1:8000
+2. Leave **Demo (free, offline)** selected so nothing hits Anthropic.
+3. In **Black Diamond · 100-person simulation**, the theme defaults to
+   neighbors in Black Diamond (ages 24–40, friendship / activity partners, not
+   dating) and count defaults to 100. Tweak either if you want.
+4. Click **1. Generate cast** — Demo builds 100 schema-valid scripted people
+   locally (no API). Switch to Live first only if you want Claude to invent
+   them (slow + costly at 100).
+5. Click **2. Run the matchmaker** (or the header Run button). Demo completes
+   end-to-end with `DemoClient`: interviews, multiple groups from
+   `find_all_matches`, negotiation, meetup cards, plus unmatched leftovers.
+6. Browse groups (members, reason, scores, why_not) and the unmatched list.
+7. Thumbs-up / thumbs-down a group (optional note). That feedback is persisted
+   and injected into the Master Claw on the **next** run.
+8. Run again to see the matcher read those lessons. **Reset to original 12**
+   restores the seed cast without wiping feedback.
+
+Live at N=100 is many interview + match calls on real Claude — expect minutes
+and real spend; keep Demo selected unless you mean to pay.
 
 ## The resident (real user) walkthrough
 
@@ -99,9 +126,9 @@ join page's consent text.
 
 ## Admin — there are two different panels, don't mix them up
 
-**`/` (the demo console)** — for the *simulated* 12-person cast only, as
-described above. No login/role check at all; it's a local dev tool. Nothing
-here touches real residents.
+**`/` (the demo console)** — for the *simulated* cast only (seed 12 or a
+generated Black Diamond cohort up to 100), as described above. No login/role
+check at all; it's a local dev tool. Nothing here touches real residents.
 
 **`/admin` (the real pilot dashboard)** — for monitoring actual
 neighborhoods/residents. Every route under it is gated by `_require_admin` in

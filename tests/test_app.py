@@ -33,6 +33,8 @@ def test_index_serves_the_page():
     assert r.status_code == 200
     assert "Clawnly" in r.text
     assert "Run the matchmaker" in r.text
+    assert "Black Diamond" in r.text
+    assert "/join" in r.text
 
 
 def test_api_users_returns_twelve():
@@ -129,11 +131,19 @@ def test_reset_restores_defaults():
     assert maya["personality"] == "introverted"      # back to the default
 
 
-def test_generate_cast_demo_is_rejected():
+def test_generate_cast_demo_builds_a_synthetic_cast():
+    # Demo generate is offline (no Anthropic) so the 100-person sim is playable.
     reset_state()
-    r = client.post("/api/generate-cast", json={"mode": "demo"})
-    assert r.status_code == 400
-    assert "Live" in r.json()["error"]
+    r = client.post("/api/generate-cast", json={
+        "mode": "demo", "count": 20,
+        "theme": "neighbors in Black Diamond, Washington (platonic)",
+    })
+    assert r.status_code == 200
+    data = r.json()
+    assert len(data["users"]) == 20
+    assert data["users"][0]["id"] == "u01"
+    assert data["warning"] is None
+    assert "Black Diamond" in data["theme"]
 
 
 def test_generate_cast_live_replaces_the_cast(monkeypatch):
@@ -152,6 +162,83 @@ def test_generate_cast_live_replaces_the_cast(monkeypatch):
     users = client.get("/api/users").json()["users"]
     assert len(users) == 12 and users[0]["id"] == "u01"     # fresh cast, re-id'd
     assert len([k for k in fake.kinds() if k == "generation"]) == 12   # one call per person
+
+
+def test_generate_cast_live_honors_count_and_theme(monkeypatch):
+    reset_state()
+    from conftest import FakeClient, json_body
+    def person(name):
+        return {"name": name, "age": 27, "gender": "female", "hobbies": ["reading", "yoga"],
+                "personality": "introverted", "occupation": "student", "availability": ["weekday_evening"],
+                "location": "Ten Trails", "bio": "I like quiet book nights.", "preferred_group_size": [2, 3]}
+    queue = [json_body(person("P" + str(i))) for i in range(4)]
+    fake = FakeClient(generation_queue=queue)
+    monkeypatch.setattr(webapp, "_client_for", lambda mode, key=None: fake)
+    r = client.post("/api/generate-cast", json={
+        "mode": "live", "count": 4, "theme": "Black Diamond, Washington neighbors",
+    })
+    assert r.status_code == 200
+    users = r.json()["users"]
+    assert len(users) == 4
+    gen = [kw for k, kw in fake.calls if k == "generation"]
+    assert len(gen) == 4
+    assert "Black Diamond, Washington neighbors" in gen[0]["system"]
+
+
+def test_generate_cast_clamps_count_and_does_not_wipe_on_too_few(monkeypatch):
+    reset_state()
+    before = client.get("/api/users").json()["users"]
+    assert len(before) == 12
+
+    async def fake_gen(count=12, theme=None, client=None, attempts=3):
+        assert count == 100   # 500 clamped
+        return []             # too few to accept
+
+    monkeypatch.setattr(webapp, "generate_users", fake_gen)
+    r = client.post("/api/generate-cast", json={"mode": "live", "count": 500, "theme": "x"})
+    assert r.status_code == 502
+    after = client.get("/api/users").json()["users"]
+    assert len(after) == 12
+    assert after[0]["id"] == before[0]["id"]
+
+
+def test_generate_cast_partial_cast_warns_without_failing(monkeypatch):
+    reset_state()
+    from conftest import FakeClient, json_body
+    def person(name):
+        return {"name": name, "age": 27, "gender": "female", "hobbies": ["reading", "yoga"],
+                "personality": "introverted", "occupation": "student", "availability": ["weekday_evening"],
+                "location": "Ten Trails", "bio": "I like quiet book nights.", "preferred_group_size": [2, 3]}
+    # 5 requested, only 3 valid replies then empty/invalid leftovers would fail slots
+    queue = [json_body(person("A")), json_body(person("B")), json_body(person("C")),
+             json_body({"nope": True}), json_body({"nope": True}),
+             json_body({"nope": True}), json_body({"nope": True}), json_body({"nope": True}),
+             json_body({"nope": True})]
+    fake = FakeClient(generation_queue=queue)
+    monkeypatch.setattr(webapp, "_client_for", lambda mode, key=None: fake)
+    r = client.post("/api/generate-cast", json={"mode": "live", "count": 5, "theme": "Black Diamond"})
+    assert r.status_code == 200
+    data = r.json()
+    assert len(data["users"]) == 3
+    assert data["warning"] is not None
+    assert "3 of 5" in data["warning"]
+
+
+def test_api_run_demo_is_not_hardcoded_to_twelve():
+    reset_state()
+    import persona_gen
+    import db
+    people = persona_gen.build_demo_cast(count=24, theme="Black Diamond neighbors")
+    db.replace_users(people)
+    r = client.post("/api/run?mode=demo")
+    assert r.status_code == 200
+    data = r.json()
+    assert len(data["interviews"]) == 24
+    assert len(data["groups"]) >= 2
+    assert "unmatched" in data
+    # groups actually came from the 24-person pool, not the seed 12
+    g0 = data["groups"][0]["match"]["group"]
+    assert len(g0) >= 3
 
 
 def test_edit_rejects_invalid_personality():
@@ -276,3 +363,23 @@ def test_set_key_configures_live():
 def test_set_key_rejects_garbage():
     r = client.post("/api/key", json={"key": "x"})
     assert r.status_code == 400
+
+
+def test_api_run_demo_completes_for_one_hundred():
+    reset_state()
+    r = client.post("/api/generate-cast", json={
+        "mode": "demo", "count": 100,
+        "theme": "neighbors in Black Diamond, Washington (platonic)",
+    })
+    assert r.status_code == 200
+    assert len(r.json()["users"]) == 100
+    r2 = client.post("/api/run?mode=demo")
+    assert r2.status_code == 200
+    data = r2.json()
+    assert len(data["interviews"]) == 100
+    assert len(data["groups"]) >= 2
+    assert "unmatched" in data
+    g0 = data["groups"][0]["match"]
+    assert g0["reason"]
+    assert g0["scores"]
+    assert "why_not" in g0

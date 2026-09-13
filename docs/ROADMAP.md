@@ -387,6 +387,34 @@ not by this one:*
 trusting this summary alone** -- two independently-written accounts of the
 same stretch of work were only just merged together here.
 
+**A third independent PR** (`black-diamond-100-sim`, merged as PR #2, commit
+`dd72b32`) landed next, unrelated to the real pilot -- it scales up the
+**original demo console** (`/`, the simulated cast), not the pilot:
+- `persona_gen.build_demo_cast(count, theme)` -- instant, zero-API-call,
+  schema-valid cast generation (up to `MAX_GEN_COUNT = 100` people) for Demo
+  mode; `clamp_count`/`clamp_theme` bound and sanitize the inputs. Live mode
+  still uses the real AI-based `generate_users` (same cap, but costs money).
+  `POST /api/generate-cast` now takes `count`/`theme` and branches on mode.
+- A real bug fix directly relevant to matching at scale: `MasterClaw.
+  find_all_matches` had a hardcoded `max_groups=6` -- harmless at the
+  12-person demo scale, but would have silently capped a 100-person pool at
+  6 groups (~30 people considered, ~70 left unmatched even if more valid
+  groups existed). Now scales with pool size (`len(remaining) // 3`, floored
+  at 6) when `max_groups` isn't passed explicitly.
+- `web/index.html` updated with count/theme controls for generating a larger
+  cast in the browser -- this is the "Black Diamond" 100-person scenario
+  referenced in the branch name, playable entirely for free.
+
+None of this touches `auth.py`, `db.py`'s pilot tables, or any `/join`,
+`/consent`, `/onboarding`, `/my-match`, or `/admin*` route -- it's additive
+to the pre-pilot demo console only. 314 tests passing (up from 298) after
+this merge, confirmed green.
+
+**Given three independently-merged PRs have now landed on this repo without
+this session's involvement, treat this ROADMAP as reliable only as of
+`dd72b32` -- always `git fetch` and diff before assuming it's still current
+(see the working-rhythm rule in `CLAUDE.md`).**
+
 ---
 
 ## Highest-priority items if picking up fresh work (not already covered above)

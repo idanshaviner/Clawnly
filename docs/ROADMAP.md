@@ -425,7 +425,7 @@ knows about them; each person's Claw talks privately with other Claws; a hub pic
 pairs, judges each conversation, and invites only deep fits; humans only say yes/no.
 Every step is logged.
 
-**Built so far (branch `claude/zealous-noether-yllwtn`):** `src/dossier.py` (import
+**Built so far (branch `clawnly-lounge`):** `src/dossier.py` (import
 prompt + card), `src/agent_talk.py` (the representing Claw -- dossier-only, says "I don't
 know", never invents), `src/orchestrator.py` (the hub: pair -> talk -> judge -> code gate:
 depth >= 8 and >= 2 verbatim quotes), `db.events` + `db.agent_conversations`, 20 new tests

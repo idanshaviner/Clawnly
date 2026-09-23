@@ -36,6 +36,9 @@ def speaker_fn(system, content):
 def verdict_for(strong_pair):
     # recommend only the named pair; cite one real quote, one real, one invented.
     def fn(system, content):
+        names = system.split("on behalf of ")[1].split(".")[0].replace("\n", " ").split(" and ")
+        first = names[0].strip()
+        second = names[1].strip()
         strong = strong_pair in system
         depth = 5
         if strong:
@@ -43,8 +46,8 @@ def verdict_for(strong_pair):
         return json_body({
             "thoughts": "reasoning", "depth": depth, "recommend": strong, "headline": "headline",
             "evidence": [
-                {"quote": "needs friends who show up every single week", "why": "consistency"},
-                {"quote": "show up every single week without fail", "why": "reliability"},
+                {"quote": first + " needs friends who show up every single week", "why": "consistency"},
+                {"quote": second + " needs friends who show up every single week", "why": "reliability"},
                 {"quote": "they both secretly love opera", "why": "invented"},
             ],
             "tensions": ["risk"],
@@ -87,29 +90,37 @@ def test_clean_pairs_handles_a_missing_list():
     assert pairs == [] and rejected == ["hub returned no pair list"]
 
 
-def test_verify_evidence_keeps_only_verbatim_quotes():
-    transcript = "Noa's agent: Noa misses Friday dinners — a long table, too much food."
+def test_verify_evidence_keeps_only_verbatim_quotes_and_knows_who_said_them():
+    turns = [{"by": "s1", "text": "Noa misses Friday dinners \u2014 a long table, too much food."},
+             {"by": "s2", "text": "Marcus cooks every Sunday for whoever shows up."}]
     kept, dropped = orchestrator.verify_evidence([
         {"quote": "misses Friday dinners - a long table", "why": "punctuation differences are fine"},
+        {"quote": "cooks every Sunday for whoever shows up", "why": "the other side"},
         {"quote": "Noa loves opera and skydiving", "why": "invented"},
         {"quote": "Noa", "why": "too short to count"},
+        {"quote": "a long table, too much food. Marcus cooks", "why": "spans two messages"},
         {"no": "quote"},
-    ], transcript)
-    assert [k["quote"] for k in kept] == ["misses Friday dinners - a long table"]
-    assert dropped == ["Noa loves opera and skydiving", "Noa"]
+    ], turns)
+    assert [(k["quote"], k["by"]) for k in kept] == [("misses Friday dinners - a long table", "s1"),
+                                                     ("cooks every Sunday for whoever shows up", "s2")]
+    assert dropped == ["Noa loves opera and skydiving", "Noa", "a long table, too much food. Marcus cooks"]
 
 
-def test_gate_needs_recommend_depth_and_verified_quotes():
-    two = [{"quote": "a"}, {"quote": "b"}]
-    assert orchestrator.gate({"recommend": True, "depth": 9}, two) == (9, [])
-    depth, reasons = orchestrator.gate({"recommend": True, "depth": 7}, two)
+def test_gate_needs_recommend_depth_and_verified_quotes_from_both_agents():
+    both = [{"quote": "a", "by": "s1"}, {"quote": "b", "by": "s2"}]
+    assert orchestrator.gate({"recommend": True, "depth": 9}, both, "s1", "s2") == (9, [])
+    depth, reasons = orchestrator.gate({"recommend": True, "depth": 7}, both, "s1", "s2")
     assert reasons == ["depth 7 < 8"]
-    depth, reasons = orchestrator.gate({"recommend": False, "depth": 9}, two)
+    depth, reasons = orchestrator.gate({"recommend": False, "depth": 9}, both, "s1", "s2")
     assert reasons == ["hub did not recommend"]
-    depth, reasons = orchestrator.gate({"recommend": True, "depth": 9}, two[:1])
+    depth, reasons = orchestrator.gate({"recommend": True, "depth": 9}, both[:1], "s1", "s2")
     assert reasons == ["only 1 verified quote(s), need 2"]
-    depth, reasons = orchestrator.gate({"recommend": "yes", "depth": "9"}, two)
+    depth, reasons = orchestrator.gate({"recommend": "yes", "depth": "9"}, both, "s1", "s2")
     assert depth == 0 and len(reasons) == 2
+    # one person's pasted text can steer their own agent -- but not the other side's evidence
+    one_sided = [{"quote": "a", "by": "s1"}, {"quote": "c", "by": "s1"}]
+    depth, reasons = orchestrator.gate({"recommend": True, "depth": 10}, one_sided, "s1", "s2")
+    assert reasons == ["verified quotes must come from both agents"]
 
 
 # ----- a full round ------------------------------------------------------------------

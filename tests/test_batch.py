@@ -30,8 +30,8 @@ def verdict_fn(depths):
         depth = depths.get(a + "+" + b, 5)
         return json_body({
             "thoughts": "reasoning", "depth": depth, "recommend": depth >= 8, "headline": a + " and " + b + " click",
-            "evidence": [{"quote": "needs friends who show up every single week", "why": "w"},
-                         {"quote": "show up every single week without fail", "why": "w"}],
+            "evidence": [{"quote": a + " needs friends who show up every single week", "why": "w"},
+                         {"quote": b + " needs friends who show up every single week", "why": "w"}],
             "tensions": [],
             "invite": {"activity": "dinner", "when": "Sunday", "where": "Ten Trails",
                        "to_a": "You and " + b + " both want a steady table. " + b.upper() + " is ready.",

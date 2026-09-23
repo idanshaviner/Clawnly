@@ -71,6 +71,10 @@ async def preview(resident, name, source, text, client=None):
     if problem is not None:
         return None, problem
     text = text.strip()[:dossier.MAX_DOSSIER_CHARS]
+    # take the preview slot before the paid call, atomically -- parallel
+    # requests can't slip past the cap
+    if not db.claim_preview(resident["id"], MAX_PREVIEWS):
+        return None, "You've used all your previews. Join with your last card, or contact us to reset."
     if client is None:
         client = config.get_client()
     logged = ai_log.LoggedClient(client, neighborhood_id=resident["neighborhood_id"], resident_id=resident["id"])

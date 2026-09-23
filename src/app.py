@@ -10,6 +10,7 @@ Run:  .venv/bin/python src/app.py   (or double-click Clawnly.command)
 
 import html
 import os
+import re
 
 from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
@@ -25,6 +26,37 @@ import my_match
 app = FastAPI(title="Clawnly")
 
 db.init_db()
+
+
+@app.middleware("http")
+async def security_headers(request: Request, call_next):
+    response = await call_next(request)
+    # no page may be framed by another site (a hidden yes/no button would be clickjackable)
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Content-Security-Policy"] = "frame-ancestors 'none'"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    # sign-in tokens ride in URLs; never hand them to another site in a Referer
+    response.headers["Referrer-Policy"] = "no-referrer"
+    return response
+
+
+def _public_url(request, route_name):
+    # links that leave the site (the emailed sign-in link, Google's redirect)
+    # use the configured public address, never the request's Host header -- an
+    # attacker-controlled Host would otherwise point a victim's sign-in link at
+    # the attacker's server. Without CLAWNLY_BASE_URL (local dev) the request's
+    # own address is used.
+    base = config.resolve_env("CLAWNLY_BASE_URL")
+    if base:
+        return base.rstrip("/") + app.url_path_for(route_name)
+    return str(request.url_for(route_name))
+
+
+def _invited_neighborhood(slug, code):
+    # public input only ever resolves to an EXISTING neighborhood, with its secret code
+    if slug is None or len(str(slug).strip()) == 0:
+        return None
+    return db.neighborhood_for_invite(str(slug).strip(), str(code or "").strip())
 
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
@@ -118,14 +150,16 @@ async def api_consent(request: Request):
 
 
 @app.get("/auth/google/login")
-async def google_login(request: Request, neighborhood: str = None):
+async def google_login(request: Request, neighborhood: str = None, code: str = None):
     if not auth.google_configured():
         return JSONResponse(status_code=503, content={"error": "Google login is not configured yet."})
     neighborhood_id = None
     if neighborhood is not None and len(neighborhood.strip()) > 0:
-        nb = db.get_or_create_neighborhood(neighborhood.strip(), neighborhood.strip(), config.MATCH_BATCH_THRESHOLD)
+        nb = _invited_neighborhood(neighborhood, code)
+        if nb is None:
+            return JSONResponse(status_code=400, content={"error": "This invite link isn't valid. Ask for a fresh one."})
         neighborhood_id = nb["id"]
-    redirect_uri = str(request.url_for("google_callback"))
+    redirect_uri = _public_url(request, "google_callback")
     try:
         url = auth.google_authorize_url(redirect_uri, neighborhood_id)
     except ValueError as error:
@@ -137,7 +171,7 @@ async def google_login(request: Request, neighborhood: str = None):
 async def google_callback(request: Request, code: str = None, state: str = None):
     if code is None:
         return JSONResponse(status_code=400, content={"error": "Missing authorization code."})
-    redirect_uri = str(request.url_for("google_callback"))
+    redirect_uri = _public_url(request, "google_callback")
     try:
         result = await auth.google_login_callback(code, state, redirect_uri)
     except ValueError as error:
@@ -155,14 +189,19 @@ async def api_magic_link_request(request: Request, body: dict):
     neighborhood = body.get("neighborhood")
     neighborhood_id = None
     if neighborhood is not None and len(str(neighborhood).strip()) > 0:
-        slug = str(neighborhood).strip()
-        nb = db.get_or_create_neighborhood(slug, slug, config.MATCH_BATCH_THRESHOLD)
+        nb = _invited_neighborhood(neighborhood, body.get("code"))
+        if nb is None:
+            return JSONResponse(status_code=400, content={"error": "This invite link isn't valid. Ask for a fresh one."})
         neighborhood_id = nb["id"]
     elif not auth.is_admin(email):
-        return JSONResponse(status_code=400,
-                            content={"error": "This login link is missing a neighborhood invite code."})
-    verify_base_url = str(request.url_for("magic_link_verify"))
-    await auth.request_magic_link(email, neighborhood_id, verify_base_url)
+        # nothing to sign in to, but answer like a sent link -- a different
+        # answer would tell anyone which addresses are admins
+        return {"sent": True}
+    sent = await auth.request_magic_link(email, neighborhood_id, _public_url(request, "magic_link_verify"))
+    if not sent and neighborhood_id is not None:
+        db.log_event(None, "system", "check", "Held back a sign-in link: too many requested for one address "
+                     "in 15 minutes.", None, neighborhood_id)
+    # the same answer either way, so the form never reveals anything about an address
     return {"sent": True}
 
 
@@ -245,7 +284,9 @@ async def api_agent_preview(body: dict, request: Request):
     try:
         state, error = await bring_agent.preview(resident, body.get("name"), body.get("source"), body.get("text"))
     except Exception as error:
-        return JSONResponse(status_code=500, content={"error": "Couldn't read that just now (" + str(error) + "). Try again."})
+        # the details are in the AI call log (ai_log); the person gets a plain message
+        print("[agent preview] resident {} failed: {}".format(resident["id"], error))
+        return JSONResponse(status_code=500, content={"error": "Couldn't read that just now. Try again in a minute."})
     if error is not None:
         return JSONResponse(status_code=400, content={"error": error})
     return state
@@ -343,6 +384,37 @@ async def api_admin_neighborhoods(request: Request):
     return {"neighborhoods": admin.list_neighborhood_progress()}
 
 
+_SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9-]{1,39}$")
+
+
+def _invite_link(request, neighborhood):
+    base = config.resolve_env("CLAWNLY_BASE_URL")
+    if not base:
+        base = str(request.base_url)
+    return base.rstrip("/") + "/join/" + neighborhood["slug"] + "?code=" + neighborhood["invite_code"]
+
+
+@app.post("/api/admin/neighborhoods")
+async def api_admin_create_neighborhood(body: dict, request: Request):
+    # the only way a neighborhood comes into existence: an admin creates it and
+    # gets back its secret invite link
+    session, error_response = _require_admin(request)
+    if error_response is not None:
+        return error_response
+    slug = str(body.get("slug") or "").strip().lower()
+    name = str(body.get("name") or "").strip()[:60]
+    if not _SLUG_RE.match(slug):
+        return JSONResponse(status_code=400, content={"error": "Use 2-40 lowercase letters, digits or hyphens for the link name."})
+    if len(name) == 0:
+        name = slug
+    existed = db.get_neighborhood_by_slug(slug) is not None
+    neighborhood = db.get_or_create_neighborhood(slug, name, config.MATCH_BATCH_THRESHOLD)
+    if not existed:
+        db.log_event(None, "human", "human", "Admin " + str(session.get("email")) + " created the neighborhood.",
+                     None, neighborhood["id"])
+    return {"neighborhood": admin.neighborhood_progress(neighborhood), "invite_link": _invite_link(request, neighborhood)}
+
+
 @app.get("/api/admin/neighborhoods/{neighborhood_id}")
 async def api_admin_neighborhood_detail(neighborhood_id: int, request: Request):
     session, error_response = _require_admin(request)
@@ -351,7 +423,9 @@ async def api_admin_neighborhood_detail(neighborhood_id: int, request: Request):
     neighborhood = db.get_neighborhood(neighborhood_id)
     if neighborhood is None:
         return JSONResponse(status_code=404, content={"error": "no such neighborhood"})
+    neighborhood = db.ensure_invite_code(neighborhood_id)
     return {
+        "invite_link": _invite_link(request, neighborhood),
         "neighborhood": admin.neighborhood_progress(neighborhood),
         "residents": admin.resident_summaries(neighborhood_id),
         "runs": admin.recent_run_summaries(neighborhood_id),

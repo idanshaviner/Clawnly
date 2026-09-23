@@ -28,7 +28,9 @@ and every human step (signup, join, yes/no, reveal, admin actions).
 
 ## What a resident experiences (pilot app)
 
-1. **Invite link** `/join/<neighborhood>` -> sign in with Google or an emailed link.
+1. **Invite link** `/join/<neighborhood>?code=<secret>` -> sign in with Google or an
+   emailed link. Only the admin creates neighborhoods (in `/admin`), and nobody
+   can join one without its secret code.
 2. **Consent** `/consent` -> plain-language: what they paste, who reads it.
 3. **Bring your agent** `/onboarding` -> copy one prompt into the AI that knows
    them, paste its answer, see the card their agent will carry (with a
@@ -67,6 +69,13 @@ The admin can also run a round right away.
 - Invitations: only when the hub recommends it, depth is >= 8/10, and >= 2 quotes check out.
 - One live invitation per person; the strongest wins, the rest are held back and logged.
 - Before both say yes, the pitch each person reads never names the other.
+- Evidence must be quoted from **both** agents, so one person's pasted text can't manufacture it alone.
+
+**Security, enforced in code:** secret invite codes (no one creates or joins a
+neighborhood without one), sign-in links built from `CLAWNLY_BASE_URL` (not the
+Host header), at most 3 sign-in links per address per 15 minutes, Google sign-in
+only with a Google-verified email, pages that refuse to be framed, and a signup
+preview cap claimed atomically before each paid call.
 
 **Models** (`src/config.py`): the hub's verdict runs on Claude Opus 5.5
 (`claude-opus-5-5`, effort `medium`); agent turns, cards and pairing run on
@@ -119,6 +128,7 @@ Secrets go in a gitignored `.env` at the project root, one `NAME=value` per line
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | "Continue with Google" |
 | `RESEND_API_KEY` | emailed sign-in links (without it, links print to the server console: fine locally) |
 | `CLAWNLY_ADMIN_EMAILS` | comma-separated emails that can open `/admin` |
+| `CLAWNLY_BASE_URL` | the public address (e.g. `https://…onrender.com`); sign-in links are built from it. Required when deployed |
 
 ## Run
 
@@ -126,7 +136,9 @@ Secrets go in a gitignored `.env` at the project root, one `NAME=value` per line
 .venv/bin/python src/app.py        # or double-click Clawnly.command on a Mac
 ```
 
-Then open `http://127.0.0.1:8000/join/ten-trails` to go through it as a resident.
+Sign in at `http://127.0.0.1:8000/admin/login` with an admin email (the sign-in
+link prints to the console locally), create a neighborhood, and open its secret
+invite link to go through it as a resident.
 
 Try one hub round on the 8 fictional sample people and watch every event print
 (real API calls, needs the key):

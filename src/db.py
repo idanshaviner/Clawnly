@@ -31,6 +31,7 @@ old profile columns on residents; nothing reads them any more.
 import datetime
 import json
 import os
+import secrets
 import sqlite3
 
 
@@ -276,22 +277,59 @@ def get_neighborhood_by_slug(slug):
     return _row_to_neighborhood(row)
 
 
+def _new_invite_code():
+    return secrets.token_urlsafe(9)
+
+
 def get_or_create_neighborhood(slug, name, batch_threshold):
-    # self-provisioning: the first visit to an invite link creates the
-    # neighborhood row. batch_threshold is SNAPSHOTTED here, so a later change
-    # to config.MATCH_BATCH_THRESHOLD never retroactively moves the goalposts
-    # on a cohort that's already filling up.
+    # ADMIN-side only (the admin dashboard, tests, ops): never called with
+    # public input -- a stranger must not be able to create a neighborhood.
+    # A new neighborhood gets a secret invite code. batch_threshold is
+    # SNAPSHOTTED here, so a later change to config.MATCH_BATCH_THRESHOLD never
+    # moves the goalposts on a cohort that's already filling up.
     existing = get_neighborhood_by_slug(slug)
     if existing is not None:
-        return existing
+        return ensure_invite_code(existing["id"])
     conn = _get_conn()
     conn.execute(
         "INSERT INTO neighborhoods (slug, name, invite_code, batch_threshold, batch_triggered_at, created_at) "
         "VALUES (?, ?, ?, ?, NULL, ?)",
-        (slug, name, slug, batch_threshold, _now()),
+        (slug, name, _new_invite_code(), batch_threshold, _now()),
     )
     conn.commit()
     return get_neighborhood_by_slug(slug)
+
+
+def ensure_invite_code(neighborhood_id):
+    # older neighborhoods stored their own slug as the "code" (public, so no
+    # code at all): give them a real secret one.
+    neighborhood = get_neighborhood(neighborhood_id)
+    if neighborhood is None:
+        return None
+    code = neighborhood["invite_code"]
+    if not code or code == neighborhood["slug"]:
+        conn = _get_conn()
+        conn.execute("UPDATE neighborhoods SET invite_code = ? WHERE id = ?", (_new_invite_code(), neighborhood_id))
+        conn.commit()
+        neighborhood = get_neighborhood(neighborhood_id)
+    return neighborhood
+
+
+def neighborhood_for_invite(slug, code):
+    # the ONLY way public input resolves to a neighborhood: it must exist and
+    # the invite code must match (constant-time compare). A legacy slug-as-code
+    # is never accepted.
+    if not isinstance(slug, str) or not isinstance(code, str) or len(code) == 0:
+        return None
+    neighborhood = get_neighborhood_by_slug(slug)
+    if neighborhood is None:
+        return None
+    stored = neighborhood["invite_code"]
+    if not stored or stored == neighborhood["slug"]:
+        return None
+    if not secrets.compare_digest(stored.encode("utf-8"), code.encode("utf-8")):
+        return None
+    return neighborhood
 
 
 def list_neighborhoods():
@@ -455,14 +493,27 @@ def list_eligible_residents(neighborhood_id):
     return out
 
 
+def claim_preview(resident_id, max_previews):
+    # atomically take one of the resident's paid previews BEFORE the AI call, so
+    # parallel requests can't slip past the cap. True when a preview was claimed.
+    conn = _get_conn()
+    cur = conn.execute(
+        "UPDATE residents SET dossier_previews = COALESCE(dossier_previews, 0) + 1 "
+        "WHERE id = ? AND profile_complete_at IS NULL AND COALESCE(dossier_previews, 0) < ?",
+        (resident_id, max_previews),
+    )
+    conn.commit()
+    return cur.rowcount == 1
+
+
 def save_dossier_draft(resident_id, name, source, text, card):
     # the latest "build my agent's card" preview -- stored server-side so the
     # confirm step joins exactly what was previewed, never a card the browser
     # sent back. Only allowed before joining (profile_complete_at IS NULL).
+    # (the preview itself is counted by claim_preview, before the AI call.)
     conn = _get_conn()
     conn.execute(
-        "UPDATE residents SET name = ?, dossier_source = ?, dossier_text = ?, card = ?, "
-        "dossier_previews = COALESCE(dossier_previews, 0) + 1 "
+        "UPDATE residents SET name = ?, dossier_source = ?, dossier_text = ?, card = ? "
         "WHERE id = ? AND profile_complete_at IS NULL",
         (name, source, text, json.dumps(card), resident_id),
     )
@@ -517,6 +568,16 @@ def delete_session(token):
 
 
 # ----- real-user pilot: magic links ---------------------------------------------
+
+def count_recent_magic_links(email, seconds):
+    # how many sign-in links this email was sent recently (the throttle)
+    conn = _get_conn()
+    since = (datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(seconds=seconds)).isoformat()
+    row = conn.execute(
+        "SELECT COUNT(*) FROM magic_link_tokens WHERE email = ? AND created_at > ?", (email, since)
+    ).fetchone()
+    return row[0]
+
 
 def create_magic_link_token(token_hash, email, neighborhood_id, ttl_seconds):
     # only the HASH is stored -- the raw token (which is what's actually emailed)

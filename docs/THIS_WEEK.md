@@ -35,7 +35,8 @@ else serves them.
   "Behind the scenes" view: every conversation word for word, plus the full activity log.
 - **Still to do Thu:** a hit-rate tile (both-yes / decided) on the admin page, and deploying to
   Render (needs the keys below).
-- **Fri:** real people (you, Eitan, Idan, ~10 friends) through one invite link; run a round;
+- **Fri:** real people (you, Eitan, Idan, ~10 friends) through one invite link (create the
+  neighborhood in `/admin`; its secret link is shown there); run a round;
   read the conversations together and tune the Claw and hub prompts.
 
 ## Day by day

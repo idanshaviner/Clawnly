@@ -75,6 +75,14 @@
   </div>
 
   <div id="list-view" style="display:none">
+    <div class="card">
+      <div class="nb-name">New neighborhood</div>
+      <p class="muted" style="margin:4px 0 10px">Only you can create one. It comes with a secret invite link; nobody can join without it.</p>
+      <input id="new-slug" placeholder="link name, e.g. ten-trails" style="font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:10px">
+      <input id="new-name" placeholder="display name, e.g. Ten Trails" style="font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:10px">
+      <button class="primary" id="create-btn">Create</button>
+      <div id="create-status"></div>
+    </div>
     <div class="grid" id="nb-grid"></div>
   </div>
 
@@ -86,6 +94,10 @@
       <div class="bar-track"><div class="bar-fill" id="detail-bar"></div></div>
       <div class="bar-label" id="detail-progress-label"></div>
       <div class="status-triggered" id="detail-triggered" style="display:none"></div>
+      <div style="margin-top:12px;font-size:13.5px">
+        <b>Secret invite link</b> (share it only with people you're inviting):
+        <div id="detail-invite" style="font-family:ui-monospace,Menlo,monospace;overflow-wrap:anywhere;margin-top:4px"></div>
+      </div>
       <div style="margin-top:12px">
         <button class="primary" id="trigger-btn">Run a hub round now</button>
         <span id="trigger-status"></span>
@@ -184,12 +196,28 @@ function loadList(){
   }).catch(function(){ show("not-authorized"); });
 }
 
+document.getElementById("create-btn").addEventListener("click", function(){
+  var status = document.getElementById("create-status");
+  status.className = "";
+  status.textContent = "Creating...";
+  fetch("/api/admin/neighborhoods", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ slug: document.getElementById("new-slug").value, name: document.getElementById("new-name").value }),
+  }).then(function(r){ return r.json().then(function(d){ return { ok: r.ok, data: d }; }); })
+    .then(function(res){
+      if (!res.ok) { status.className = "err"; status.textContent = res.data.error || "Something went wrong."; return; }
+      loadDetail(res.data.neighborhood.id);
+    })
+    .catch(function(){ status.className = "err"; status.textContent = "Something went wrong. Try again."; });
+});
+
 function loadDetail(id){
   fetch("/api/admin/neighborhoods/" + id).then(function(r){
     if (r.status === 401 || r.status === 403) { show("not-authorized"); return null; }
     return r.json();
   }).then(function(data){
     if (data == null) { return; }
+    document.getElementById("detail-invite").textContent = data.invite_link;
     var nb = data.neighborhood;
     document.getElementById("detail-name").textContent = nb.name;
     document.getElementById("detail-slug").textContent = nb.slug;

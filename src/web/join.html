@@ -75,7 +75,12 @@ var slug = window.location.pathname.split("/").filter(function(p){ return p.leng
 var displayName = slug.replace(/[-_]+/g, " ").replace(/\b\w/g, function(c){ return c.toUpperCase(); });
 document.getElementById("title").textContent = "Join " + displayName;
 document.getElementById("subtitle").textContent = "You're invited to Clawnly's " + displayName + " pilot.";
-var googleLoginUrl = "/auth/google/login?neighborhood=" + encodeURIComponent(slug);
+// the secret invite code travels in the link (?code=...); without it nobody can join
+var inviteCode = new URLSearchParams(window.location.search).get("code") || "";
+var googleLoginUrl = "/auth/google/login?neighborhood=" + encodeURIComponent(slug) + "&code=" + encodeURIComponent(inviteCode);
+if (inviteCode.length === 0) {
+  document.getElementById("subtitle").textContent = "This invite link is missing its code. Ask whoever invited you for the full link.";
+}
 
 var agreeBox = document.getElementById("agree-box");
 var googleBtn = document.getElementById("google-btn");
@@ -101,12 +106,12 @@ emailBtn.addEventListener("click", function(){
   fetch("/api/auth/magic-link/request", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email: email, neighborhood: slug }),
+    body: JSON.stringify({ email: email, neighborhood: slug, code: inviteCode }),
   }).then(function(r){ return r.json().then(function(data){ return { ok: r.ok, data: data }; }); })
     .then(function(res){
       if (res.ok) {
         status.className = "ok";
-        status.textContent = "Check your email for a sign-in link.";
+        status.textContent = "If that address can sign in here, a link is on its way. Check your email.";
       } else {
         status.className = "err";
         status.textContent = res.data.error || "Something went wrong.";

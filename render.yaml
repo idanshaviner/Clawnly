@@ -32,6 +32,11 @@ services:
       # the Anthropic Console), or every call is refused.
       - key: ANTHROPIC_API_KEY
         sync: false
+      # the site's public address, e.g. https://clawnly-pilot.onrender.com. Emailed
+      # sign-in links and the Google redirect are built from this, never from the
+      # request's Host header (which an attacker controls).
+      - key: CLAWNLY_BASE_URL
+        sync: false
       - key: GOOGLE_CLIENT_ID
         sync: false
       - key: GOOGLE_CLIENT_SECRET

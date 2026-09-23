@@ -9,9 +9,11 @@ One round, start to finish, with no human involved until the invitation:
   3. JUDGE  -- the hub reads the transcript and returns depth 1-10, its
                reasoning, risks, evidence quotes and an invitation.
   4. GATE   -- code, not the model, decides whether an invitation goes out:
-               the hub must recommend it, depth >= DEPTH_BAR, and at least
+               the hub must recommend it, depth >= DEPTH_BAR, at least
                MIN_VERIFIED_EVIDENCE quotes must appear word for word in the
-               transcript (any other quote is discarded as made up).
+               transcript (any other quote is discarded as made up), and those
+               quotes must come from BOTH agents (so one person's pasted text
+               can't manufacture the evidence on its own).
 
 Every step is written to db.events as it happens (the behind-the-scenes log),
 every conversation + verdict to db.agent_conversations, and every Claude call
@@ -112,13 +114,18 @@ def _normalize(text):
     return text.strip()
 
 
-def verify_evidence(items, transcript):
-    # keep only quotes that really appear in the conversation; returns (kept, dropped).
+def verify_evidence(items, turns):
+    # keep only quotes that really appear in one message of the conversation,
+    # tagged with which agent said it; returns (kept, dropped).
     kept = []
     dropped = []
     if not isinstance(items, list):
         return kept, dropped
-    whole = _normalize(transcript)
+    said = []
+    i = 0
+    while i < len(turns):
+        said.append(_normalize(turns[i]["text"]))
+        i += 1
     i = 0
     while i < len(items):
         item = items[i]
@@ -126,15 +133,24 @@ def verify_evidence(items, transcript):
         if not isinstance(item, dict) or not isinstance(item.get("quote"), str):
             continue
         quote = _normalize(item["quote"])
-        if len(quote) >= MIN_QUOTE_CHARS and quote in whole:
-            kept.append({"quote": item["quote"], "why": str(item.get("why", ""))})
-        else:
+        speaker = None
+        if len(quote) >= MIN_QUOTE_CHARS:
+            j = 0
+            while j < len(turns) and speaker is None:
+                if quote in said[j]:
+                    speaker = turns[j]["by"]
+                j += 1
+        if speaker is None:
             dropped.append(item["quote"])
+        else:
+            kept.append({"quote": item["quote"], "why": str(item.get("why", "")), "by": speaker})
     return kept, dropped
 
 
-def gate(verdict, kept):
+def gate(verdict, kept, a_id, b_id):
     # the invitation rule. Returns (depth, reasons) -- no reasons means invite.
+    # Evidence must come from BOTH agents: one person's pasted text can steer
+    # what their own agent says, but not what the other person's agent says.
     depth = verdict.get("depth")
     if not isinstance(depth, int) or isinstance(depth, bool) or depth < 1 or depth > 10:
         depth = 0
@@ -145,6 +161,13 @@ def gate(verdict, kept):
         reasons.append("depth " + str(depth) + " < " + str(DEPTH_BAR))
     if len(kept) < MIN_VERIFIED_EVIDENCE:
         reasons.append("only " + str(len(kept)) + " verified quote(s), need " + str(MIN_VERIFIED_EVIDENCE))
+    speakers = {}
+    i = 0
+    while i < len(kept):
+        speakers[kept[i]["by"]] = True
+        i += 1
+    if len(kept) >= MIN_VERIFIED_EVIDENCE and (a_id not in speakers or b_id not in speakers):
+        reasons.append("verified quotes must come from both agents")
     return depth, reasons
 
 
@@ -272,8 +295,8 @@ async def judge(a, b, turns, client, record, ref=None):
     raw = extract_json(join_text(message))
     if raw is None:
         raw = {}
-    kept, dropped = verify_evidence(raw.get("evidence"), transcript)
-    depth, reasons = gate(raw, kept)
+    kept, dropped = verify_evidence(raw.get("evidence"), turns)
+    depth, reasons = gate(raw, kept, a["id"], b["id"])
     label = a["name"] + " + " + b["name"]
     record("hub", "thought", "On " + label + ": " + str(raw.get("thoughts", "(no reasoning given)")), ref)
     if len(dropped) > 0:

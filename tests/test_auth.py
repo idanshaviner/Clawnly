@@ -180,7 +180,7 @@ def test_google_login_callback_creates_a_session(monkeypatch):
     async def fake_get(self, url):
         class FakeResp:
             def json(inner_self):
-                return {"email": "resident@example.com"}
+                return {"email": "Resident@Example.com", "email_verified": True}
         return FakeResp()
 
     monkeypatch.setattr("authlib.integrations.httpx_client.AsyncOAuth2Client.fetch_token", fake_fetch_token)
@@ -190,7 +190,7 @@ def test_google_login_callback_creates_a_session(monkeypatch):
         return await auth.google_login_callback("fake-code", raw_state, "http://testserver/auth/google/callback")
     import asyncio
     result = asyncio.run(run())
-    assert result["email"] == "resident@example.com"
+    assert result["email"] == "resident@example.com"          # normalized
     assert db.get_resident(result["resident_id"])["neighborhood_id"] == nb["id"]
 
 
@@ -247,17 +247,28 @@ def test_magic_link_request_route_rejects_bad_email():
     assert r.status_code == 400
 
 
-def test_magic_link_request_route_requires_a_neighborhood_for_non_admins():
+def test_magic_link_request_route_sends_nothing_to_non_admins_without_a_neighborhood(monkeypatch, capsys):
     reset_state()
-    r = client.post("/api/auth/magic-link/request", json={"email": "a@example.com"})
-    assert r.status_code == 400
+    clear_env(monkeypatch)
+    monkeypatch.delenv("RESEND_API_KEY", raising=False)
+    monkeypatch.setenv("CLAWNLY_ADMIN_EMAILS", "boss@example.com")
+    stranger = client.post("/api/auth/magic-link/request", json={"email": "a@example.com"})
+    no_link = capsys.readouterr().out
+    boss = client.post("/api/auth/magic-link/request", json={"email": "boss@example.com"})
+    # same answer for both, so the form can't be used to find out who the admins are
+    assert stranger.status_code == 200 and boss.status_code == 200
+    assert stranger.json() == boss.json() == {"sent": True}
+    assert "Magic link" not in no_link
+    assert "Magic link for boss@example.com" in capsys.readouterr().out
 
 
 def test_magic_link_request_and_verify_route_round_trip(monkeypatch, capsys):
     reset_state()
     clear_env(monkeypatch)
     monkeypatch.delenv("RESEND_API_KEY", raising=False)
-    r = client.post("/api/auth/magic-link/request", json={"email": "a@example.com", "neighborhood": "ballard"})
+    nb = db.get_or_create_neighborhood("ballard", "Ballard", 100)
+    r = client.post("/api/auth/magic-link/request",
+                    json={"email": "a@example.com", "neighborhood": "ballard", "code": nb["invite_code"]})
     assert r.status_code == 200
     assert r.json()["sent"] is True
     out = capsys.readouterr().out
@@ -301,8 +312,9 @@ def test_magic_link_verify_route_admin_via_invite_link_still_gets_consent_flow(m
     clear_env(monkeypatch)
     monkeypatch.setenv("CLAWNLY_ADMIN_EMAILS", "boss@example.com")
     monkeypatch.delenv("RESEND_API_KEY", raising=False)
+    nb = db.get_or_create_neighborhood("ten-trails", "Ten Trails", 100)
     r = client.post("/api/auth/magic-link/request",
-                     json={"email": "boss@example.com", "neighborhood": "ten-trails"})
+                     json={"email": "boss@example.com", "neighborhood": "ten-trails", "code": nb["invite_code"]})
     assert r.status_code == 200
     out = capsys.readouterr().out
     link = [line for line in out.splitlines() if "[DEV MODE]" in line][0]
@@ -336,7 +348,8 @@ def test_google_login_route_redirects_when_configured(monkeypatch):
     reset_state()
     monkeypatch.setenv("GOOGLE_CLIENT_ID", "id-123")
     monkeypatch.setenv("GOOGLE_CLIENT_SECRET", "secret-123")
-    r = client.get("/auth/google/login?neighborhood=ballard", follow_redirects=False)
+    nb = db.get_or_create_neighborhood("ballard", "Ballard", 100)
+    r = client.get("/auth/google/login?neighborhood=ballard&code=" + nb["invite_code"], follow_redirects=False)
     assert r.status_code in (302, 307)
     assert "accounts.google.com" in r.headers["location"]
 
@@ -614,7 +627,9 @@ def test_full_magic_link_login_redirects_a_resident_into_the_consent_flow(monkey
     reset_state()
     clear_env(monkeypatch)
     monkeypatch.delenv("RESEND_API_KEY", raising=False)
-    r = client.post("/api/auth/magic-link/request", json={"email": "a@example.com", "neighborhood": "ballard"})
+    nb = db.get_or_create_neighborhood("ballard", "Ballard", 100)
+    r = client.post("/api/auth/magic-link/request",
+                    json={"email": "a@example.com", "neighborhood": "ballard", "code": nb["invite_code"]})
     out = capsys.readouterr().out
     link = [line for line in out.splitlines() if "[DEV MODE]" in line][0]
     verify_url = link.split(": ", 1)[1]
@@ -744,3 +759,141 @@ def test_root_points_residents_to_their_invite_link():
     r = client.get("/")
     assert r.status_code == 200
     assert "invite link" in r.text
+
+
+
+# ----- security: the holes found by the loophole test, locked shut --------------------
+
+def _dev_links(capsys):
+    return [line for line in capsys.readouterr().out.splitlines() if "[DEV MODE]" in line]
+
+
+def test_nobody_joins_or_creates_a_neighborhood_without_its_invite_code(monkeypatch, capsys):
+    reset_state()
+    clear_env(monkeypatch)
+    monkeypatch.delenv("RESEND_API_KEY", raising=False)
+    nb = db.get_or_create_neighborhood("ten-trails", "Ten Trails", 10)
+    attempts = [
+        {"email": "x@evil.example", "neighborhood": "ten-trails"},                       # no code
+        {"email": "x@evil.example", "neighborhood": "ten-trails", "code": "guess"},      # wrong code
+        {"email": "x@evil.example", "neighborhood": "ten-trails", "code": "ten-trails"},  # slug as code
+        {"email": "x@evil.example", "neighborhood": "made-up-place", "code": nb["invite_code"]},
+        {"email": "x@evil.example", "neighborhood": "<img src=x onerror=alert(1)>"},
+    ]
+    for body in attempts:
+        r = client.post("/api/auth/magic-link/request", json=body)
+        assert r.status_code == 400, body
+    assert _dev_links(capsys) == []                     # no link was ever sent
+    assert [n["slug"] for n in db.list_neighborhoods()] == ["ten-trails"]   # nothing was created
+
+
+def test_google_login_also_needs_the_invite_code(monkeypatch):
+    reset_state()
+    monkeypatch.setenv("GOOGLE_CLIENT_ID", "id-123")
+    monkeypatch.setenv("GOOGLE_CLIENT_SECRET", "secret-123")
+    db.get_or_create_neighborhood("ballard", "Ballard", 100)
+    assert client.get("/auth/google/login?neighborhood=ballard", follow_redirects=False).status_code == 400
+    assert client.get("/auth/google/login?neighborhood=ballard&code=nope", follow_redirects=False).status_code == 400
+    assert client.get("/auth/google/login?neighborhood=new-place&code=x", follow_redirects=False).status_code == 400
+    assert db.get_neighborhood_by_slug("new-place") is None
+
+
+def test_an_unverified_google_email_never_signs_in(monkeypatch):
+    reset_state()
+    monkeypatch.setenv("GOOGLE_CLIENT_ID", "id-123")
+    monkeypatch.setenv("GOOGLE_CLIENT_SECRET", "secret-123")
+    monkeypatch.setenv("CLAWNLY_ADMIN_EMAILS", "boss@example.com")
+    url = auth.google_authorize_url("http://testserver/auth/google/callback", None)
+    raw_state = url.split("state=")[1].split("&")[0]
+
+    async def fake_fetch_token(self, token_url, code=None):
+        return {"access_token": "fake"}
+
+    async def fake_get(self, url):
+        class FakeResp:
+            def json(inner_self):
+                return {"email": "boss@example.com", "email_verified": False}    # someone else's address
+        return FakeResp()
+
+    monkeypatch.setattr("authlib.integrations.httpx_client.AsyncOAuth2Client.fetch_token", fake_fetch_token)
+    monkeypatch.setattr("authlib.integrations.httpx_client.AsyncOAuth2Client.get", fake_get)
+    import asyncio
+    with pytest.raises(ValueError):
+        asyncio.run(auth.google_login_callback("fake-code", raw_state, "http://testserver/auth/google/callback"))
+
+
+def test_sign_in_links_ignore_a_forged_host_header(monkeypatch, capsys):
+    reset_state()
+    monkeypatch.setattr(config, "resolve_env",
+                        lambda name: "https://clawnly.example" if name == "CLAWNLY_BASE_URL" else os.environ.get(name))
+    monkeypatch.delenv("RESEND_API_KEY", raising=False)
+    nb = db.get_or_create_neighborhood("ballard", "Ballard", 100)
+    client.post("/api/auth/magic-link/request", headers={"host": "evil.example"},
+                json={"email": "victim@example.com", "neighborhood": "ballard", "code": nb["invite_code"]})
+    links = _dev_links(capsys)
+    assert len(links) == 1
+    assert "https://clawnly.example/auth/magic-link/verify?token=" in links[0]
+    assert "evil.example" not in links[0]
+
+
+def test_sign_in_links_are_throttled_per_address_without_revealing_it(monkeypatch, capsys):
+    reset_state()
+    clear_env(monkeypatch)
+    monkeypatch.delenv("RESEND_API_KEY", raising=False)
+    nb = db.get_or_create_neighborhood("ballard", "Ballard", 100)
+    body = {"email": "victim@example.com", "neighborhood": "ballard", "code": nb["invite_code"]}
+    answers = [client.post("/api/auth/magic-link/request", json=body).json() for _ in range(5)]
+    assert answers == [{"sent": True}] * 5              # the form answers the same every time
+    assert len(_dev_links(capsys)) == auth.MAX_MAGIC_LINKS_PER_WINDOW
+    texts = [e["text"] for e in db.list_neighborhood_events(nb["id"])]
+    assert texts.count("Held back a sign-in link: too many requested for one address in 15 minutes.") == 2
+
+
+def test_every_page_refuses_to_be_framed_and_hides_its_url():
+    reset_state()
+    for path in ["/", "/my-match", "/onboarding", "/admin", "/join/x"]:
+        headers = client.get(path).headers
+        assert headers["x-frame-options"] == "DENY", path
+        assert "frame-ancestors 'none'" in headers["content-security-policy"], path
+        assert headers["referrer-policy"] == "no-referrer", path
+        assert headers["x-content-type-options"] == "nosniff", path
+
+
+def test_only_an_admin_creates_neighborhoods_and_gets_the_secret_link():
+    reset_state()
+    body = {"slug": "ten-trails", "name": "Ten Trails"}
+    assert client.post("/api/admin/neighborhoods", json=body).status_code == 401
+    resident, token = _consented_resident_session()
+    client.cookies.set(auth.SESSION_COOKIE_NAME, token)
+    try:
+        assert client.post("/api/admin/neighborhoods", json=body).status_code == 403
+    finally:
+        client.cookies.clear()
+    client.cookies.set(auth.SESSION_COOKIE_NAME, _admin_session())
+    try:
+        assert client.post("/api/admin/neighborhoods", json={"slug": "Bad Slug!"}).status_code == 400
+        r = client.post("/api/admin/neighborhoods", json=body)
+        assert r.status_code == 200
+        nb = db.get_neighborhood_by_slug("ten-trails")
+        assert r.json()["invite_link"].endswith("/join/ten-trails?code=" + nb["invite_code"])
+        detail = client.get("/api/admin/neighborhoods/" + str(nb["id"])).json()
+        assert detail["invite_link"] == r.json()["invite_link"]
+        assert "created the neighborhood" in detail["activity"]["events"][0]["text"]
+    finally:
+        client.cookies.clear()
+
+
+def test_a_preview_failure_shows_a_plain_message_not_internals(monkeypatch):
+    reset_state()
+
+    def broken():
+        raise RuntimeError("secret internal detail sk-ant-xyz")
+    monkeypatch.setattr(config, "get_client", broken)
+    resident, token = _consented_resident_session()
+    client.cookies.set(auth.SESSION_COOKIE_NAME, token)
+    try:
+        r = client.post("/api/agent/preview", json={"name": "Noa", "source": "Claude", "text": AGENT_TEXT})
+        assert r.status_code == 500
+        assert "secret internal detail" not in r.text and "sk-ant" not in r.text
+    finally:
+        client.cookies.clear()

@@ -31,9 +31,16 @@ name-blind pitches) are enforced in code, never trusted to the model.
 - The old group matcher, negotiation, meetup popups, onboarding chat, demo
   console and its tooling are gone. They live on the `pre-agent-pivot` branch.
   Don't resurrect them; take ideas from there deliberately.
-- Real-user pilot flow: `/join/<slug>` -> login (`auth.py`, Google OAuth + email
-  magic link, sessions in SQLite) -> `/consent` -> `/onboarding` (bring your
-  agent, `bring_agent.py`) -> hub round -> `/my-match`. Admin at `/admin`.
+- Real-user pilot flow: `/join/<slug>?code=<secret>` -> login (`auth.py`, Google
+  OAuth + email magic link, sessions in SQLite) -> `/consent` -> `/onboarding`
+  (bring your agent, `bring_agent.py`) -> hub round -> `/my-match`. Admin at
+  `/admin`, which is also the only place a neighborhood (and its secret invite
+  link) is created.
+- Security rules the tests pin down -- keep them: no join or login without the
+  neighborhood's secret code (`db.neighborhood_for_invite`); links in emails come
+  from `CLAWNLY_BASE_URL`, never the Host header (`app._public_url`); 3 sign-in
+  links per address per 15 minutes; Google sign-in needs `email_verified`; hub
+  evidence must quote BOTH agents; every page sends anti-framing headers.
 - Persistence: SQLite via `db.py` (plain `sqlite3`, no ORM -- its module
   docstring lists every table).
 - `lounge/clawnly-lounge.html` is a separate, shareable prototype of the same

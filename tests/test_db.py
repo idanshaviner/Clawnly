@@ -139,7 +139,7 @@ def test_expired_oauth_state_is_rejected():
 
 # ----- bring your agent: dossier drafts ---------------------------------------
 
-def test_save_dossier_draft_stores_text_card_and_counts_previews():
+def test_save_dossier_draft_keeps_the_latest_text_and_card():
     reset()
     nb = db.get_or_create_neighborhood("ballard", "Ballard", 10)
     resident = db.get_or_create_resident(nb["id"], "a@example.com", "google")
@@ -148,7 +148,46 @@ def test_save_dossier_draft_stores_text_card_and_counts_previews():
     assert saved["dossier_source"] == "Claude"
     assert saved["dossier_text"] == "better text"
     assert saved["card"] == {"essence": "e2"}
-    assert saved["dossier_previews"] == 2
+
+
+def test_claim_preview_is_capped_atomically_and_stops_after_joining():
+    reset()
+    nb = db.get_or_create_neighborhood("ballard", "Ballard", 10)
+    resident = db.get_or_create_resident(nb["id"], "a@example.com", "google")
+    assert [db.claim_preview(resident["id"], 2) for _ in range(3)] == [True, True, False]
+    assert db.get_resident(resident["id"])["dossier_previews"] == 2
+    other = make_joined_resident(nb, "b@example.com", "Bao")
+    assert db.claim_preview(other["id"], 5) is False
+
+
+def test_invite_codes_are_secret_and_required():
+    reset()
+    nb = db.get_or_create_neighborhood("ballard", "Ballard", 10)
+    code = nb["invite_code"]
+    assert code and code != "ballard" and len(code) >= 12
+    assert db.neighborhood_for_invite("ballard", code)["id"] == nb["id"]
+    assert db.neighborhood_for_invite("ballard", "wrong") is None
+    assert db.neighborhood_for_invite("ballard", "") is None
+    assert db.neighborhood_for_invite("ballard", None) is None
+    assert db.neighborhood_for_invite("nowhere", code) is None
+    # a legacy neighborhood whose "code" was its own public slug is never joinable as-is...
+    conn = db._get_conn()
+    conn.execute("UPDATE neighborhoods SET invite_code = slug WHERE id = ?", (nb["id"],))
+    conn.commit()
+    assert db.neighborhood_for_invite("ballard", "ballard") is None
+    # ...until it is given a real secret code
+    fixed = db.ensure_invite_code(nb["id"])
+    assert fixed["invite_code"] != "ballard"
+    assert db.neighborhood_for_invite("ballard", fixed["invite_code"])["id"] == nb["id"]
+
+
+def test_count_recent_magic_links_counts_per_email():
+    reset()
+    db.create_magic_link_token("h1", "a@example.com", None, 900)
+    db.create_magic_link_token("h2", "a@example.com", None, 900)
+    db.create_magic_link_token("h3", "b@example.com", None, 900)
+    assert db.count_recent_magic_links("a@example.com", 900) == 2
+    assert db.count_recent_magic_links("c@example.com", 900) == 0
 
 
 def test_dossier_draft_is_locked_once_joined():

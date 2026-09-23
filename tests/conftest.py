@@ -43,6 +43,26 @@ class FakeMessages:
 
         # route by distinctive markers in the system prompt (assistant-prefill is
         # no longer used, so every call ends with a user message).
+        # agent-to-agent orchestration first: its prompts are the newest.
+        if "profile card their clawnly agent will carry" in low:
+            outer.calls.append(("card", kwargs))
+            if outer.card_fn is not None:
+                return text_response(outer.card_fn(system, messages[-1]["content"]))
+            return text_response(outer.card_queue.pop(0))
+        if "agent-to-agent conversation" in low:
+            outer.calls.append(("agent_turn", kwargs))
+            for name in outer.fail_names:
+                if ("Clawnly agent of " + name + ".") in system:
+                    raise RuntimeError("simulated API failure for " + name)
+            return text_response(outer.agent_fn(system, messages[-1]["content"]))
+        if "decide which agents talk next" in low:
+            outer.calls.append(("pairing", kwargs))
+            return text_response(outer.pairing_queue.pop(0))
+        if "should be invited to meet" in low:
+            outer.calls.append(("verdict", kwargs))
+            if outer.verdict_fn is not None:
+                return text_response(outer.verdict_fn(system, messages[-1]["content"]))
+            return text_response(outer.verdict_queue.pop(0))
         if "actual human on the other end" in low:
             # a real (simulated=False) resident's onboarding chat reply.
             outer.calls.append(("onboarding_chat", kwargs))
@@ -98,7 +118,9 @@ class FakeClient:
     - interview_text / interview_fn: what Claws return when interviewed / reacting
     - match_queue / popup_queue / propose_queue / assess_queue / generation_queue:
       FIFO canned replies for those call types
-    - fail_names: persona names whose interview call should raise
+    - fail_names: persona names whose interview (or agent-turn) call should raise
+    - card_queue / card_fn, agent_fn, pairing_queue, verdict_queue / verdict_fn:
+      the agent-to-agent orchestration calls (dossier / agent_talk / orchestrator)
     - calls: every call recorded as (kind, kwargs) for assertions
     """
 
@@ -107,7 +129,8 @@ class FakeClient:
                  assess_queue=None, explain_queue=None, generation_queue=None,
                  nudge_queue=None, fail_names=None,
                  onboarding_text="canned onboarding reply", onboarding_fn=None,
-                 extraction_queue=None):
+                 extraction_queue=None, card_queue=None, card_fn=None, agent_fn=None,
+                 pairing_queue=None, verdict_queue=None, verdict_fn=None):
         self.interview_text = interview_text
         self.interview_fn = interview_fn
         self.match_queue = list(match_queue or [])
@@ -121,6 +144,12 @@ class FakeClient:
         self.onboarding_text = onboarding_text
         self.onboarding_fn = onboarding_fn
         self.extraction_queue = list(extraction_queue or [])
+        self.card_queue = list(card_queue or [])
+        self.card_fn = card_fn
+        self.agent_fn = agent_fn or (lambda system, content: "canned agent message")
+        self.pairing_queue = list(pairing_queue or [])
+        self.verdict_queue = list(verdict_queue or [])
+        self.verdict_fn = verdict_fn
         self.calls = []
         self.messages = FakeMessages(self)
 

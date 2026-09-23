@@ -417,6 +417,21 @@ this session's involvement, treat this ROADMAP as reliable only as of
 
 ---
 
+## Agent-to-agent pivot (2026-09-23) -- READ FIRST
+
+Direction changed after Eitan's feedback (see `docs/WALKTHROUGH.md` sections 6-8 and
+`docs/THIS_WEEK.md`): people bring what their own AI (ChatGPT/Claude/Muse/Instinct)
+knows about them; each person's Claw talks privately with other Claws; a hub picks
+pairs, judges each conversation, and invites only deep fits; humans only say yes/no.
+Every step is logged.
+
+**Built so far (branch `claude/zealous-noether-yllwtn`):** `src/dossier.py` (import
+prompt + card), `src/agent_talk.py` (the representing Claw -- dossier-only, says "I don't
+know", never invents), `src/orchestrator.py` (the hub: pair -> talk -> judge -> code gate:
+depth >= 8 and >= 2 verbatim quotes), `db.events` + `db.agent_conversations`, 20 new tests
+(334 passing). Not yet wired into the pilot routes -- that is Tue/Wed in THIS_WEEK.md.
+A shareable prototype of the same idea lives in `lounge/` (a claude.ai Artifact).
+
 ## Highest-priority items if picking up fresh work (not already covered above)
 
 1. All 6 neighborhood-pilot build stages are done (see Milestones 4/9) --

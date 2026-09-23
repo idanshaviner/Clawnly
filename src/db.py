@@ -25,6 +25,11 @@ Tables:
   oauth_states      -- single-use, expiring Google OAuth CSRF state tokens
   match_acceptances -- one row per resident member of a formed match (mutual
                        reveal gate); matches also gains sealed_at/dissolved_at
+
+  -- agent-to-agent orchestration (orchestrator.py / agent_talk.py) --
+  events            -- the behind-the-scenes log: every hub thought and decision,
+                       every agent message, every code check, every human action
+  agent_conversations -- one private Claw-to-Claw conversation + the hub's verdict
 """
 
 import datetime
@@ -136,6 +141,16 @@ def init_db():
         id INTEGER PRIMARY KEY AUTOINCREMENT, match_id INTEGER, resident_id INTEGER,
         status TEXT, created_at TEXT, responded_at TEXT,
         UNIQUE(match_id, resident_id)
+    )""")
+
+    # ----- agent-to-agent orchestration -----
+    conn.execute("""CREATE TABLE IF NOT EXISTS events (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, run_id INTEGER, actor TEXT, kind TEXT,
+        text TEXT, ref TEXT, created_at TEXT
+    )""")
+    conn.execute("""CREATE TABLE IF NOT EXISTS agent_conversations (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, run_id INTEGER, a_id TEXT, b_id TEXT,
+        why TEXT, turns TEXT, verdict TEXT, invited INTEGER, created_at TEXT
     )""")
 
     # runs predates neighborhoods; add the column rather than recreate the table.
@@ -1012,13 +1027,93 @@ def mark_match_dissolved(match_id):
 
 # ----- full reset (ops / tests) -------------------------------------------------
 
+# ----- agent-to-agent orchestration: events + conversations ------------------------
+
+def log_event(run_id, actor, kind, text, ref=None):
+    # one line of the behind-the-scenes log. actor is who acted (hub / agent /
+    # code / human / system); kind is what it was (thought / decision / message /
+    # check / human / system). ref points at the conversation it belongs to.
+    conn = _get_conn()
+    conn.execute(
+        "INSERT INTO events (run_id, actor, kind, text, ref, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+        (run_id, actor, kind, text, ref, _now()),
+    )
+    conn.commit()
+
+
+def list_events(run_id):
+    conn = _get_conn()
+    rows = conn.execute("SELECT * FROM events WHERE run_id = ? ORDER BY id", (run_id,)).fetchall()
+    out = []
+    i = 0
+    while i < len(rows):
+        row = rows[i]
+        out.append({"id": row["id"], "actor": row["actor"], "kind": row["kind"], "text": row["text"],
+                    "ref": row["ref"], "created_at": row["created_at"]})
+        i += 1
+    return out
+
+
+def save_agent_conversation(run_id, a_id, b_id, why, turns):
+    conn = _get_conn()
+    cur = conn.execute(
+        "INSERT INTO agent_conversations (run_id, a_id, b_id, why, turns, verdict, invited, created_at) "
+        "VALUES (?, ?, ?, ?, ?, NULL, 0, ?)",
+        (run_id, a_id, b_id, why, json.dumps(turns), _now()),
+    )
+    conn.commit()
+    return cur.lastrowid
+
+
+def set_agent_turns(conversation_id, turns):
+    conn = _get_conn()
+    conn.execute("UPDATE agent_conversations SET turns = ? WHERE id = ?", (json.dumps(turns), conversation_id))
+    conn.commit()
+
+
+def set_agent_verdict(conversation_id, verdict, invited):
+    conn = _get_conn()
+    invited_flag = 0
+    if invited:
+        invited_flag = 1
+    conn.execute("UPDATE agent_conversations SET verdict = ?, invited = ? WHERE id = ?",
+                 (json.dumps(verdict), invited_flag, conversation_id))
+    conn.commit()
+
+
+def _row_to_agent_conversation(row):
+    verdict = None
+    if row["verdict"] is not None:
+        verdict = json.loads(row["verdict"])
+    return {"id": row["id"], "run_id": row["run_id"], "a": row["a_id"], "b": row["b_id"],
+            "why": row["why"], "turns": json.loads(row["turns"]), "verdict": verdict,
+            "invited": bool(row["invited"]), "created_at": row["created_at"]}
+
+
+def list_agent_conversations(run_id=None):
+    # every conversation of one run, or of all runs (so the hub never pairs
+    # the same two agents twice).
+    conn = _get_conn()
+    if run_id is None:
+        rows = conn.execute("SELECT * FROM agent_conversations ORDER BY id").fetchall()
+    else:
+        rows = conn.execute("SELECT * FROM agent_conversations WHERE run_id = ? ORDER BY id", (run_id,)).fetchall()
+    out = []
+    i = 0
+    while i < len(rows):
+        out.append(_row_to_agent_conversation(rows[i]))
+        i += 1
+    return out
+
+
 def reset_all(default_users):
     # wipe every table and restore the default cast -- used by tests and
     # available for manual ops resets.
     conn = _get_conn()
     tables = ["runs", "interviews", "matches", "negotiations", "meetups", "feedback",
               "neighborhoods", "residents", "onboarding_messages", "sessions",
-              "magic_link_tokens", "oauth_states", "match_acceptances"]
+              "magic_link_tokens", "oauth_states", "match_acceptances",
+              "events", "agent_conversations"]
     i = 0
     while i < len(tables):
         conn.execute("DELETE FROM " + tables[i])

@@ -26,6 +26,9 @@ product is built to prove.
   matching) is in progress. `src/auth.py` (Google OAuth + email magic link,
   session-cookie-backed by a `sessions` table) is built and tested. See
   `docs/ROADMAP.md` for the staged build plan and exactly which stage is done.
+- **Direction change (2026-09-23): agent-to-agent.** The new core is `dossier.py` ->
+  `agent_talk.py` -> `orchestrator.py` (hub), with every step logged to `db.events`.
+  See `docs/THIS_WEEK.md` for the plan and what is wired so far.
 
 ## Hard style rules (SPEC section 10 -- these are non-negotiable, not style preference)
 

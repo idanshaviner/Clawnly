@@ -40,6 +40,16 @@ MODEL_POPUP = MODEL_REASONING      # venue/meetup suggestions
 MODEL_ONBOARDING_CHAT = MODEL_REASONING
 MODEL_ONBOARDING_COMPLETENESS = MODEL_CHEAP
 
+# agent-to-agent orchestration (dossier.py / agent_talk.py / orchestrator.py).
+# the agents' conversation IS the product now -- a shallow agent gives a
+# shallow read of a person -- so turns get real judgment, not the cheap tier.
+# the verdict ("should these two humans meet?") is the one call whose mistakes
+# cost two real people an evening, so it gets the premium tier, like the match.
+MODEL_DOSSIER = MODEL_REASONING      # pasted AI portrait -> the card an agent carries
+MODEL_AGENT_TURN = MODEL_REASONING   # one Claw's message to another Claw
+MODEL_HUB_PAIRING = MODEL_REASONING  # the hub choosing which agents talk
+MODEL_HUB_VERDICT = MODEL_PREMIUM    # the hub deciding who gets an invitation
+
 
 # temperatures for the Sonnet calls: vivid personas, lively popups.
 # (the match model is Opus 4.8, which does NOT accept `temperature` -- it returns

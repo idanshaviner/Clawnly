@@ -1,0 +1,1186 @@
+<title>Clawnly Lounge</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style id="lounge-css">
+:root{
+  --ground:#F2F3EE; --surface:#FFFFFF; --sunk:#E8EAE3; --ink:#17202A; --muted:#5B6470; --line:#D6DAD0;
+  --agent-a:#1D6B58; --agent-a-soft:#DCEDE6; --agent-b:#34568A; --agent-b-soft:#E0E8F3;
+  --human:#94550F; --human-soft:#F4E6D1; --good:#2A7A4B; --good-soft:#DCEFE2; --bad:#A33B3B; --bad-soft:#F5E0E0;
+  --focus:#1D6B58;
+  --display:"Instrument Serif","Iowan Old Style",Georgia,serif;
+  --body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+  color-scheme:light;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#10151B; --surface:#171E26; --sunk:#0C1015; --ink:#E5E8EB; --muted:#98A1AC; --line:#29323C;
+    --agent-a:#63C3A6; --agent-a-soft:#16302A; --agent-b:#8EB0E3; --agent-b-soft:#1A2638;
+    --human:#E3A45C; --human-soft:#35271A; --good:#6FCB91; --good-soft:#15301F; --bad:#E58383; --bad-soft:#3A1E1E;
+    --focus:#63C3A6; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#10151B; --surface:#171E26; --sunk:#0C1015; --ink:#E5E8EB; --muted:#98A1AC; --line:#29323C;
+  --agent-a:#63C3A6; --agent-a-soft:#16302A; --agent-b:#8EB0E3; --agent-b-soft:#1A2638;
+  --human:#E3A45C; --human-soft:#35271A; --good:#6FCB91; --good-soft:#15301F; --bad:#E58383; --bad-soft:#3A1E1E;
+  --focus:#63C3A6; color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0}
+body{background:var(--ground); color:var(--ink); font:15px/1.55 var(--body); -webkit-font-smoothing:antialiased}
+button,input,textarea,select{font:inherit; color:inherit}
+:focus-visible{outline:2px solid var(--focus); outline-offset:2px}
+.wrap{max-width:1080px; margin:0 auto; padding-inline:20px; padding-block:28px 64px}
+header.top{display:grid; gap:18px; margin-bottom:22px}
+.brand{display:flex; flex-wrap:wrap; align-items:baseline; gap:6px 16px}
+h1{font:400 44px/1.02 var(--display); margin:0; letter-spacing:-.01em}
+h1 em{font-style:italic; color:var(--agent-a)}
+.thesis{margin:0; color:var(--muted); max-width:62ch; font-size:16px}
+.thesis b{color:var(--ink); font-weight:600}
+.stats{display:flex; flex-wrap:wrap; gap:8px}
+.stat{background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:8px 14px; min-width:120px}
+.stat .n{font:500 22px/1.2 var(--mono); font-variant-numeric:tabular-nums}
+.stat .l{font-size:11.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted)}
+.stat.hit .n{color:var(--human)}
+.runbar{display:flex; flex-wrap:wrap; align-items:center; gap:10px 14px; background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:12px 14px}
+.runbar .status{flex:1 1 260px; color:var(--muted); font-size:14px; min-width:0}
+.runbar .status b{color:var(--ink); font-weight:500}
+.dot{display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--agent-a); margin-right:8px; vertical-align:middle}
+.dot.on{animation:pulse 1.2s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.25}}
+@media (prefers-reduced-motion: reduce){.dot.on{animation:none}}
+.btn{border:1px solid var(--line); background:var(--surface); border-radius:9px; padding:8px 14px; cursor:pointer; font-weight:500; font-size:14px}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--agent-a); border-color:var(--agent-a); color:var(--surface)}
+.btn.yes{background:var(--good); border-color:var(--good); color:var(--surface)}
+.btn.no{color:var(--bad)}
+.btn:disabled{opacity:.45; cursor:not-allowed}
+.select{border:1px solid var(--line); background:var(--surface); border-radius:9px; padding:7px 10px; font-size:14px}
+nav.tabs{display:flex; gap:4px; overflow-x:auto; border-bottom:1px solid var(--line); margin:22px 0 20px}
+nav.tabs button{background:none; border:0; border-bottom:2px solid transparent; padding:10px 12px; cursor:pointer; color:var(--muted); font-weight:500; white-space:nowrap}
+nav.tabs button[aria-selected="true"]{color:var(--ink); border-bottom-color:var(--ink)}
+nav.tabs .count{font:500 11px var(--mono); background:var(--sunk); border-radius:20px; padding:1px 7px; margin-left:6px}
+h2{font:400 28px/1.15 var(--display); margin:0 0 6px}
+.lede{color:var(--muted); margin:0 0 18px; max-width:68ch}
+.notice{border:1px solid var(--line); background:var(--surface); border-radius:10px; padding:12px 14px; margin-bottom:14px; font-size:14px}
+.notice.warn{border-color:var(--human); background:var(--human-soft)}
+.empty{border:1px dashed var(--line); border-radius:12px; padding:28px 20px; text-align:center; color:var(--muted)}
+.chip{display:inline-block; font:500 11px/1.6 var(--mono); letter-spacing:.02em; border-radius:20px; padding:1px 8px; background:var(--sunk); color:var(--muted); white-space:nowrap}
+.chip.a{background:var(--agent-a-soft); color:var(--agent-a)}
+.chip.b{background:var(--agent-b-soft); color:var(--agent-b)}
+.chip.h{background:var(--human-soft); color:var(--human)}
+.chip.good{background:var(--good-soft); color:var(--good)}
+.chip.bad{background:var(--bad-soft); color:var(--bad)}
+/* meetings */
+.meetings{display:grid; gap:16px}
+.meeting{background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:18px; display:grid; gap:14px}
+.meeting.on{border-color:var(--good)}
+.meeting .head{display:flex; flex-wrap:wrap; align-items:baseline; gap:6px 12px}
+.meeting .who{font:400 26px/1.1 var(--display)}
+.meeting .headline{margin:0; font-size:16px}
+.invite{display:flex; flex-wrap:wrap; gap:6px 18px; font-size:14px; color:var(--muted)}
+.invite b{color:var(--ink); font-weight:500}
+.sides{display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:12px}
+.side{border-radius:10px; background:var(--human-soft); padding:14px; display:grid; gap:10px; align-content:start}
+.side .to{font-size:11.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--human); font-weight:600}
+.side p{margin:0}
+.side .act{display:flex; gap:8px; flex-wrap:wrap; align-items:center}
+.answer{font-weight:600}
+.answer.yes{color:var(--good)} .answer.no{color:var(--bad)}
+.evidence{margin:0; padding:0; list-style:none; display:grid; gap:8px}
+.evidence li{font-size:14px; border-left:2px solid var(--line); padding-left:10px}
+.evidence q{font-style:italic}
+.evidence .why{color:var(--muted)}
+.links{display:flex; gap:14px; flex-wrap:wrap; font-size:14px}
+.link{background:none; border:0; padding:0; color:var(--agent-a); cursor:pointer; text-decoration:underline; text-underline-offset:3px; font-size:14px}
+.declined{margin-top:28px}
+.declined h3{font:500 13px var(--body); letter-spacing:.06em; text-transform:uppercase; color:var(--muted); margin:0 0 10px}
+.rows{display:grid; gap:6px}
+.row{display:flex; flex-wrap:wrap; gap:6px 12px; align-items:baseline; background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:10px 12px; font-size:14px}
+.row .names{font-weight:600}
+.row .txt{flex:1 1 280px; color:var(--muted); min-width:0}
+/* chats */
+.chats{display:grid; grid-template-columns:260px minmax(0,1fr); gap:18px; align-items:start}
+@media (max-width:760px){.chats{grid-template-columns:1fr}}
+.convlist{display:grid; gap:6px}
+.convbtn{text-align:left; background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:10px 12px; cursor:pointer; display:grid; gap:4px}
+.convbtn[aria-current="true"]{border-color:var(--ink)}
+.convbtn .names{font-weight:600; font-size:14px}
+.reader{background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:18px; display:grid; gap:12px; min-width:0}
+.reader .rhead{display:flex; flex-wrap:wrap; justify-content:space-between; gap:8px; align-items:baseline}
+.reader .rhead h3{margin:0; font:400 24px var(--display)}
+.bubble{max-width:86%; border-radius:12px; padding:10px 14px; white-space:pre-wrap; overflow-wrap:anywhere}
+.bubble .by{display:block; font:500 11px var(--mono); letter-spacing:.03em; margin-bottom:4px}
+.bubble.a{background:var(--agent-a-soft); justify-self:start; border-top-left-radius:3px}
+.bubble.a .by{color:var(--agent-a)}
+.bubble.b{background:var(--agent-b-soft); justify-self:end; border-top-right-radius:3px}
+.bubble.b .by{color:var(--agent-b)}
+.bubble.wait{color:var(--muted); font-style:italic}
+.verdict{border-top:1px solid var(--line); padding-top:14px; display:grid; gap:10px}
+.verdict .vh{display:flex; flex-wrap:wrap; gap:8px; align-items:center}
+.thoughts{font-size:14px; color:var(--muted); background:var(--sunk); border-radius:8px; padding:10px 12px; margin:0}
+.thoughts b{color:var(--ink); font-weight:500}
+/* log */
+.logtools{display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; align-items:center}
+.filter{border:1px solid var(--line); background:var(--surface); border-radius:20px; padding:4px 12px; cursor:pointer; font-size:13px}
+.filter[aria-pressed="true"]{background:var(--ink); color:var(--ground); border-color:var(--ink)}
+.log{background:var(--sunk); border-radius:12px; padding:6px 0; font:13px/1.55 var(--mono); overflow-x:auto}
+.logline{display:grid; grid-template-columns:70px 140px minmax(0,1fr); gap:10px; padding:6px 14px; border-bottom:1px solid var(--line)}
+.logline:last-child{border-bottom:0}
+.logline .t{color:var(--muted); font-variant-numeric:tabular-nums}
+.logline .who{font-weight:500}
+.logline .who.hub{color:var(--ink)} .logline .who.agent{color:var(--agent-a)} .logline .who.code{color:var(--agent-b)} .logline .who.human{color:var(--human)} .logline .who.system{color:var(--muted)}
+.logline .x{white-space:pre-wrap; overflow-wrap:anywhere}
+.logline .x .link{font:inherit}
+@media (max-width:620px){.logline{grid-template-columns:1fr; gap:2px}}
+/* people */
+.people{display:grid; grid-template-columns:repeat(auto-fill,minmax(290px,1fr)); gap:14px}
+.person{background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:16px; display:grid; gap:8px; align-content:start}
+.person .pn{display:flex; flex-wrap:wrap; gap:6px 10px; align-items:baseline}
+.person .pn b{font:400 24px var(--display)}
+.person p{margin:0; font-size:14px}
+.person .k{font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); display:block}
+details summary{cursor:pointer; color:var(--agent-a); font-size:14px}
+details .raw{white-space:pre-wrap; font-size:13.5px; color:var(--muted); margin-top:8px}
+/* join */
+.join{display:grid; gap:18px; max-width:760px}
+.step{background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:18px; display:grid; gap:12px}
+.step h3{margin:0; font:400 22px var(--display)}
+.step .n{font:500 12px var(--mono); color:var(--agent-a); letter-spacing:.06em}
+.seg{display:flex; flex-wrap:wrap; gap:6px}
+.seg button{border:1px solid var(--line); background:var(--ground); border-radius:20px; padding:5px 14px; cursor:pointer; font-size:14px}
+.seg button[aria-pressed="true"]{background:var(--ink); color:var(--ground); border-color:var(--ink)}
+.prompt{white-space:pre-wrap; background:var(--sunk); border-radius:10px; padding:14px; font:13px/1.55 var(--mono); max-height:260px; overflow:auto; margin:0}
+label.f{display:grid; gap:6px; font-size:14px; font-weight:500}
+input[type=text],textarea{border:1px solid var(--line); background:var(--ground); border-radius:9px; padding:10px 12px; width:100%}
+textarea{min-height:200px; resize:vertical; line-height:1.5}
+.consent{display:flex; gap:10px; align-items:flex-start; font-size:14px}
+.consent input{margin-top:4px}
+.err{color:var(--bad); font-size:14px; margin:0}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+.how{display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:10px; margin:0; padding:0; list-style:none}
+.how li{background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:12px 14px; font-size:14px}
+.how li b{display:block; font-weight:600; margin-bottom:2px}
+.how li.human{border-color:var(--human); background:var(--human-soft)}
+.how li.human b{color:var(--human)}
+</style>
+
+<div id="root"></div>
+
+<script type="application/json" id="clawnly-state">{}</script>
+
+<script id="lounge-app">
+(function () {
+  "use strict";
+
+  // ---- constants ----------------------------------------------------------
+  var FONT_LINK = '<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">';
+  var SOURCES = ["ChatGPT", "Claude", "Muse", "Instinct", "Other"];
+  var TOOL_HINTS = {
+    ChatGPT: "Paste it into ChatGPT in the account you actually talk to. It works best with Memory turned on.",
+    Claude: "Paste it into Claude, ideally in a chat or Project where you have talked about your life (memory on helps).",
+    Muse: "Paste it into your Muse chat. It answers from what it has learned about you.",
+    Instinct: "Paste it into Instinct. It answers from what it has learned about you.",
+    Other: "Paste it into whichever AI knows you best: the one you actually confide in."
+  };
+  var IMPORT_PROMPT = [
+    "I'm joining Clawnly. An AI agent will represent me in private conversations with other people's agents, to find me a few genuinely close friends. I only step in at the end to say yes or no to meeting someone.",
+    "",
+    "From what you actually know about me from our conversations (not how I'd present myself on social media or LinkedIn), write an honest portrait of me. Include the unflattering parts: a match made with a polished version of me fails in real life. If you don't know something, write \"unknown\" instead of guessing.",
+    "",
+    "Cover, in plain prose:",
+    "1. What I care about most, and what I won't compromise on.",
+    "2. The chapter of life I'm in right now: what's hard, what's changing.",
+    "3. How I actually am with friends: what I give, what I need, how I handle conflict or being let down.",
+    "4. What drains me socially and what fills me up.",
+    "5. My sense of humor (an example if you have one).",
+    "6. The kind of friendship I'm missing.",
+    "7. Who would be a bad fit for me.",
+    "8. When I'm usually free, and roughly which neighborhood or city I'm in.",
+    "",
+    "Write it in the second person (\"You...\"), 250-450 words. Leave out last names, employer names, addresses, health or financial details, and other people's names."
+  ].join("\n");
+
+  // the hub only proposes a meeting when ALL of these hold -- checked in code, not trusted to the model
+  var DEPTH_BAR = 8;
+  var MIN_VERIFIED_EVIDENCE = 2;
+  var PAIRS_PER_ROUND = 6;
+  var MAX_PAIRS_PER_PERSON = 2;
+  var TURNS = 6;
+  var MAX_LOG = 1500;
+
+  // fictional sample people, written the way a person's own AI would describe them
+  var SEED = [
+    { id: "s1", name: "Noa", source: "ChatGPT", sample: true, raw: [
+      "You're 31 and moved to Seattle (Capitol Hill) from Tel Aviv eight months ago for a UX research job. You're warm but blunt: you'd rather hear a hard truth on day one than find out in month six that someone was being polite. Honesty is the one thing you won't bend on.",
+      "The hard part of this chapter is Friday nights. At home, Friday dinner was sacred: a long table, too much food, arguing about politics until midnight. Here, Fridays are the loneliest night of your week, and you've told me more than once that you miss being 'expected' somewhere.",
+      "With friends you're the one who remembers birthdays and notices when someone's gone quiet. What you need back is consistency: people who show up when they say they will. Flaking hurts you more than you admit; you usually go cold rather than say so, which you know isn't great.",
+      "Loud bars and networking events drain you. A small table of four to six people, real food and a real argument fills you up.",
+      "Your humor is dry. You once described a date as 'a LinkedIn post with a pulse.'",
+      "You're missing the kind of friend you can call at 11pm without apologizing.",
+      "Bad fit: people who are always 'so busy', and people who can't handle disagreement.",
+      "You're free Friday evenings and Sunday mornings. Capitol Hill, Seattle."
+    ].join("\n\n") },
+    { id: "s2", name: "Marcus", source: "Claude", sample: true, raw: [
+      "You're 34, an ICU nurse on night shifts, living in Beacon Hill. You got divorced a year ago and you've been rebuilding quietly. You value steadiness and people who mean what they say. Cruelty dressed up as 'just joking' is a hard no for you.",
+      "Right now you're figuring out who you are outside a marriage and outside the hospital. Cooking has become your therapy: you've talked about wanting a real 'Sunday table', people around your food who stay for hours, but you haven't had anyone to cook for.",
+      "With friends you listen far more than you talk. You're the calm one in a crisis, which means people lean on you and rarely ask how you're doing. You need at least one friend who does ask. When you're let down, you don't make a scene; you just quietly stop investing.",
+      "Crowds and small talk drain you, especially after a run of night shifts. Cooking for a few people and a long, honest conversation fills you up.",
+      "Your humor is dark (ICU dark) but gentle. You told me the unit's unofficial motto is 'Everyone's fine until the coffee runs out.'",
+      "You're missing friends who feel like family, the kind you don't have to perform for.",
+      "Bad fit: people who flake, and people who treat every conversation as a stage.",
+      "Free Sunday daytime into the evening, and Thursday evenings. Beacon Hill, Seattle."
+    ].join("\n\n") },
+    { id: "s3", name: "Priya", source: "Muse", sample: true, raw: [
+      "You're 27, a public-health grad student in Fremont. You care about fairness and about actually doing things, not just talking about them. You start five projects a month and finish maybe one, and you know it.",
+      "This chapter is a lot: thesis deadlines, a part-time job, and a sense that all your friends are 'grad school friends' who'll scatter in a year. You want people who'll still be around after.",
+      "With friends you're the spark: you text the group chat with a plan at 6pm for 7pm. You need people who say yes to spontaneous things, and who'll gently hold you to the things you said you'd do. Conflict makes you talk too fast; you get over it quickly.",
+      "Being alone too long drains you. Big, noisy, mixed groups fill you up: festivals, dance nights, potlucks where you know two people.",
+      "Your humor is silly and physical; you do voices.",
+      "You're missing an accountability friend who's also fun.",
+      "Bad fit: people who need two weeks' notice for everything, and very reserved people who find you 'a lot'.",
+      "Free most weekday evenings. Fremont, Seattle."
+    ].join("\n\n") },
+    { id: "s4", name: "Jonah", source: "Instinct", sample: true, raw: [
+      "You're 29, a software engineer in Ballard, coming out of a real burnout. You care about craft: doing a few things slowly and well. You've been deliberately trying to be less online, and you took up wheel-throwing pottery because it's the one place your phone can't follow you.",
+      "This chapter is about rebuilding a life that isn't just work. You've admitted that most of your friendships were really work friendships and they evaporated when you stepped back.",
+      "With friends you're loyal and a good listener, slow to open up. It takes you a few meetings before you say anything real. You need patience for that, and people who are fine with comfortable silence. When let down, you withdraw and overthink.",
+      "Networking energy, 'so what do you do', and packed schedules drain you. Long walks, early mornings, and making something with your hands fill you up.",
+      "Your humor is understated and self-deprecating: 'I finally found a hobby where being slow is a feature.'",
+      "You're missing a friend for slow Saturday mornings: a walk, coffee, no agenda.",
+      "Bad fit: hustle-culture people and anyone who treats friendship as networking.",
+      "Free weekend mornings, sometimes weekday evenings. Ballard, Seattle."
+    ].join("\n\n") },
+    { id: "s5", name: "Elena", source: "ChatGPT", sample: true, raw: [
+      "You're 38, a social worker and a single mom to a six-year-old, living in Columbia City. You're fierce about fairness and about your kid, and you have zero patience for people who are unkind to service workers.",
+      "This chapter is tiring and good. You've built a solid life, but nearly every adult you talk to is either a colleague or another parent at pickup. You want friendships that are about you, not your roles.",
+      "With friends you're generous and funny and you'll show up with soup. You need friends who don't flinch when your kid is around sometimes, and who understand plans might move. You handle conflict head-on, sometimes too fast.",
+      "Being 'on' for work all day drains you; you have little left for performing at social events. A relaxed daytime thing where your kid can come, or one grown-up evening a week, fills you up.",
+      "Your humor is quick and a little wicked. You describe your calendar as 'a hostage situation with stickers.'",
+      "You're missing one or two adult friends who are in it for the long haul.",
+      "Bad fit: people who are precious about kids being around, and people who only do late nights.",
+      "Free Saturday daytime (often with your kid) and Wednesday evenings. Columbia City, Seattle."
+    ].join("\n\n") },
+    { id: "s6", name: "Theo", source: "Claude", sample: true, raw: [
+      "You're 26 and running an early-stage startup from Capitol Hill. You say you want deep friendships, but you've admitted to me that you schedule friends like meetings and often cancel when work spikes. Ambition is the thing you won't compromise on.",
+      "This chapter is all-in on the company. You're lonelier than you let on, and you tend to turn every coffee into a pitch without meaning to.",
+      "With friends you're generous with introductions and advice. You need people who don't take it personally when you go quiet for two weeks. When conflict comes, you try to 'solve' it like a product problem.",
+      "Unstructured time drains you; you get restless. High-energy events with interesting people fill you up.",
+      "Your humor is fast and a bit performative.",
+      "You're missing friends who knew you before the startup, and you don't really have time to make new ones.",
+      "Bad fit: people who need a lot of consistency or slow time.",
+      "Free late weekday evenings, unpredictably. Capitol Hill, Seattle."
+    ].join("\n\n") },
+    { id: "s7", name: "Sam", source: "Muse", sample: true, raw: [
+      "You're 33, nonbinary, a librarian in Beacon Hill. You care about gentleness and about people being allowed to be complicated. You lost your dad last year and you're still in it; grief comes in waves.",
+      "This chapter is about learning to let people in while you're not okay. You've noticed most people change the subject when you mention your dad, and you've stopped mentioning him.",
+      "With friends you're a deep listener and you remember everything. You need friends who can sit with heavy things without trying to fix them, and who'll also play a ridiculous board game with you afterwards. You avoid conflict and need people who'll name it kindly.",
+      "Parties and forced cheerfulness drain you. Long talks, cooking together, and board games fill you up.",
+      "Your humor is gentle and absurd; you name your houseplants after minor Victorian poets.",
+      "You're missing a friend you don't have to be 'fine' around.",
+      "Bad fit: relentlessly upbeat people, and people who treat feelings as a problem to solve.",
+      "Free weekday evenings and Sunday afternoons. Beacon Hill, Seattle."
+    ].join("\n\n") },
+    { id: "s8", name: "Aiko", source: "Instinct", sample: true, raw: [
+      "You're 30, a route setter at a climbing gym in Ballard. You're direct, physical, and allergic to drama. You've been sober for a year, which quietly rearranged your social life: bars are out, and a lot of old friends turned out to be drinking friends.",
+      "This chapter is building a sober social life that isn't lonely. Early mornings are your best hours.",
+      "With friends you're dependable and blunt. You'll help anyone move. You need people who say what they mean and don't need alcohol to relax. When let down, you say so once, clearly, and then it's done.",
+      "Late nights and people who need a drink to open up drain you. Early hikes, coffee after a climb, and making things fill you up.",
+      "Your humor is deadpan: 'I set routes for a living. I know exactly how people fall.'",
+      "You're missing a friend for sunrise plans who won't flake at 6am.",
+      "Bad fit: drama, night owls, and people whose social life runs through bars.",
+      "Free early weekday mornings and weekend mornings. Ballard, Seattle."
+    ].join("\n\n") }
+  ];
+
+  // ---- state --------------------------------------------------------------
+  var state = loadState();
+  var sample = null;
+  var artifactApi = null;
+  var runner = null;          // AbortController while the agents run
+  var runStatus = "";
+  var saveError = "";
+  var dirty = false;
+  var ui = { tab: "meetings", conv: null, logFilter: "all", confirmReset: false,
+             join: { source: "ChatGPT", name: "", text: "", consent: false, card: null, busy: false, error: "" } };
+
+  function loadState() {
+    var s = {};
+    try { s = JSON.parse(document.getElementById("clawnly-state").textContent || "{}"); } catch (e) { s = {}; }
+    if (!s || typeof s !== "object") s = {};
+    if (!Array.isArray(s.people) || s.people.length === 0) s.people = JSON.parse(JSON.stringify(SEED));
+    if (!Array.isArray(s.conversations)) s.conversations = [];
+    if (!Array.isArray(s.proposals)) s.proposals = [];
+    if (!Array.isArray(s.log)) s.log = [];
+    if (typeof s.rounds !== "number") s.rounds = 0;
+    // a conversation interrupted by a reload can never finish
+    for (var i = 0; i < s.conversations.length; i++) {
+      if (s.conversations[i].status === "live") s.conversations[i].status = "failed";
+    }
+    return s;
+  }
+
+  function uid(prefix) { return prefix + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+  function now() { return new Date().toISOString(); }
+  function esc(s) {
+    if (s === null || s === undefined) s = "";
+    return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+  function person(id) {
+    for (var i = 0; i < state.people.length; i++) { if (state.people[i].id === id) return state.people[i]; }
+    return null;
+  }
+  function nameOf(id) { var p = person(id); if (p) return p.name; return "Someone"; }
+  function conv(id) {
+    for (var i = 0; i < state.conversations.length; i++) { if (state.conversations[i].id === id) return state.conversations[i]; }
+    return null;
+  }
+  function turnTier() { if (ui.speed === "fast") return "quick"; return "default"; }
+  function otherOf(pr, who) { if (who === pr.a) return pr.b; return pr.a; }
+  function selectedIf(flag) { if (flag) return " selected"; return ""; }
+  function listOr(v) { if (Array.isArray(v)) return v; return []; }
+  function kindChip(p) { if (p.sample) return '<span class="chip">sample, fictional</span>'; return '<span class="chip h">real person</span>'; }
+  function throwFirst(results) {
+    for (var i = 0; i < results.length; i++) { if (results[i].status === "rejected") throw results[i].reason; }
+  }
+  function pairKey(a, b) { if (a < b) return a + "|" + b; return b + "|" + a; }
+
+  function log(actor, kind, text, ref) {
+    state.log.push({ t: now(), actor: actor, kind: kind, text: text, ref: ref || null });
+    if (state.log.length > MAX_LOG) state.log.splice(0, state.log.length - MAX_LOG);
+    dirty = true;
+    scheduleRender();
+  }
+
+  // ---- asking Claude --------------------------------------------------------
+  // a tiny semaphore: the viewer gets a couple of concurrent calls, the rest queue
+  var slots = 2, waiting = [];
+  function acquire() {
+    if (slots > 0) { slots -= 1; return Promise.resolve(); }
+    return new Promise(function (resolve) { waiting.push(resolve); });
+  }
+  function release() {
+    if (waiting.length > 0) { var next = waiting.shift(); next(); return; }
+    slots += 1;
+  }
+  async function askText(prompt, tier, signal, onText) {
+    await acquire();
+    try {
+      var opts = { modelTier: tier, signal: signal, cache: false };
+      if (onText) opts.onText = onText;
+      var res = await sample(prompt, opts);
+      return res.text;
+    } finally { release(); }
+  }
+  async function askJson(prompt, tier, signal) {
+    await acquire();
+    try { return await sample.json(prompt, { modelTier: tier, signal: signal, cache: false }); }
+    finally { release(); }
+  }
+  function errCode(e) { if (e && e.code) return e.code; return "upstream_error"; }
+  function errCopy(code) {
+    var copy = {
+      not_granted: "Claude access wasn't allowed for this page, so the agents can't run here.",
+      sampling_disabled: "Claude isn't available on this account, so the agents can't run here.",
+      rate_limited: "Claude says we're going too fast (or your usage limit was reached). Try again in a few minutes.",
+      session_expired: "Your Claude session expired. Sign in again, then run the agents.",
+      refused: "Claude declined one of the requests.",
+      cancelled: "Stopped.",
+      invalid_json: "The hub returned something unreadable. Try again."
+    };
+    if (copy[code]) return copy[code];
+    return "A request to Claude failed (" + code + "). Try again.";
+  }
+  function isFatal(code) {
+    return code === "not_granted" || code === "sampling_disabled" || code === "rate_limited" ||
+      code === "session_expired" || code === "cancelled" || code === "capability_disabled" || code === "not_declared";
+  }
+
+  // ---- text for prompts -----------------------------------------------------
+  function cardText(p) {
+    var c = p.card;
+    if (!c) return "(no card yet)";
+    var lines = [
+      "Essence: " + (c.essence || "unknown"),
+      "Chapter of life: " + (c.chapter || "unknown"),
+      "Values: " + joinList(c.values),
+      "Gives to friends: " + (c.gives || "unknown"),
+      "Needs from friends: " + (c.needs || "unknown"),
+      "Social energy: " + (c.energy || "unknown"),
+      "Humor: " + (c.humor || "unknown"),
+      "Friendship they're missing: " + (c.missing || "unknown"),
+      "Bad fit: " + joinList(c.not_a_fit),
+      "Free: " + (c.free || "unknown"),
+      "Area: " + (c.area || "unknown"),
+      "Unknowns: " + joinList(c.unknowns)
+    ];
+    return lines.join("\n");
+  }
+  function joinList(v) {
+    if (!Array.isArray(v) || v.length === 0) return "unknown";
+    var out = [];
+    for (var i = 0; i < v.length; i++) out.push(String(v[i]));
+    return out.join("; ");
+  }
+  function transcriptText(c) {
+    var lines = [];
+    for (var i = 0; i < c.turns.length; i++) {
+      lines.push(nameOf(c.turns[i].by) + "'s agent: " + c.turns[i].text);
+    }
+    return lines.join("\n\n");
+  }
+
+  function cardPrompt(source, raw) {
+    return [
+      "Someone joining Clawnly (a friendship-matching service where AI agents talk to each other on people's behalf) pasted what their own AI assistant (" + source + ") wrote about them.",
+      "Turn it into the profile card their Clawnly agent will carry. Use ONLY what the text says. Anything it doesn't cover goes in \"unknowns\" -- never guess. Keep their real voice and keep the unflattering parts; do not polish.",
+      "Also judge whether this reads like the REAL person (struggles, needs, specifics) or a public, social-media version (achievements, buzzwords, no vulnerability).",
+      "",
+      "Reply with only this JSON object:",
+      "{\"essence\": \"one sentence: who they really are\", \"chapter\": \"the chapter of life they're in\", \"values\": [\"3-5 short items\"], \"gives\": \"what they give friends\", \"needs\": \"what they need from friends\", \"energy\": \"what drains vs fills them\", \"humor\": \"their humor, with their example if given\", \"missing\": \"the friendship they're missing\", \"not_a_fit\": [\"who would be a bad fit\"], \"free\": \"when they're free\", \"area\": \"neighborhood/city or unknown\", \"unknowns\": [\"important things the text doesn't say\"], \"real_vs_public\": {\"score\": 1-5, \"note\": \"one sentence; 5 = clearly the real person\"}}",
+      "",
+      "TEXT FROM THEIR AI:",
+      raw.slice(0, 6000)
+    ].join("\n");
+  }
+
+  function pairPrompt(candidates, done, newcomers) {
+    var lines = [
+      "You are the Master Claw, the orchestrator (hub) of Clawnly. Each person below brought their own AI agent. Before any human is involved, agents hold private one-on-one conversations; you decide which agents talk next.",
+      "Pick the pairs where a deep, lasting friendship is most plausible -- shared values, complementary needs, compatible rhythm, overlapping free time and area -- or where it is genuinely uncertain enough that a conversation would tell. Surface overlap (same hobby) is not enough.",
+      "Pick at most " + PAIRS_PER_ROUND + " pairs. Each person in at most " + MAX_PAIRS_PER_PERSON + " pairs. Never pick a pair that already talked.",
+      ""
+    ];
+    if (newcomers.length > 0) lines.push("New arrivals who haven't talked to anyone yet (prioritize giving each of them a conversation): " + newcomers.join(", "), "");
+    if (done.length > 0) lines.push("Pairs that already talked (do not repeat): " + done.join(", "), "");
+    lines.push("PEOPLE:");
+    for (var i = 0; i < candidates.length; i++) {
+      var p = candidates[i];
+      lines.push("", "[" + p.id + "] " + p.name + " (agent brought from " + p.source + ")", cardText(p));
+    }
+    lines.push("",
+      "Reply with only this JSON object:",
+      "{\"thoughts\": \"your honest reasoning about this pool, 3-6 sentences\", \"pairs\": [{\"a\": \"id\", \"b\": \"id\", \"why\": \"one sentence\"}]}");
+    return lines.join("\n");
+  }
+
+  function turnPrompt(me, other, c, index) {
+    var closing = index >= TURNS - 2;
+    var lines = [
+      "You are the Clawnly agent of " + me.name + ". You are in a private, agent-to-agent conversation with the agent of " + other.name + ". Neither human is present; they will only see a yes/no invitation later if the hub thinks they should meet.",
+      "Your job: find out honestly whether " + me.name + " and " + other.name + " could become genuinely close friends, and represent " + me.name + " truthfully.",
+      "",
+      "Everything you know about " + me.name + " is in the dossier below, which " + me.name + " brought from " + me.source + ". You know nothing else about them, and you know nothing about " + other.name + " except what their agent tells you.",
+      "Rules:",
+      "- Speak as " + me.name + "'s agent, about them in the third person (\"" + me.name + " tends to...\"). Never pretend to be " + me.name + ".",
+      "- Only say what the dossier supports. If asked something it doesn't cover, say plainly that you don't know and that it's something to ask " + me.name + " in person. Never invent.",
+      "- Represent the real person, including struggles, needs and quirks. A match built on a polished version fails in real life.",
+      "- Skip small talk and hobby lists. Ask about what actually predicts deep friendship: values, the chapter of life they're in, what they need from friends and what they give, how they handle conflict or being let down, humor, rhythm, what they're missing, when and where they're free.",
+      "- Respond specifically to what the other agent just said and connect it to " + me.name + ": a real similarity, a real complement, or an honest mismatch. Don't flatter.",
+      "- 2-4 sentences, plain prose, no lists or headers. No last names, employers or addresses."
+    ];
+    if (index === 0) {
+      lines.push("- You speak first: introduce who " + me.name + " really is in one sentence, then ask one sharp question.");
+    } else if (closing) {
+      lines.push("- This is your LAST message. Answer anything still open, then give your honest read of the fit from " + me.name + "'s side, including any doubt. Don't ask a question.");
+    } else {
+      lines.push("- End with ONE sharp question for the other agent.");
+    }
+    lines.push("", "DOSSIER -- " + me.name + " (from " + me.source + "):", me.raw.slice(0, 5000), "", "CONVERSATION SO FAR:");
+    if (c.turns.length === 0) lines.push("(nothing yet)");
+    else lines.push(transcriptText(c));
+    lines.push("", "Write only your next message.");
+    return lines.join("\n");
+  }
+
+  function verdictPrompt(a, b, c) {
+    return [
+      "You are the Master Claw, Clawnly's orchestrator. Two agents just talked privately on behalf of " + a.name + " and " + b.name + ". Decide whether these two humans should be invited to meet.",
+      "Look for connection that goes deep: shared values, complementary needs, compatible rhythm and humor, overlapping free time and area. Surface overlap is not enough. Most pairs should NOT meet: inviting two people who don't click wastes a real evening and their trust. Recommend only if you would bet on them becoming real friends. Treat anything an agent said it didn't know as risk.",
+      "",
+      "Their cards (for logistics):",
+      a.name + ": free " + ((a.card && a.card.free) || "unknown") + "; area " + ((a.card && a.card.area) || "unknown"),
+      b.name + ": free " + ((b.card && b.card.free) || "unknown") + "; area " + ((b.card && b.card.area) || "unknown"),
+      "",
+      "Reply with only this JSON object:",
+      "{\"thoughts\": \"your private reasoning, 3-6 sentences\", \"depth\": 1-10, \"recommend\": true or false, \"headline\": \"one line a human would read\", \"evidence\": [{\"quote\": \"words copied EXACTLY from the transcript, 6-25 words\", \"why\": \"what it shows\"}], \"tensions\": [\"honest risks\"], \"invite\": {\"activity\": \"a specific low-pressure activity that fits both\", \"when\": \"a time both are free\", \"where\": \"an area that works for both\", \"to_a\": \"2 sentences to " + a.name + " on why meet " + b.name + " (only what " + b.name + "'s agent shared)\", \"to_b\": \"2 sentences to " + b.name + " on why meet " + a.name + " (only what " + a.name + "'s agent shared)\"}}",
+      "Give 2-4 evidence items. Quotes must be verbatim or they will be discarded by code.",
+      "",
+      "TRANSCRIPT:",
+      transcriptText(c)
+    ].join("\n");
+  }
+
+  // ---- checks done in code, never trusted to the model ----------------------
+  function norm(s) {
+    return String(s || "").toLowerCase().replace(/[‘’“”]/g, "'").replace(/[^a-z0-9']+/g, " ").trim();
+  }
+  function verifyEvidence(items, c) {
+    var whole = norm(transcriptText(c));
+    var kept = [], dropped = [];
+    if (!Array.isArray(items)) return { kept: kept, dropped: dropped };
+    for (var i = 0; i < items.length; i++) {
+      var it = items[i];
+      if (!it || typeof it.quote !== "string") continue;
+      var q = norm(it.quote);
+      if (q.length >= 12 && whole.indexOf(q) !== -1) kept.push({ quote: it.quote, why: String(it.why || "") });
+      else dropped.push(it.quote);
+    }
+    return { kept: kept, dropped: dropped };
+  }
+  function cleanPairs(raw, validIds, done) {
+    var out = [], used = {}, seen = {}, rejected = [];
+    if (!Array.isArray(raw)) return { pairs: out, rejected: ["hub returned no pair list"] };
+    for (var i = 0; i < raw.length; i++) {
+      var p = raw[i] || {};
+      var a = String(p.a || ""), b = String(p.b || "");
+      var key = pairKey(a, b);
+      if (!validIds[a] || !validIds[b]) { rejected.push(a + "+" + b + ": unknown id"); continue; }
+      if (a === b) { rejected.push(a + ": paired with themselves"); continue; }
+      if (done[key]) { rejected.push(nameOf(a) + "+" + nameOf(b) + ": already talked"); continue; }
+      if (seen[key]) continue;
+      if ((used[a] || 0) >= MAX_PAIRS_PER_PERSON || (used[b] || 0) >= MAX_PAIRS_PER_PERSON) {
+        rejected.push(nameOf(a) + "+" + nameOf(b) + ": over the per-person limit"); continue;
+      }
+      if (out.length >= PAIRS_PER_ROUND) { rejected.push(nameOf(a) + "+" + nameOf(b) + ": over the round limit"); continue; }
+      seen[key] = true;
+      used[a] = (used[a] || 0) + 1;
+      used[b] = (used[b] || 0) + 1;
+      out.push({ a: a, b: b, why: String(p.why || "") });
+    }
+    return { pairs: out, rejected: rejected };
+  }
+
+  // ---- the round ------------------------------------------------------------
+  async function buildCard(p, signal) {
+    var card = await askJson(cardPrompt(p.source, p.raw), "default", signal);
+    if (!card || typeof card !== "object") throw { code: "invalid_json" };
+    p.card = card;
+    log("hub", "thought", "Read " + p.name + "'s dossier (from " + p.source + ") and wrote their card: \"" + (card.essence || "") + "\"" +
+      realNote(card), null);
+  }
+  function realNote(card) {
+    var r = card.real_vs_public;
+    if (!r || typeof r.score !== "number") return "";
+    return "\nReal-vs-public score " + r.score + "/5: " + (r.note || "");
+  }
+
+  async function choosePairs(signal) {
+    var ready = [], validIds = {};
+    for (var i = 0; i < state.people.length; i++) {
+      if (state.people[i].card) { ready.push(state.people[i]); validIds[state.people[i].id] = true; }
+    }
+    var done = {}, doneList = [], talked = {};
+    for (var j = 0; j < state.conversations.length; j++) {
+      var c = state.conversations[j];
+      if (c.status === "failed") continue;
+      done[pairKey(c.a, c.b)] = true;
+      doneList.push(c.a + "+" + c.b);
+      talked[c.a] = true; talked[c.b] = true;
+    }
+    var newcomers = [];
+    for (var k = 0; k < ready.length; k++) { if (!talked[ready[k].id]) newcomers.push(ready[k].id); }
+    if (ready.length < 2) { log("code", "check", "Fewer than 2 people have a card. Nothing to pair."); return []; }
+    runStatus = "The hub is reading " + ready.length + " cards and choosing who should talk…";
+    scheduleRender();
+    var res = await askJson(pairPrompt(ready, doneList, newcomers), "default", signal);
+    log("hub", "thought", String((res && res.thoughts) || "(the hub gave no reasoning)"));
+    var cleaned = cleanPairs(res && res.pairs, validIds, done);
+    for (var r = 0; r < cleaned.rejected.length; r++) log("code", "check", "Rejected a pair the hub picked: " + cleaned.rejected[r]);
+    for (var q = 0; q < cleaned.pairs.length; q++) {
+      var pr = cleaned.pairs[q];
+      log("hub", "decision", "Pair " + nameOf(pr.a) + " + " + nameOf(pr.b) + " to talk. " + pr.why);
+    }
+    if (cleaned.pairs.length === 0) log("hub", "decision", "No new pairs worth a conversation this round.");
+    return cleaned.pairs;
+  }
+
+  async function converse(pair, signal) {
+    var a = person(pair.a), b = person(pair.b);
+    var c = { id: uid("c"), a: a.id, b: b.id, why: pair.why, status: "live", turns: [], verdict: null,
+              round: state.rounds, startedAt: now() };
+    state.conversations.push(c);
+    if (!ui.conv || !conv(ui.conv) || conv(ui.conv).status !== "live") ui.conv = c.id;
+    log("system", "system", nameOf(a.id) + "'s agent and " + nameOf(b.id) + "'s agent opened a private conversation.", c.id);
+    for (var i = 0; i < TURNS; i++) {
+      var me = a, other = b;
+      if (i % 2 === 1) { me = b; other = a; }
+      var turn = { by: me.id, text: "" };
+      c.turns.push(turn);
+      scheduleRender();
+      var text = await askText(turnPrompt(me, other, { turns: c.turns.slice(0, c.turns.length - 1) }, i),
+        turnTier(), signal,
+        function (u) { turn.text = u.text; scheduleRender(); });
+      turn.text = text.trim();
+      log("agent", "message", me.name + "'s agent: " + turn.text, c.id);
+    }
+    c.status = "done";
+    c.endedAt = now();
+    return c;
+  }
+
+  async function judge(c, signal) {
+    var a = person(c.a), b = person(c.b);
+    runStatus = "The hub is judging " + a.name + " + " + b.name + "…";
+    scheduleRender();
+    var v = await askJson(verdictPrompt(a, b, c), "complex", signal);
+    if (!v || typeof v !== "object") throw { code: "invalid_json" };
+    var ev = verifyEvidence(v.evidence, c);
+    var depth = Number(v.depth);
+    if (!(depth >= 1 && depth <= 10)) depth = 0;
+    log("hub", "thought", "On " + a.name + " + " + b.name + ": " + String(v.thoughts || ""), c.id);
+    if (ev.dropped.length > 0) {
+      log("code", "check", "Discarded " + ev.dropped.length + " evidence quote(s) that don't appear in the transcript: \"" + ev.dropped.join("\" | \"") + "\"", c.id);
+    }
+    var reasons = [];
+    if (v.recommend !== true) reasons.push("hub did not recommend");
+    if (depth < DEPTH_BAR) reasons.push("depth " + depth + " < " + DEPTH_BAR);
+    if (ev.kept.length < MIN_VERIFIED_EVIDENCE) reasons.push("only " + ev.kept.length + " verified quote(s), need " + MIN_VERIFIED_EVIDENCE);
+    var propose = reasons.length === 0;
+    c.verdict = { depth: depth, recommend: v.recommend === true, headline: String(v.headline || ""), thoughts: String(v.thoughts || ""),
+                  evidence: ev.kept, dropped: ev.dropped, tensions: listOr(v.tensions), invite: v.invite || {},
+                  proposed: propose, gate: reasons };
+    if (propose) {
+      log("code", "check", "Gate passed: recommended, depth " + depth + "/10, " + ev.kept.length + " verified quotes.", c.id);
+      var inv = v.invite || {};
+      state.proposals.push({ id: uid("m"), conv: c.id, a: a.id, b: b.id, headline: c.verdict.headline, depth: depth,
+        invite: { activity: String(inv.activity || ""), when: String(inv.when || ""), where: String(inv.where || "") },
+        pitch: { a: String(inv.to_a || ""), b: String(inv.to_b || "") }, answers: {}, createdAt: now() });
+      log("hub", "decision", "Invite " + a.name + " and " + b.name + " to meet: " + c.verdict.headline, c.id);
+    } else {
+      log("code", "check", "No invitation for " + a.name + " + " + b.name + ": " + reasons.join("; ") + ".", c.id);
+    }
+  }
+
+  async function runRound() {
+    if (!sample || runner) return;
+    runner = new AbortController();
+    var signal = runner.signal;
+    saveError = "";
+    state.rounds += 1;
+    log("human", "system", "A human pressed Run (round " + state.rounds + "). From here until the yes/no invitation, no human is involved.");
+    try {
+      var missing = [];
+      for (var i = 0; i < state.people.length; i++) { if (!state.people[i].card) missing.push(state.people[i]); }
+      if (missing.length > 0) {
+        runStatus = "The hub is reading " + missing.length + " dossier(s)…";
+        scheduleRender();
+        var tasks = [];
+        for (var m = 0; m < missing.length; m++) tasks.push(cardTask(missing[m], signal));
+        throwFirst(await Promise.allSettled(tasks));
+      }
+      var pairs = await choosePairs(signal);
+      var next = 0;
+      async function worker() {
+        while (next < pairs.length && !signal.aborted) {
+          var pair = pairs[next];
+          next += 1;
+          runStatus = "Agents talking: " + nameOf(pair.a) + " + " + nameOf(pair.b) + "…";
+          scheduleRender();
+          var c = null;
+          try {
+            c = await converse(pair, signal);
+            await judge(c, signal);
+          } catch (e) {
+            var code = errCode(e);
+            if (c) c.status = "failed";
+            else markLiveFailed(pair);
+            log("system", "system", "Conversation " + nameOf(pair.a) + " + " + nameOf(pair.b) + " stopped: " + errCopy(code));
+            if (isFatal(code)) { if (runner) runner.abort(); throw e; }
+          }
+        }
+      }
+      throwFirst(await Promise.allSettled([worker(), worker()]));
+      runStatus = "Round " + state.rounds + " finished. Saving results into the page…";
+      log("system", "system", "Round " + state.rounds + " finished.");
+    } catch (e) {
+      runStatus = errCopy(errCode(e)) + " Saving what finished…";
+      log("system", "system", "Round stopped: " + errCopy(errCode(e)));
+    } finally {
+      for (var k = 0; k < state.conversations.length; k++) {
+        if (state.conversations[k].status === "live") state.conversations[k].status = "failed";
+      }
+      runner = null;
+      scheduleRender();
+      await save();
+    }
+  }
+  async function cardTask(p, signal) {
+    try { await buildCard(p, signal); }
+    catch (e) {
+      var code = errCode(e);
+      log("system", "system", "Couldn't read " + p.name + "'s dossier: " + errCopy(code));
+      if (isFatal(code)) throw e;
+    }
+  }
+  function markLiveFailed(pair) {
+    for (var i = 0; i < state.conversations.length; i++) {
+      var c = state.conversations[i];
+      if (c.status === "live" && pairKey(c.a, c.b) === pairKey(pair.a, pair.b)) c.status = "failed";
+    }
+  }
+
+  // ---- saving: the page itself is the record --------------------------------
+  function buildDoc() {
+    var css = document.getElementById("lounge-css").textContent;
+    var app = document.getElementById("lounge-app").textContent;
+    var json = JSON.stringify(state).replace(/</g, "\\u003c");
+    return "<!doctype html>\n<html lang=\"en\"><head><meta charset=\"utf-8\">" +
+      "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, viewport-fit=cover\">" +
+      "<title>Clawnly Lounge</title>" + FONT_LINK + "<style id=\"lounge-css\">" + css + "</style></head><body>" +
+      "<div id=\"root\"></div><script type=\"application/json\" id=\"clawnly-state\">" + json + "<\/script>" +
+      "<script id=\"lounge-app\">" + app + "<\/script></body></html>";
+  }
+  async function save() {
+    if (!artifactApi) {
+      saveError = "This view can't save. Results stay on screen until you leave.";
+      render();
+      return false;
+    }
+    runStatus = "Saving…";
+    render();
+    try {
+      await artifactApi.publish(buildDoc());
+      dirty = false;
+      runStatus = "Saved into the page.";
+      render();
+      return true;      // every open view reloads to the saved version
+    } catch (e) {
+      var code = errCode(e);
+      if (code === "conflict") saveError = "Someone else saved at the same moment; the page will reload with their version.";
+      else if (code === "not_granted" || code === "not_writer") saveError = "You can read everything here, but only people with edit access can save. Ask the owner for edit access to add results.";
+      else saveError = "Saving failed (" + code + "). Your results are still on screen.";
+      runStatus = "";
+      render();
+      return false;
+    }
+  }
+
+  // ---- humans: yes or no ----------------------------------------------------
+  async function answer(pid, who, value) {
+    var pr = null;
+    for (var i = 0; i < state.proposals.length; i++) { if (state.proposals[i].id === pid) pr = state.proposals[i]; }
+    if (!pr || pr.answers[who]) return;
+    pr.answers[who] = value;
+    log("human", "human", nameOf(who) + " said " + value.toUpperCase() + " to meeting " + nameOf(otherOf(pr, who)) + ".", pr.conv);
+    if (pr.answers[pr.a] === "yes" && pr.answers[pr.b] === "yes") {
+      log("system", "system", "Both said yes. " + nameOf(pr.a) + " and " + nameOf(pr.b) + " are meeting: " + pr.invite.activity + ", " + pr.invite.when + ".", pr.conv);
+    }
+    render();
+    await save();
+  }
+
+  // ---- join: bring your agent ----------------------------------------------
+  async function readDossier() {
+    var j = ui.join;
+    j.error = "";
+    if (j.name.trim().length === 0) { j.error = "Add your first name."; render(); return; }
+    if (j.text.trim().length < 400) { j.error = "That's too short to represent you. Paste your AI's full answer (at least a few paragraphs)."; render(); return; }
+    if (!j.consent) { j.error = "Tick the box to confirm you're OK with this being visible to everyone with the link."; render(); return; }
+    if (!sample) { j.error = "Open this page in Claude, signed in, to read your dossier."; render(); return; }
+    j.busy = true; render();
+    try {
+      var ctl = new AbortController();
+      j.card = await askJson(cardPrompt(j.source, j.text), "default", ctl.signal);
+    } catch (e) { j.error = errCopy(errCode(e)); }
+    j.busy = false; render();
+  }
+  async function addMe() {
+    var j = ui.join;
+    if (!j.card) return;
+    var p = { id: uid("p"), name: j.name.trim().split(/\s+/)[0].slice(0, 30), source: j.source, sample: false,
+              raw: j.text.trim().slice(0, 8000), card: j.card, joinedAt: now() };
+    state.people.push(p);
+    log("human", "human", p.name + " joined and brought their agent from " + p.source + "." + realNote(p.card));
+    ui.join = { source: "ChatGPT", name: "", text: "", consent: false, card: null, busy: false, error: "" };
+    ui.tab = "people";
+    render();
+    await save();
+  }
+
+  function resetResults() {
+    state.conversations = []; state.proposals = []; state.log = []; state.rounds = 0;
+    for (var i = 0; i < state.people.length; i++) { if (state.people[i].sample) delete state.people[i].card; }
+    ui.confirmReset = false;
+    log("human", "system", "Results cleared (people kept).");
+    save();
+  }
+
+  // ---- rendering ------------------------------------------------------------
+  var pending = false;
+  function scheduleRender() {
+    // never redraw under someone typing their dossier
+    if (pending || ui.tab === "join") return;
+    pending = true;
+    requestAnimationFrame(function () { pending = false; render(); });
+  }
+
+  function stats() {
+    var done = 0, decided = 0, mutual = 0;
+    for (var i = 0; i < state.conversations.length; i++) { if (state.conversations[i].status === "done") done += 1; }
+    for (var j = 0; j < state.proposals.length; j++) {
+      var p = state.proposals[j];
+      var aa = p.answers[p.a], bb = p.answers[p.b];
+      if (aa === "no" || bb === "no" || (aa && bb)) decided += 1;
+      if (aa === "yes" && bb === "yes") mutual += 1;
+    }
+    var hit = "--";
+    if (decided > 0) hit = Math.round(100 * mutual / decided) + "%";
+    return { people: state.people.length, done: done, proposals: state.proposals.length, mutual: mutual, decided: decided, hit: hit };
+  }
+
+  function render() {
+    var root = document.getElementById("root");
+    var keepScroll = null;
+    var reader = document.getElementById("reader-body");
+    if (reader) keepScroll = { top: reader.scrollTop, atBottom: reader.scrollHeight - reader.scrollTop - reader.clientHeight < 40 };
+    var s = stats();
+    var html = [];
+    html.push('<div class="wrap"><header class="top"><div class="brand"><h1>Clawnly <em>Lounge</em></h1></div>');
+    html.push('<p class="thesis">Everyone brings the AI that already knows them. <b>Agents talk to agents in private</b>, the hub decides who should meet, and <b>humans only say yes or no</b>.</p>');
+    html.push('<div class="stats">' +
+      statTile(s.people, "people") + statTile(s.done, "agent chats") + statTile(s.proposals, "invitations") +
+      statTile(s.mutual, "both said yes") + '<div class="stat hit"><div class="n">' + esc(s.hit) + '</div><div class="l">hit rate (' + s.decided + ' decided)</div></div></div>');
+    html.push(runBar());
+    html.push("</header>");
+    if (saveError) html.push('<div class="notice warn">' + esc(saveError) + "</div>");
+    html.push(tabs(s));
+    html.push('<main id="panel">' + panel() + "</main></div>");
+    root.innerHTML = html.join("");
+    var body = document.getElementById("reader-body");
+    if (body && keepScroll) {
+      if (keepScroll.atBottom) body.scrollTop = body.scrollHeight; else body.scrollTop = keepScroll.top;
+    }
+    if (ui.tab === "join") restoreJoinFields();
+  }
+  function statTile(n, label) { return '<div class="stat"><div class="n">' + esc(n) + '</div><div class="l">' + esc(label) + "</div></div>"; }
+
+  function runBar() {
+    var out = ['<div class="runbar">'];
+    if (runner) {
+      out.push('<div class="status"><span class="dot on"></span><b>Agents are talking.</b> ' + esc(runStatus) + '</div>');
+      out.push('<button class="btn" data-act="stop">Stop</button>');
+    } else if (!sample) {
+      out.push('<div class="status">Reading mode. Open this page in Claude, signed in, to run the agents or bring your own. Everything they said is below.</div>');
+    } else {
+      var msg = "Ready. Each round the hub picks who should talk, the agents talk, and the hub decides who gets an invitation. It uses your Claude usage.";
+      if (runStatus) msg = runStatus;
+      out.push('<div class="status"><span class="dot"></span>' + esc(msg) + '</div>');
+      out.push('<label class="small muted" for="speed">Agent depth</label><select id="speed" class="select" data-act="speed">' +
+        '<option value="deep"' + selectedIf(ui.speed !== "fast") + '>Deep (slower)</option>' +
+        '<option value="fast"' + selectedIf(ui.speed === "fast") + '>Fast</option></select>');
+      out.push('<button class="btn primary" data-act="run">Let the agents talk</button>');
+    }
+    out.push("</div>");
+    return out.join("");
+  }
+
+  function tabs(s) {
+    var list = [["meetings", "Invitations", s.proposals], ["chats", "Agent chats", state.conversations.length],
+                ["log", "Behind the scenes", state.log.length], ["people", "People", s.people], ["join", "Bring your agent", null]];
+    var out = ['<nav class="tabs" role="tablist">'];
+    for (var i = 0; i < list.length; i++) {
+      var t = list[i];
+      var count = "";
+      if (t[2] !== null) count = '<span class="count">' + t[2] + "</span>";
+      out.push('<button role="tab" data-act="tab" data-tab="' + t[0] + '" aria-selected="' + (ui.tab === t[0]) + '">' + esc(t[1]) + count + "</button>");
+    }
+    out.push("</nav>");
+    return out.join("");
+  }
+
+  function panel() {
+    if (ui.tab === "chats") return chatsPanel();
+    if (ui.tab === "log") return logPanel();
+    if (ui.tab === "people") return peoplePanel();
+    if (ui.tab === "join") return joinPanel();
+    return meetingsPanel();
+  }
+
+  function howItWorks() {
+    return '<ul class="how">' +
+      '<li><b>1. Bring your agent</b>Paste what ChatGPT, Claude, Muse or Instinct knows about the real you. Not your social media self.</li>' +
+      '<li><b>2. The hub picks pairs</b>The orchestrator reads every card and decides which agents should talk.</li>' +
+      '<li><b>3. Agents talk</b>Each agent knows only its own person and says "I don\'t know" rather than invent.</li>' +
+      '<li><b>4. Code checks the hub</b>Invitations need depth 8/10+ and quotes that really appear in the chat.</li>' +
+      '<li class="human"><b>5. You: yes or no</b>The only moment a human is involved. Both yes, you meet.</li></ul>';
+  }
+
+  function meetingsPanel() {
+    var out = ["<h2>Invitations</h2>", '<p class="lede">What the humans see. Every invitation came out of a private agent conversation you can read in full.</p>'];
+    out.push(howItWorks());
+    out.push('<div style="height:20px"></div>');
+    if (state.proposals.length === 0) {
+      var msg = "No invitations yet. Press <b>Let the agents talk</b>: the hub will pair agents, they'll talk, and only strong connections become invitations.";
+      if (state.conversations.length > 0) msg = "The hub read " + state.conversations.length + " conversation(s) and hasn't found a connection strong enough to invite anyone yet. That's by design: it would rather invite no one than the wrong people.";
+      out.push('<div class="empty">' + msg + "</div>");
+    } else {
+      out.push('<div class="meetings">');
+      for (var i = state.proposals.length - 1; i >= 0; i--) out.push(meetingCard(state.proposals[i]));
+      out.push("</div>");
+    }
+    var declined = [];
+    for (var j = state.conversations.length - 1; j >= 0; j--) {
+      var c = state.conversations[j];
+      if (c.verdict && !c.verdict.proposed) declined.push(c);
+    }
+    if (declined.length > 0) {
+      out.push('<section class="declined"><h3>Conversations the hub decided not to turn into invitations (' + declined.length + ")</h3><div class=\"rows\">");
+      for (var k = 0; k < declined.length; k++) {
+        var d = declined[k];
+        out.push('<div class="row"><span class="names">' + esc(nameOf(d.a)) + " + " + esc(nameOf(d.b)) + '</span><span class="chip">depth ' + esc(d.verdict.depth) + '/10</span><span class="txt">' +
+          esc(d.verdict.headline) + '</span><button class="link" data-act="open" data-conv="' + d.id + '">Read the chat</button></div>');
+      }
+      out.push("</div></section>");
+    }
+    return out.join("");
+  }
+
+  function meetingCard(p) {
+    var aa = p.answers[p.a], bb = p.answers[p.b];
+    var on = aa === "yes" && bb === "yes";
+    var off = aa === "no" || bb === "no";
+    var status = '<span class="chip h">waiting on answers</span>';
+    if (on) status = '<span class="chip good">both said yes, it\'s on</span>';
+    else if (off) status = '<span class="chip bad">declined</span>';
+    var c = conv(p.conv);
+    var cls = "meeting";
+    if (on) cls = "meeting on";
+    var out = ['<article class="' + cls + '">'];
+    out.push('<div class="head"><span class="who">' + esc(nameOf(p.a)) + " &amp; " + esc(nameOf(p.b)) + '</span><span class="chip a">depth ' + esc(p.depth) + "/10</span>" + status + "</div>");
+    out.push('<p class="headline">' + esc(p.headline) + "</p>");
+    out.push('<div class="invite"><span><b>What:</b> ' + esc(p.invite.activity || "to be agreed") + '</span><span><b>When:</b> ' + esc(p.invite.when || "to be agreed") + '</span><span><b>Where:</b> ' + esc(p.invite.where || "to be agreed") + "</span></div>");
+    out.push('<div class="sides">' + side(p, p.a, p.pitch.a, aa) + side(p, p.b, p.pitch.b, bb) + "</div>");
+    if (c && c.verdict && c.verdict.evidence.length > 0) {
+      out.push('<ul class="evidence">');
+      for (var i = 0; i < c.verdict.evidence.length; i++) {
+        var e = c.verdict.evidence[i];
+        out.push("<li><q>" + esc(e.quote) + '</q> <span class="why">(' + esc(e.why) + ")</span></li>");
+      }
+      out.push("</ul>");
+    }
+    out.push('<div class="links"><button class="link" data-act="open" data-conv="' + p.conv + '">Read the agents\' conversation</button></div>');
+    out.push("</article>");
+    return out.join("");
+  }
+  function side(p, who, pitch, ans) {
+    var out = ['<div class="side"><span class="to">To ' + esc(nameOf(who)) + "</span><p>" + esc(pitch) + '</p><div class="act">'];
+    if (ans) out.push('<span class="answer ' + ans + '">' + esc(nameOf(who)) + " said " + ans + "</span>");
+    else out.push('<button class="btn yes" data-act="answer" data-p="' + p.id + '" data-who="' + who + '" data-v="yes">Yes, I\'ll meet</button>' +
+      '<button class="btn no" data-act="answer" data-p="' + p.id + '" data-who="' + who + '" data-v="no">No thanks</button>');
+    out.push("</div></div>");
+    return out.join("");
+  }
+
+  function chatsPanel() {
+    var out = ["<h2>Agent chats</h2>", '<p class="lede">Every private conversation between agents, word for word. Each agent only knows its own person and says so when it doesn\'t know something.</p>'];
+    if (state.conversations.length === 0) {
+      out.push('<div class="empty">No conversations yet. Press <b>Let the agents talk</b> and watch them appear here live.</div>');
+      return out.join("");
+    }
+    var selected = conv(ui.conv);
+    if (!selected) selected = state.conversations[state.conversations.length - 1];
+    out.push('<div class="chats"><div class="convlist">');
+    for (var i = state.conversations.length - 1; i >= 0; i--) {
+      var c = state.conversations[i];
+      out.push('<button class="convbtn" data-act="open" data-conv="' + c.id + '" aria-current="' + (c === selected) + '"><span class="names">' +
+        esc(nameOf(c.a)) + " + " + esc(nameOf(c.b)) + "</span><span>" + convChip(c) + "</span></button>");
+    }
+    out.push("</div>" + readerView(selected) + "</div>");
+    return out.join("");
+  }
+  function convChip(c) {
+    if (c.status === "live") return '<span class="chip a">live</span>';
+    if (c.status === "failed") return '<span class="chip bad">interrupted</span>';
+    if (!c.verdict) return '<span class="chip">awaiting hub</span>';
+    if (c.verdict.proposed) return '<span class="chip good">invited · ' + esc(c.verdict.depth) + "/10</span>";
+    return '<span class="chip">not invited · ' + esc(c.verdict.depth) + "/10</span>";
+  }
+  function readerView(c) {
+    var out = ['<section class="reader"><div class="rhead"><h3>' + esc(nameOf(c.a)) + "'s agent &amp; " + esc(nameOf(c.b)) + "'s agent</h3>" + convChip(c) + "</div>"];
+    if (c.why) out.push('<p class="thoughts"><b>Why the hub paired them:</b> ' + esc(c.why) + "</p>");
+    out.push('<div id="reader-body" style="display:grid; gap:10px; max-height:560px; overflow-y:auto; padding-right:4px">');
+    for (var i = 0; i < c.turns.length; i++) {
+      var t = c.turns[i];
+      var cls = "b";
+      if (t.by === c.a) cls = "a";
+      var text = t.text;
+      var extra = "";
+      if (!text) { text = "thinking…"; extra = " wait"; }
+      out.push('<div class="bubble ' + cls + extra + '"><span class="by">' + esc(nameOf(t.by)) + "'s agent · from " + esc((person(t.by) || {}).source || "") + "</span>" + esc(text) + "</div>");
+    }
+    out.push("</div>");
+    if (c.verdict) {
+      var v = c.verdict;
+      var sent = '<span class="chip">no invitation</span>';
+      if (v.proposed) sent = '<span class="chip good">invitation sent</span>';
+      out.push('<div class="verdict"><div class="vh"><b>Hub verdict</b><span class="chip a">depth ' + esc(v.depth) + "/10</span>" + sent + "</div>");
+      out.push("<p>" + esc(v.headline) + "</p>");
+      out.push('<p class="thoughts"><b>Hub\'s reasoning:</b> ' + esc(v.thoughts) + "</p>");
+      if (v.tensions.length > 0) out.push('<p class="small"><b>Risks:</b> ' + esc(joinList(v.tensions)) + "</p>");
+      if (v.gate.length > 0) out.push('<p class="small muted"><b>Code gate:</b> ' + esc(v.gate.join("; ")) + "</p>");
+      if (v.dropped.length > 0) out.push('<p class="small muted"><b>Quotes discarded by code (not in transcript):</b> ' + esc(v.dropped.join(" | ")) + "</p>");
+      out.push("</div>");
+    }
+    out.push("</section>");
+    return out.join("");
+  }
+
+  var FILTERS = [["all", "Everything"], ["thought", "Hub thoughts"], ["decision", "Hub decisions"], ["message", "Agent messages"], ["check", "Code checks"], ["human", "Humans"]];
+  function logPanel() {
+    var out = ["<h2>Behind the scenes</h2>", '<p class="lede">The full activity log: the hub\'s reasoning, every agent message, every check the code ran on the hub, and the few moments a human stepped in.</p>'];
+    out.push('<div class="logtools">');
+    for (var i = 0; i < FILTERS.length; i++) {
+      out.push('<button class="filter" data-act="filter" data-f="' + FILTERS[i][0] + '" aria-pressed="' + (ui.logFilter === FILTERS[i][0]) + '">' + FILTERS[i][1] + "</button>");
+    }
+    out.push('<span style="flex:1"></span>');
+    if (ui.confirmReset) out.push('<span class="small">Clear all chats, invitations and the log? People stay.</span><button class="btn no" data-act="reset-yes">Clear</button><button class="btn" data-act="reset-no">Cancel</button>');
+    else if (sample && !runner) out.push('<button class="btn" data-act="reset">Start over</button>');
+    out.push("</div>");
+    var rows = [];
+    for (var j = 0; j < state.log.length; j++) {
+      var e = state.log[j];
+      if (ui.logFilter !== "all" && e.kind !== ui.logFilter) continue;
+      rows.push(e);
+    }
+    if (rows.length === 0) { out.push('<div class="empty">Nothing logged yet.</div>'); return out.join(""); }
+    out.push('<div class="log">');
+    for (var k = 0; k < rows.length; k++) {
+      var r = rows[k];
+      var who = { hub: "Hub", agent: "Agent", code: "Code check", human: "Human", system: "System" }[r.actor] || r.actor;
+      var t = r.t.slice(11, 19);
+      var link = "";
+      if (r.ref) link = ' <button class="link" data-act="open" data-conv="' + r.ref + '">open chat</button>';
+      out.push('<div class="logline"><span class="t">' + esc(t) + '</span><span class="who ' + esc(r.actor) + '">' + esc(who) + " · " + esc(r.kind) + '</span><span class="x">' + esc(r.text) + link + "</span></div>");
+    }
+    out.push("</div>");
+    return out.join("");
+  }
+
+  function peoplePanel() {
+    var out = ["<h2>People</h2>", '<p class="lede">Who the agents represent. Sample people are fictional, written the way a person\'s own AI would describe them. Real people joined through <b>Bring your agent</b>.</p><div class="people">'];
+    for (var i = 0; i < state.people.length; i++) {
+      var p = state.people[i], c = p.card;
+      out.push('<article class="person"><div class="pn"><b>' + esc(p.name) + '</b><span class="chip b">from ' + esc(p.source) + "</span>" +
+        kindChip(p) + "</div>");
+      if (c) {
+        out.push("<p>" + esc(c.essence) + "</p>");
+        out.push('<p><span class="k">Chapter</span>' + esc(c.chapter) + "</p>");
+        out.push('<p><span class="k">Needs from friends</span>' + esc(c.needs) + "</p>");
+        out.push('<p><span class="k">Missing</span>' + esc(c.missing) + "</p>");
+        if (Array.isArray(c.unknowns) && c.unknowns.length > 0) out.push('<p class="small muted">The agent doesn\'t know: ' + esc(joinList(c.unknowns)) + "</p>");
+      } else {
+        out.push('<p class="muted small">No card yet. The hub writes one from this dossier on the next run.</p>');
+      }
+      out.push("<details><summary>What their AI said</summary><div class=\"raw\">" + esc(p.raw) + "</div></details></article>");
+    }
+    out.push("</div>");
+    return out.join("");
+  }
+
+  function joinPanel() {
+    var j = ui.join;
+    var out = ["<h2>Bring your agent</h2>", '<p class="lede">Your agent should represent the real you, not your social media self. The AI you already confide in knows that person best.</p><div class="join">'];
+    out.push('<section class="step"><span class="n">STEP 1</span><h3>Ask the AI that knows you</h3><div class="seg">');
+    for (var i = 0; i < SOURCES.length; i++) {
+      out.push('<button data-act="source" data-s="' + SOURCES[i] + '" aria-pressed="' + (j.source === SOURCES[i]) + '">' + SOURCES[i] + "</button>");
+    }
+    out.push('</div><p class="small muted">' + esc(TOOL_HINTS[j.source]) + "</p>");
+    out.push('<pre class="prompt" id="import-prompt">' + esc(IMPORT_PROMPT) + '</pre><div><button class="btn" data-act="copy">Copy the prompt</button> <span class="small muted" id="copied"></span></div></section>');
+    out.push('<section class="step"><span class="n">STEP 2</span><h3>Paste its answer</h3>');
+    out.push('<label class="f" for="j-name">Your first name<input type="text" id="j-name" autocomplete="given-name" maxlength="30"></label>');
+    out.push('<label class="f" for="j-text">What ' + esc(j.source) + ' wrote about you<textarea id="j-text" placeholder="You\'re 32 and ..."></textarea></label>');
+    out.push('<label class="consent" for="j-consent"><input type="checkbox" id="j-consent"><span>This is a demo: everything I paste, and every conversation my agent has, is visible to everyone with this link. I\'ve removed anything I wouldn\'t want seen.</span></label>');
+    if (j.error) out.push('<p class="err">' + esc(j.error) + "</p>");
+    var label = "Build my agent's card", dis = "";
+    if (j.busy) { label = "Reading…"; dis = " disabled"; }
+    out.push('<div><button class="btn primary" data-act="read"' + dis + ">" + label + "</button></div></section>");
+    if (j.card) {
+      var c = j.card;
+      out.push('<section class="step"><span class="n">STEP 3</span><h3>This is how your agent will introduce you</h3>');
+      var r = c.real_vs_public;
+      if (r && typeof r.score === "number") {
+        var cls = "good";
+        if (r.score <= 3) cls = "bad";
+        out.push('<p><span class="chip ' + cls + '">real-you score ' + esc(r.score) + "/5</span> " + esc(r.note) + "</p>");
+        if (r.score <= 3) out.push('<p class="small">This reads more like a public profile. Ask your AI to go deeper (what\'s hard right now, what you need from friends), then paste again.</p>');
+      }
+      out.push("<p>" + esc(c.essence) + "</p><p class=\"small\"><b>Chapter:</b> " + esc(c.chapter) + "</p><p class=\"small\"><b>Needs:</b> " + esc(c.needs) + "</p><p class=\"small\"><b>Gives:</b> " + esc(c.gives) + "</p><p class=\"small\"><b>Free:</b> " + esc(c.free) + " · <b>Area:</b> " + esc(c.area) + "</p>");
+      if (Array.isArray(c.unknowns) && c.unknowns.length > 0) out.push('<p class="small muted">Your agent will say "I don\'t know" about: ' + esc(joinList(c.unknowns)) + "</p>");
+      out.push('<div><button class="btn primary" data-act="add">Add my agent to the lounge</button></div><p class="small muted">Then press <b>Let the agents talk</b>. The hub gives newcomers a conversation first.</p></section>');
+    }
+    out.push("</div>");
+    return out.join("");
+  }
+  function restoreJoinFields() {
+    var n = document.getElementById("j-name"), t = document.getElementById("j-text"), c = document.getElementById("j-consent");
+    if (n) n.value = ui.join.name;
+    if (t) t.value = ui.join.text;
+    if (c) c.checked = ui.join.consent;
+  }
+
+  // ---- events ---------------------------------------------------------------
+  document.addEventListener("click", function (ev) {
+    var el = ev.target.closest("[data-act]");
+    if (!el) return;
+    var act = el.getAttribute("data-act");
+    if (act === "tab") { ui.tab = el.getAttribute("data-tab"); remember(); render(); return; }
+    if (act === "open") { ui.conv = el.getAttribute("data-conv"); ui.tab = "chats"; remember(); render(); window.scrollTo(0, 0); return; }
+    if (act === "run") { runRound(); render(); return; }
+    if (act === "stop") { if (runner) runner.abort(); return; }
+    if (act === "answer") { answer(el.getAttribute("data-p"), el.getAttribute("data-who"), el.getAttribute("data-v")); return; }
+    if (act === "filter") { ui.logFilter = el.getAttribute("data-f"); render(); return; }
+    if (act === "source") { ui.join.source = el.getAttribute("data-s"); render(); return; }
+    if (act === "read") { readDossier(); return; }
+    if (act === "add") { addMe(); return; }
+    if (act === "reset") { ui.confirmReset = true; render(); return; }
+    if (act === "reset-no") { ui.confirmReset = false; render(); return; }
+    if (act === "reset-yes") { resetResults(); return; }
+    if (act === "copy") {
+      var note = document.getElementById("copied");
+      try {
+        navigator.clipboard.writeText(IMPORT_PROMPT).then(function () { if (note) note.textContent = "Copied."; },
+          function () { selectPrompt(); if (note) note.textContent = "Selected. Press Ctrl/Cmd+C to copy."; });
+      } catch (e) { selectPrompt(); if (note) note.textContent = "Selected. Press Ctrl/Cmd+C to copy."; }
+    }
+  });
+  document.addEventListener("input", function (ev) {
+    var id = ev.target.id;
+    if (id === "j-name") ui.join.name = ev.target.value;
+    if (id === "j-text") ui.join.text = ev.target.value;
+  });
+  document.addEventListener("change", function (ev) {
+    if (ev.target.id === "j-consent") ui.join.consent = ev.target.checked;
+    if (ev.target.id === "speed") ui.speed = ev.target.value;
+  });
+  function selectPrompt() {
+    var pre = document.getElementById("import-prompt");
+    if (!pre) return;
+    var range = document.createRange();
+    range.selectNodeContents(pre);
+    var sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+  }
+  function remember() { try { localStorage.setItem("lounge-tab", ui.tab); } catch (e) { } }
+
+  window.addEventListener("beforeunload", function (ev) {
+    if (runner) { ev.preventDefault(); ev.returnValue = ""; }
+  });
+
+  // ---- boot -----------------------------------------------------------------
+  try { var savedTab = localStorage.getItem("lounge-tab"); if (savedTab) ui.tab = savedTab; } catch (e) { }
+  var hash = (location.hash || "").replace("#", "");
+  if (["meetings", "chats", "log", "people", "join"].indexOf(hash) !== -1) ui.tab = hash;
+  render();
+  if (window.claude && typeof window.claude.use === "function") {
+    window.claude.use("sample").then(function (fn) { sample = fn; render(); }, function () { });
+    window.claude.use("artifact").then(function (api) { artifactApi = api; }, function () { });
+  }
+})();
+</script>

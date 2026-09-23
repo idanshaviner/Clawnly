@@ -1,34 +1,39 @@
 # Clawnly -- instructions for Claude Code
 
-Read this first in every session. Full product vision lives in `docs/PRD.md`; the
-original technical spec (still mostly accurate, but the app has grown beyond it)
-is `docs/SPEC.md`. The engineering roadmap and current build status live in
-`docs/ROADMAP.md` -- read that before starting any new work so you know what's
-already done and what's next.
+Read this first in every session. What's being built right now, and in what
+order, is `docs/THIS_WEEK.md`; the longer-running history is `docs/ROADMAP.md`.
+`README.md` describes the product and the code as they are today.
 
 ## What this project is
 
-An AI matchmaking prototype: a Master Claw reasons across user profiles to form
-small, genuinely-compatible real-world friend groups, with grounded, defensible
-reasoning and hard constraints enforced in code (never trusted to the LLM). See
-`docs/PRD.md` section 0 for the exact definition of "legit matching" the whole
-product is built to prove.
+Agent-to-agent friend matching. Each person brings the AI that already knows
+them (ChatGPT, Claude, Muse, Instinct); what it writes about the real person
+becomes their Claw's dossier. Claws talk privately with each other; a hub picks
+who talks, judges every conversation, and invites two people to meet only when
+the fit is deep and provable from the transcript. Humans only say yes or no.
+Every hub thought, agent message and code check is logged. Hard rules (pair
+limits, verbatim-quote evidence, the depth gate, one invitation per person,
+name-blind pitches) are enforced in code, never trusted to the model.
 
 ## Current state (keep this updated)
 
-- Core matching engine (`claw.py`, `master_claw.py`, `negotiation.py`, `popup.py`)
-  is stable and tested. **Do not modify its core logic without an explicit
-  request** -- new capability gets added around it, not into it.
-- Persistence: SQLite via `db.py` (plain `sqlite3`, no ORM -- see its module
-  docstring for the full table list). Replaced the old in-memory `STATE` dict
-  and flat `cast.json`/`feedback.json` files.
-- Real-user pilot (neighborhood registration -> onboarding -> threshold-triggered
-  matching) is in progress. `src/auth.py` (Google OAuth + email magic link,
-  session-cookie-backed by a `sessions` table) is built and tested. See
-  `docs/ROADMAP.md` for the staged build plan and exactly which stage is done.
-- **Direction change (2026-09-23): agent-to-agent.** The new core is `dossier.py` ->
-  `agent_talk.py` -> `orchestrator.py` (hub), with every step logged to `db.events`.
-  See `docs/THIS_WEEK.md` for the plan and what is wired so far.
+- **2026-09-23: agent-to-agent pivot, old logic removed.** The core is
+  `dossier.py` (import prompt + card) -> `agent_talk.py` (the Claw) ->
+  `orchestrator.py` (the hub: pair -> talk -> judge -> gate), with every step in
+  `db.events` and every conversation in `db.agent_conversations`. `batch.py`
+  runs a hub round for a neighborhood and turns invitations into the yes/no gate
+  (`my_match.py`, stored as `matches` + `match_acceptances`).
+- The old group matcher, negotiation, meetup popups, onboarding chat, demo
+  console and its tooling are gone. They live on the `pre-agent-pivot` branch.
+  Don't resurrect them; take ideas from there deliberately.
+- Real-user pilot flow: `/join/<slug>` -> login (`auth.py`, Google OAuth + email
+  magic link, sessions in SQLite) -> `/consent` -> `/onboarding` (bring your
+  agent, `bring_agent.py`) -> hub round -> `/my-match`. Admin at `/admin`.
+- Persistence: SQLite via `db.py` (plain `sqlite3`, no ORM -- its module
+  docstring lists every table).
+- `lounge/clawnly-lounge.html` is a separate, shareable prototype of the same
+  idea, published as a claude.ai Artifact. Read its `README.md` before
+  republishing it: its saved state lives inside the published page.
 
 ## Hard style rules (SPEC section 10 -- these are non-negotiable, not style preference)
 
@@ -44,8 +49,12 @@ product is built to prove.
 ## Testing
 
 - Everything runs offline against a `FakeClient` (`tests/conftest.py`) that
-  routes `client.messages.create(**kwargs)` by inspecting the system prompt --
-  zero real API calls in CI, ever. Follow this pattern for any new AI call site.
+  routes `client.messages.create(**kwargs)` by a marker phrase in the system
+  prompt (card / agent turn / pairing / verdict) -- zero real API calls in CI,
+  ever. Follow this pattern for any new AI call site, and keep the marker phrase
+  on one line of the prompt (a line break inside it silently breaks routing).
+- `conftest.make_joined_resident()` creates a consented resident who has
+  brought their agent -- use it instead of hand-building resident rows.
 - `tests/conftest.py` points `CLAWNLY_DB_PATH` at an isolated test database
   before anything imports `db.py` -- tests never touch the real `clawnly.db`.
 - One test file per module (`test_auth.py` <-> `auth.py`, etc). `pytest -q`
@@ -103,7 +112,9 @@ product is built to prove.
 ## Model routing (product's own AI calls, not Claude Code's own model)
 
 `config.py` defines three tiers -- `MODEL_CHEAP` (Haiku), `MODEL_REASONING`
-(Sonnet), `MODEL_PREMIUM` (Opus) -- and named per-task aliases on top of them
-(`MODEL_MATCH`, `MODEL_CLAW`, etc). When adding a new AI call, pick the
-cheapest tier that can reliably do the job; read the comments in `config.py`
-for the reasoning behind each existing task's tier before changing one.
+(Sonnet), `MODEL_PREMIUM` (Opus 5.5) -- and named per-task aliases on top of
+them (`MODEL_AGENT_TURN`, `MODEL_HUB_VERDICT`, etc). When adding a new AI call,
+pick the cheapest tier that can reliably do the job; read the comments in
+`config.py` before changing one. Opus 5.5 has thinking always on (it counts
+toward `max_tokens`, so keep caps generous) and rejects `temperature` -- depth is
+set with `config.HUB_EFFORT`.

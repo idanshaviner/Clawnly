@@ -19,62 +19,56 @@ else serves them.
                     everything above is written to the behind-the-scenes log
 ```
 
-## What's already built (today)
-
-- **Prototype you can share now:** https://claude.ai/artifact/LUqHTUzFhN6JiKNCEmN3Ro
-- **The engine inside the real app** (`src/`, 334 tests passing):
-  - `dossier.py`: the "bring your agent" prompt, plus turning the pasted answer into a card
-    (with a "real you vs social-media you" score).
-  - `agent_talk.py`: the Claw. It represents one person from their own text only, talks
-    privately with another Claw, and says "I don't know" rather than invent.
-  - `orchestrator.py`: the hub. It picks pairs, runs conversations (3 at a time), and judges
-    each one. **Code** enforces the rules: no repeats, no invented quotes, and no invitation
-    unless depth >= 8/10 with at least 2 real quotes.
-  - `db.events`: the behind-the-scenes log. Every hub thought and decision, every agent
-    message, every code check. `db.agent_conversations` holds every chat plus its verdict.
-- Try the engine on 8 fictional people (needs your API key in `.env`):
-  `.venv/bin/python src/orchestrator.py`. It prints every event live and saves all of it.
-
 ## Status
 
-- **Mon: done.** Hub, Claw and event log (`dossier.py`, `agent_talk.py`, `orchestrator.py`).
-- **Tue: done.** `/onboarding` is now "Bring your agent" (`bring_agent.py`; routes `GET /api/agent`,
-  `POST /api/agent/preview`, `POST /api/agent/confirm`). Consent and privacy text rewritten.
-  Live-verified on a running server (scripted AI, since there's no key in this environment),
-  including a restart, and it passed a security review. The old chat routes (`/api/onboarding/*`,
-  `onboarding.py`) are no longer linked from any page. They stay until Wed, because the demos
-  (`pilot_demo.py`, `dryrun.py`) still drive them.
-- **Wed: next.** Confirming signup does NOT trigger a batch yet (on purpose: the old pipeline
-  would run on dossier-only residents).
+- **Mon: done.** The Claw (`agent_talk.py`), the hub (`orchestrator.py`), cards (`dossier.py`),
+  and the behind-the-scenes log (`db.events`, `db.agent_conversations`).
+- **Tue: done.** `/onboarding` is "Bring your agent" (`bring_agent.py`): copy a prompt into your
+  own AI, paste its answer, check your card, join. Consent and privacy text rewritten.
+- **Wed: done.** The hub is wired into the pilot (`batch.py`). Joining triggers a check; when a
+  neighborhood reaches its threshold (now 10 for new neighborhoods), the hub runs a round, and
+  each invitation lands on `/my-match` as a name-blind yes/no. One invitation per person per
+  round, strongest first. The old logic is deleted (preserved on the `pre-agent-pivot` branch):
+  the group matcher, negotiation, meetup popups, the onboarding chat, the demo console, and
+  their scripts.
+- **Thu, pulled forward and done:** `/admin` shows each round's counts and API calls, and a
+  "Behind the scenes" view: every conversation word for word, plus the full activity log.
+- **Still to do Thu:** a hit-rate tile (both-yes / decided) on the admin page, and deploying to
+  Render (needs the keys below).
+- **Fri:** real people (you, Eitan, Idan, ~10 friends) through one invite link; run a round;
+  read the conversations together and tune the Claw and hub prompts.
 
 ## Day by day
 
-| Day | Build | Done when |
+| Day | Build | Status |
 |---|---|---|
-| **Mon (today)** | Hub + Claw + event log in the real app. | Done. Run `src/orchestrator.py` with your key and read the conversations. |
-| **Tue (done)** | **Onboarding swap.** `/join/<slug>` -> login -> consent -> "Bring your agent" page (prompt, paste, card preview). Card and text saved on the resident. Remove the 20-turn chat. Rewrite the consent text for pasted AI portraits. | You sign up yourself in under 2 minutes and see your card. |
-| **Wed** | **Wire the hub into the pilot.** When enough people have joined, run `orchestrator.run_round` for the neighborhood. Invitations go into the existing yes/no screen, showing the hub's pitch only (this also fixes the name-leak bug). Lower the threshold from 100 to ~10. | A test neighborhood of fake residents gets real invitations on `/my-match`. |
-| **Thu** | **Admin "behind the scenes".** Chat reader and event log per round, plus a hit-rate tile (both-yes ÷ decided). Security review of the new routes. Deploy to Render. | You can read every conversation and every hub decision from `/admin`. |
-| **Fri** | **Real people.** You, Eitan, Nathan and ~10 friends join through one invite link. Run a round. Read the logs together and tune the Claw and hub prompts. | First real invitations sent. |
-| **Weekend** | Meetings happen. Ask each person one question: "Did you meet? Would you meet again?" | First real hit rate. |
+| **Mon** | Hub + Claw + event log in the real app. | Done |
+| **Tue** | Signup becomes "Bring your agent". | Done |
+| **Wed** | Hub wired into the pilot; invitations on the yes/no screen; old logic deleted. | Done |
+| **Thu** | Admin "behind the scenes" (done), hit-rate tile, deploy to Render. | In progress |
+| **Fri** | Real people join; run a round; tune prompts from the real conversations. | Next |
+| **Weekend** | Meetings happen. Ask: "Did you meet? Would you meet again?" | Next |
+
+**Meanwhile, today:** the Lounge prototype (https://claude.ai/artifact/LUqHTUzFhN6JiKNCEmN3Ro)
+is how you, Eitan and Idan bring your real agents in before the app is deployed.
 
 ## Only you can do these (they block Fri)
 
-1. **Anthropic API key** in `.env` locally and in Render's environment.
+1. **Anthropic API key**, created inside a workspace in the Anthropic Console (an unscoped key
+   is refused on every call), in `.env` locally and in Render's environment.
 2. **Email login for real people:** a Resend account with a verified sending domain. Without
    it, magic links only print to the server console. Google login needs its OAuth consent
    screen moved out of "Testing".
 3. **Recruit 10-15 people** who agree to paste their AI's portrait of them. Friends first.
-4. **Confirm the pivot.** `docs/PILOT_PLAN.md` said "no ChatGPT-history import". This plan
-   reverses that, and the consent and privacy text must say so plainly.
+4. **Merge the pull request** from `clawnly-lounge` into `main` (you or Idan).
 
 ## Deliberately NOT this week
 
 - Groups of 3-5. Pairs first; later, groups get built from strong pairs.
 - A live connection to people's own ChatGPT or Claude (their assistant answering in real
   time). Copy-paste proves the idea; connectors come after people ask for them.
-- The old matching pipeline (`master_claw.py` and friends) stays as-is for the demo console.
-  The pilot moves to the hub.
+- Automatic repeat rounds. After the first automatic round, the admin runs later rounds
+  from `/admin` ("Run a hub round now").
 
 ---
 

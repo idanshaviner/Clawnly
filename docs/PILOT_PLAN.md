@@ -1,7 +1,9 @@
-> **Superseded in part (2026-09-23):** onboarding no longer uses the multi-turn Claw chat, and the
-> "no ChatGPT-history import" rule below is reversed. Residents now paste a portrait written by
-> the AI they already use (see `src/bring_agent.py`, `docs/THIS_WEEK.md`). We still never connect
-> to that AI or read its history: only what the resident chooses to paste is stored.
+> **Historical document (as of 2026-09-23).** The registration, consent, auth, reveal-gate and
+> admin decisions below still stand. Superseded: the multi-turn onboarding chat (residents now
+> paste a portrait written by the AI they already use -- `src/bring_agent.py`; the "no
+> ChatGPT-history import" rule is reversed, though we still never connect to that AI or read its
+> history), and the group-matching pipeline (replaced by the agent-to-agent hub,
+> `src/orchestrator.py` + `src/batch.py`). For today's plan read `docs/THIS_WEEK.md`.
 
 # Real-user neighborhood pilot: registration, onboarding, threshold-triggered matching
 

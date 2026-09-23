@@ -1,5 +1,9 @@
 # Clawnly — Product Requirements Document
 
+> **Historical document (as of 2026-09-23).** Written for the original "Master Claw forms groups" design. The product has since moved to
+> agent-to-agent matching and this code was removed from `main`; it is preserved on the
+> `pre-agent-pivot` branch. For how things work today, read `README.md` and `docs/THIS_WEEK.md`.
+
 **Status:** v0.3 (Draft) · **Date:** 2026-06-20 · **Owner:** Idan Shaviner
 **Related:** [SPEC.md](SPEC.md) — technical spec for Phase 1 (the matching PoC)
 

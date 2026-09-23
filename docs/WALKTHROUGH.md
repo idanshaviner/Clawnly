@@ -1,5 +1,9 @@
 # How Clawnly actually works: a code walkthrough
 
+> **Historical document (as of 2026-09-23).** A line-by-line walkthrough of the pre-pivot code, and the case for changing it. The product has since moved to
+> agent-to-agent matching and this code was removed from `main`; it is preserved on the
+> `pre-agent-pivot` branch. For how things work today, read `README.md` and `docs/THIS_WEEK.md`.
+
 Written 2026-09-23 against `main` @ `9151ac3` (314 tests passing). Every claim
 cites `file:line` so you can open the code next to it. The "verified" findings
 in section 7 were reproduced by running the real code, not only by reading it.

@@ -35,12 +35,24 @@ else serves them.
 - Try the engine on 8 fictional people (needs your API key in `.env`):
   `.venv/bin/python src/orchestrator.py`. It prints every event live and saves all of it.
 
+## Status
+
+- **Mon: done.** Hub, Claw and event log (`dossier.py`, `agent_talk.py`, `orchestrator.py`).
+- **Tue: done.** `/onboarding` is now "Bring your agent" (`bring_agent.py`; routes `GET /api/agent`,
+  `POST /api/agent/preview`, `POST /api/agent/confirm`). Consent and privacy text rewritten.
+  Live-verified on a running server (scripted AI, since there's no key in this environment),
+  including a restart, and it passed a security review. The old chat routes (`/api/onboarding/*`,
+  `onboarding.py`) are no longer linked from any page. They stay until Wed, because the demos
+  (`pilot_demo.py`, `dryrun.py`) still drive them.
+- **Wed: next.** Confirming signup does NOT trigger a batch yet (on purpose: the old pipeline
+  would run on dossier-only residents).
+
 ## Day by day
 
 | Day | Build | Done when |
 |---|---|---|
 | **Mon (today)** | Hub + Claw + event log in the real app. | Done. Run `src/orchestrator.py` with your key and read the conversations. |
-| **Tue** | **Onboarding swap.** `/join/<slug>` -> login -> consent -> "Bring your agent" page (prompt, paste, card preview). Card and text saved on the resident. Remove the 20-turn chat. Rewrite the consent text for pasted AI portraits. | You sign up yourself in under 2 minutes and see your card. |
+| **Tue (done)** | **Onboarding swap.** `/join/<slug>` -> login -> consent -> "Bring your agent" page (prompt, paste, card preview). Card and text saved on the resident. Remove the 20-turn chat. Rewrite the consent text for pasted AI portraits. | You sign up yourself in under 2 minutes and see your card. |
 | **Wed** | **Wire the hub into the pilot.** When enough people have joined, run `orchestrator.run_round` for the neighborhood. Invitations go into the existing yes/no screen, showing the hub's pitch only (this also fixes the name-leak bug). Lower the threshold from 100 to ~10. | A test neighborhood of fake residents gets real invitations on `/my-match`. |
 | **Thu** | **Admin "behind the scenes".** Chat reader and event log per round, plus a hit-rate tile (both-yes ÷ decided). Security review of the new routes. Deploy to Render. | You can read every conversation and every hub decision from `/admin`. |
 | **Fri** | **Real people.** You, Eitan, Nathan and ~10 friends join through one invite link. Run a round. Read the logs together and tune the Claw and hub prompts. | First real invitations sent. |

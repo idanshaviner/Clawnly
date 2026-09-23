@@ -1,3 +1,8 @@
+> **Superseded in part (2026-09-23):** onboarding no longer uses the multi-turn Claw chat, and the
+> "no ChatGPT-history import" rule below is reversed. Residents now paste a portrait written by
+> the AI they already use (see `src/bring_agent.py`, `docs/THIS_WEEK.md`). We still never connect
+> to that AI or read its history: only what the resident chooses to paste is stored.
+
 # Real-user neighborhood pilot: registration, onboarding, threshold-triggered matching
 
 > Copied into the repo from an approved Claude Code plan-mode session for

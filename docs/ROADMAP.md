@@ -429,7 +429,9 @@ Every step is logged.
 prompt + card), `src/agent_talk.py` (the representing Claw -- dossier-only, says "I don't
 know", never invents), `src/orchestrator.py` (the hub: pair -> talk -> judge -> code gate:
 depth >= 8 and >= 2 verbatim quotes), `db.events` + `db.agent_conversations`, 20 new tests
-(334 passing). Not yet wired into the pilot routes -- that is Tue/Wed in THIS_WEEK.md.
+(334 passing).
+**Tue done:** `/onboarding` is now bring-your-agent (`src/bring_agent.py`, 345 passing).
+Next: wire `orchestrator.run_round` into the batch trigger + my-match (Wed in THIS_WEEK.md).
 A shareable prototype of the same idea lives in `lounge/` (a claude.ai Artifact).
 
 ## Highest-priority items if picking up fresh work (not already covered above)

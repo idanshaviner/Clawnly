@@ -1,25 +1,21 @@
-"""Match acceptance -- the mutual reveal gate (PILOT_PLAN.md addendum,
-2026-09-01). Before a resident sees who else is in their formed group, they
-see only the match's reason + group size and accept/decline. Once every
-member has accepted, the match is "sealed": full first-name reveal, plus the
-meetup card (negotiation/popup already ran, unmodified, as part of batch.py's
-pipeline run -- see its module docstring for why that happens eagerly rather
-than lazily on seal). A decline dissolves the match for everyone; releasing
-its members back into the eligible pool is handled entirely by
-db.list_eligible_residents (a dissolved match's rows just stop excluding
-them) -- nothing else to do here.
+"""The mutual yes/no gate for hub invitations (batch.py stores each one as a
+matches row + one match_acceptances row per invited resident).
 
-Pure DB/routing logic, no AI calls of its own -- app.py's routes stay thin
-wrappers around get_state/respond, same shape as onboarding.py's take_turn.
+Before anyone knows who the other person is, a resident sees only the pitch
+the hub wrote to them (name-blinded by batch.py) and answers yes or no. Once
+everyone invited says yes, the invitation is "sealed": first names, the hub's
+headline and the proposed meetup are revealed. A "no" dissolves it for
+everyone, and db.list_eligible_residents puts them back in the pool.
+
+Pure DB/routing logic, no AI calls -- app.py's routes are thin wrappers
+around get_state/respond.
 """
 
 import db
 
 
 def _resident_id_from_member(member_id):
-    # batch.py always prefixes a resident-sourced member "r" + resident id
-    # (e.g. "r17"); a real batch's groups are drawn entirely from residents,
-    # so every member id here is expected to have that shape.
+    # batch.py always stores invited members as "r" + resident id (e.g. "r17").
     return int(member_id[1:])
 
 
@@ -58,7 +54,12 @@ def _seal_if_ready(match_id, acceptances):
     return False
 
 
-def _sealed_payload(resident, match, acceptances):
+def _pitch_for(resident, match):
+    pitches = match["details"].get("pitches", {})
+    return pitches.get("r" + str(resident["id"]), "")
+
+
+def _sealed_payload(resident, match):
     names = []
     ids = _member_resident_ids(match)
     i = 0
@@ -69,21 +70,11 @@ def _sealed_payload(resident, match, acceptances):
             if member is not None:
                 names.append(_first_name(member))
         i += 1
-
-    negotiation = db.get_negotiation(match["id"])
-    meetup = db.get_meetup(match["id"])
-    payload = {
+    return {
         "state": "sealed", "match_id": match["id"], "reason": match["reason"],
-        "other_first_names": names, "meetup": meetup, "note": None,
+        "pitch": _pitch_for(resident, match), "other_first_names": names,
+        "meetup": match["details"].get("invite"),
     }
-    if negotiation is not None and not negotiation["agreed"]:
-        # the group matched, but never settled on a plan everyone loved
-        # (main.py's own "no meetup without full agreement" rule) -- there's
-        # no meetup row to show, just an honest status.
-        payload["meetup"] = None
-        payload["note"] = ("The group is a good match, but you're all still working out a plan "
-                            "everyone's excited about. Check back soon.")
-    return payload
 
 
 def get_state(resident):
@@ -105,8 +96,9 @@ def get_state(resident):
         return {"state": "dissolved"}
 
     if row["status"] == "pending":
+        # the pitch only -- the hub's headline names both people, so it waits for the seal
         acceptances = db.list_match_acceptances(match["id"])
-        return {"state": "pending", "match_id": match["id"], "reason": match["reason"],
+        return {"state": "pending", "match_id": match["id"], "reason": _pitch_for(resident, match),
                 "group_size": len(acceptances)}
 
     acceptances = db.list_match_acceptances(match["id"])
@@ -114,7 +106,7 @@ def get_state(resident):
     if not sealed:
         return {"state": "waiting", "match_id": match["id"], "group_size": len(acceptances)}
 
-    return _sealed_payload(resident, match, acceptances)
+    return _sealed_payload(resident, match)
 
 
 def respond(resident, match_id, response):

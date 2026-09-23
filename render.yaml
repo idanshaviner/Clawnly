@@ -1,41 +1,17 @@
-# Render Blueprint for deploying Clawnly as a public web app.
+# Render Blueprint for deploying the Clawnly pilot.
 # In Render: New -> Blueprint -> pick this repo. Or configure a Web Service by
 # hand with the build/start commands below.
 #
-# Two DIFFERENT deployments live in this one file -- pick the right service
-# when you set up Render, don't merge their env vars:
-#   "clawnly"       -- the public demo/BYOK site. No server-side Anthropic key,
-#                      ever (see its own comments below).
-#   "clawnly-pilot" -- the real neighborhood pilot. The OPPOSITE: the server
-#                      needs its own real keys, because real residents log in
-#                      and the app calls Claude on their behalf. Never set
-#                      CLAWNLY_BYOK or CLAWNLY_DEMO_ONLY on this service.
+# The server holds its own real keys: residents log in, bring their agent, and
+# the hub calls Claude on their behalf.
 services:
-  - type: web
-    name: clawnly
-    runtime: python
-    plan: free
-    buildCommand: pip install -r requirements.txt
-    # app lives in src/; bind 0.0.0.0 and use the port Render provides.
-    startCommand: uvicorn app:app --host 0.0.0.0 --port $PORT --app-dir src
-    envVars:
-      # BRING-YOUR-OWN-KEY: Demo is free; Live requires each visitor's OWN Anthropic
-      # key (billed to them, never stored on the server). The app owner is never
-      # charged. To make it demo-only instead, set CLAWNLY_DEMO_ONLY=1 and drop this.
-      - key: CLAWNLY_BYOK
-        value: "1"
-      - key: PYTHON_VERSION
-        value: "3.12.6"
-      # IMPORTANT: do NOT set ANTHROPIC_API_KEY here -- in BYOK the server must
-      # have no key of its own, so no visitor can ever spend yours.
-
   - type: web
     name: clawnly-pilot
     runtime: python
-    # NOT "free" -- real resident data (accounts, onboarding transcripts,
-    # matches) lives in db.py's SQLite file, and Render's free plan has no
-    # persistent disk (the filesystem resets on every deploy/restart). The
-    # disk below only attaches to a paid instance type.
+    # NOT "free" -- real resident data (accounts, the dossiers people bring,
+    # agent conversations, invitations) lives in db.py's SQLite file, and
+    # Render's free plan has no persistent disk (the filesystem resets on every
+    # deploy/restart). The disk below only attaches to a paid instance type.
     plan: starter
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn app:app --host 0.0.0.0 --port $PORT --app-dir src
@@ -50,12 +26,10 @@ services:
       # ephemeral filesystem -- see db.py's DB_PATH / CLAWNLY_DB_PATH.
       - key: CLAWNLY_DB_PATH
         value: /var/data/clawnly.db
-      # No CLAWNLY_BYOK / CLAWNLY_DEMO_ONLY here -- real residents need the
-      # server's own key, not their own, and the pilot must never silently
-      # fall back to demo mode.
-      #
       # `sync: false` = Render prompts you to type the value in its dashboard
-      # during setup and never stores it in this repo. Fill in all four:
+      # during setup and never stores it in this repo. Fill in all of them.
+      # ANTHROPIC_API_KEY must be scoped to a workspace (create it inside one in
+      # the Anthropic Console), or every call is refused.
       - key: ANTHROPIC_API_KEY
         sync: false
       - key: GOOGLE_CLIENT_ID

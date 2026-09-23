@@ -1,13 +1,12 @@
-"""Tests for my_match.py -- the mutual reveal gate (PILOT_PLAN.md addendum,
-2026-09-01 -- reshaped stage 5)."""
+"""Tests for my_match.py -- the mutual yes/no gate for hub invitations."""
 
 import db
 import my_match
-from users import USERS
+from conftest import make_joined_resident, reset_db
 
 
 def reset():
-    db.reset_all(USERS)
+    reset_db()
 
 
 def make_neighborhood(threshold=3):
@@ -15,29 +14,21 @@ def make_neighborhood(threshold=3):
 
 
 def make_resident(nb, email, name):
-    resident = db.get_or_create_resident(nb["id"], email, "google")
-    db.update_resident_profile(resident["id"], {"name": name})
-    return db.mark_profile_complete(resident["id"])
+    return make_joined_resident(nb, email, name)
 
 
-def make_match(nb, residents, agreed=True, with_meetup=True):
+def make_match(nb, residents):
+    # an invitation as batch.py stores it: name-blinded pitch per member
     member_ids = ["r" + str(r["id"]) for r in residents]
-    run_id = db.create_run("live", "sig-" + str(nb["id"]), nb["id"])
-    match_id = db.save_match(run_id, 0, {
-        "group": member_ids, "reason": "Shared weekend hikes and quiet evenings.",
-        "scores": {}, "why_not": [],
-    })
+    pitches = {}
+    for member_id in member_ids:
+        pitches[member_id] = "You both want a steady weekly table. " + member_id
+    run_id = db.create_run("agents", "", nb["id"])
+    details = {"conversation_id": 1,
+               "invite": {"activity": "a short hike", "when": "Saturday morning", "where": "Ten Trails trailhead"},
+               "pitches": pitches}
+    match_id = db.create_invitation(run_id, 0, member_ids, "Alex and Bao both want a steady table", 9, details)
     db.create_pending_acceptances(match_id, [r["id"] for r in residents])
-    db.save_negotiation(match_id, {
-        "activity": "a short hike", "agreed": agreed, "concern": "", "rounds": 1, "transcript": [],
-    })
-    if with_meetup and agreed:
-        db.save_meetup(match_id, {
-            "options": [], "event_name": "Trailhead Meetup", "activity": "a short hike",
-            "location": "Ten Trails trailhead", "time": "Saturday morning",
-            "reason": "Everyone's free and into the outdoors.",
-            "matched_users": [r["name"] for r in residents],
-        })
     return match_id
 
 
@@ -62,7 +53,7 @@ def test_no_match_once_batched_but_never_grouped():
 
 # ----- get_state: pending -----------------------------------------------------
 
-def test_pending_shows_only_reason_and_group_size():
+def test_pending_shows_only_the_callers_own_pitch():
     reset()
     nb = make_neighborhood()
     alex = make_resident(nb, "a@example.com", "Alex")
@@ -73,8 +64,9 @@ def test_pending_shows_only_reason_and_group_size():
     state = my_match.get_state(alex)
     assert state["state"] == "pending"
     assert state["group_size"] == 3
-    assert "Shared weekend hikes" in state["reason"]
+    assert state["reason"] == "You both want a steady weekly table. r" + str(alex["id"])
     assert "other_first_names" not in state
+    # the hub's headline names people, so it stays hidden until everyone says yes
     assert "Bao" not in str(state)
 
 
@@ -108,7 +100,9 @@ def test_everyone_accepting_seals_the_match_with_full_reveal():
     assert error is None
     assert state["state"] == "sealed"
     assert state["other_first_names"] == ["Alex"]   # first name only
-    assert state["meetup"]["event_name"] == "Trailhead Meetup"
+    assert state["meetup"] == {"activity": "a short hike", "when": "Saturday morning", "where": "Ten Trails trailhead"}
+    assert state["reason"] == "Alex and Bao both want a steady table"
+    assert state["pitch"].endswith("r" + str(bao["id"]))
 
     # alex's own view is sealed too, revealing Bao's first name (not "Bao Lin").
     alex_state = my_match.get_state(alex)
@@ -116,21 +110,6 @@ def test_everyone_accepting_seals_the_match_with_full_reveal():
     assert alex_state["other_first_names"] == ["Bao"]
 
     assert db.get_match(match_id)["sealed_at"] is not None
-
-
-def test_sealed_without_agreement_has_no_meetup_but_a_note():
-    reset()
-    nb = make_neighborhood()
-    alex = make_resident(nb, "a@example.com", "Alex")
-    bao = make_resident(nb, "b@example.com", "Bao")
-    match_id = make_match(nb, [alex, bao], agreed=False, with_meetup=False)
-
-    my_match.respond(alex, match_id, "accept")
-    state, error = my_match.respond(bao, match_id, "accept")
-    assert error is None
-    assert state["state"] == "sealed"
-    assert state["meetup"] is None
-    assert state["note"] is not None
 
 
 def test_decline_dissolves_the_match_for_everyone():

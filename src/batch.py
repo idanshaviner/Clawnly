@@ -1,218 +1,172 @@
-"""Batch trigger: fires the existing matching pipeline once a neighborhood's
-profile-complete resident count crosses its snapshotted batch_threshold.
+"""Batch trigger: runs the hub (orchestrator.run_round) for a neighborhood
+and turns its invitations into the mutual yes/no gate (my_match.py).
 
-No scheduler or poller -- see docs/PILOT_PLAN.md's "Background trigger": the
-only event that can ever cross the threshold is a resident's own onboarding
-completing, so check_and_trigger_batch(neighborhood_id) is called
-synchronously right after that (src/onboarding.py's take_turn, fire-and-forget
-via asyncio.create_task -- the same pattern /api/run-stream already uses).
+No scheduler or poller: the only event that can cross a neighborhood's
+threshold is a resident joining with their agent, so app.py calls
+schedule_check() right after a successful bring-your-agent confirm. The
+admin dashboard can also run a round directly (force_trigger_batch).
 
-Complete residents are mapped into the exact profile-dict shape run_pipeline /
-MasterClaw / Claw(simulated=True) already expect -- every field is REQUIRED
-there (Claw._system_prompt indexes u["field"] directly, no .get), so anything
-onboarding never captured gets a plain, honest-sounding default rather than
-crashing or blocking the run (see resident_to_profile). run_pipeline() itself
-is called completely unmodified.
+Rules enforced here in code, on top of the hub's own gate:
+  - one invitation per person per round -- the strongest (highest depth)
+    wins, any other is held back and logged.
+  - invitations are blind until both say yes: the other person's name is
+    removed from each pitch before it's stored (_blind).
 """
 
-import json
+import asyncio
+import re
 
 import config
 import db
-from main import run_pipeline
+import orchestrator
 import usage
-from users import AVAILABILITY_WINDOWS, HOBBY_CATEGORIES
 
 
-_VALID_PERSONALITY = ["introverted", "extroverted", "mixed"]
-_VALID_OCCUPATION = ["student", "working professional", "freelancer"]
-# broad, always-valid fallbacks (both exist in users.HOBBY_CATEGORIES /
-# AVAILABILITY_WINDOWS) for a resident who is complete on the five gating
-# slots but whose best-effort extraction never caught one of the OTHER
-# profile columns (see onboarding.py's SLOT_NAMES vs RESIDENT_PROFILE_FIELDS).
-_DEFAULT_HOBBIES = ["reading", "hiking"]
-_DEFAULT_AVAILABILITY = ["weekday_evening", "weekend_daytime"]
-_DEFAULT_AGE = 30
+# fire-and-forget tasks must be referenced, or Python may garbage-collect them mid-run
+_RUNNING = set()
 
 
-def _hobby_lookup():
-    lookup = {}
-    categories = list(HOBBY_CATEGORIES.keys())
-    i = 0
-    while i < len(categories):
-        hobbies = HOBBY_CATEGORIES[categories[i]]
-        j = 0
-        while j < len(hobbies):
-            lookup[hobbies[j]] = True
-            j += 1
-        i += 1
-    return lookup
-
-
-def _valid_hobbies(values):
-    if not isinstance(values, list):
-        return None
-    lookup = _hobby_lookup()
-    out = []
-    i = 0
-    while i < len(values):
-        if values[i] in lookup and values[i] not in out:
-            out.append(values[i])
-        i += 1
-    if len(out) == 0:
-        return None
-    return out
-
-
-def _valid_availability(values):
-    if not isinstance(values, list):
-        return None
-    out = []
-    i = 0
-    while i < len(values):
-        if values[i] in AVAILABILITY_WINDOWS and values[i] not in out:
-            out.append(values[i])
-        i += 1
-    if len(out) == 0:
-        return None
-    return out
-
-
-def _valid_group_size(value):
-    if value == "no preference":
-        return value
-    if isinstance(value, list) and len(value) == 2:
-        low = value[0]
-        high = value[1]
-        if isinstance(low, int) and isinstance(high, int) and 2 <= low <= high <= 8:
-            return [low, high]
-    return None
-
-
-def resident_to_profile(resident, neighborhood):
-    # "r" + resident id -- so there's no possible collision with the demo
-    # cast's "u01"-style ids in the same run.
+def resident_to_person(resident):
+    # "r" + resident id, the shape orchestrator/agent_talk expect. Only
+    # residents with a dossier and card ever reach here (db.list_complete_residents).
     name = resident.get("name")
     if not name:
         name = "Neighbor"
-    age = resident.get("age")
-    if not isinstance(age, int) or isinstance(age, bool):
-        age = _DEFAULT_AGE
-    gender = resident.get("gender")
-    if not gender:
-        gender = "unspecified"
-    personality = resident.get("personality")
-    if personality not in _VALID_PERSONALITY:
-        personality = "mixed"
-    occupation = resident.get("occupation")
-    if occupation not in _VALID_OCCUPATION:
-        occupation = "working professional"
-    hobbies = _valid_hobbies(resident.get("hobbies"))
-    if hobbies is None:
-        hobbies = list(_DEFAULT_HOBBIES)
-    availability = _valid_availability(resident.get("availability"))
-    if availability is None:
-        availability = list(_DEFAULT_AVAILABILITY)
-    location = resident.get("location")
-    if not location:
-        location = neighborhood["name"]
-    bio = resident.get("bio")
-    if not bio:
-        bio = "A " + neighborhood["name"] + " neighbor getting to know the group."
-    size = _valid_group_size(resident.get("preferred_group_size"))
-    if size is None:
-        size = "no preference"
+    source = resident.get("dossier_source")
+    if not source:
+        source = "Other"
+    return {"id": "r" + str(resident["id"]), "name": name, "source": source,
+            "dossier": resident["dossier_text"], "card": resident["card"]}
 
-    return {
-        "id": "r" + str(resident["id"]),
-        "name": name, "age": age, "gender": gender, "hobbies": hobbies,
-        "personality": personality, "occupation": occupation,
-        "availability": availability, "location": location, "bio": bio,
-        "preferred_group_size": size,
-    }
+
+def _blind(text, other_name):
+    # the pitch someone reads before both have said yes must not name the other person
+    text = str(text or "")
+    if not other_name:
+        return text
+    return re.sub(r"\b" + re.escape(other_name) + r"\b", "your match", text, flags=re.IGNORECASE)
+
+
+def pick_invitations(invitations):
+    # strongest first; a person already holding an invitation this round is skipped.
+    # returns (kept, held_back).
+    ordered = list(invitations)
+    ordered.sort(key=lambda conversation: conversation["verdict"]["depth"], reverse=True)
+    taken = {}
+    kept = []
+    held_back = []
+    i = 0
+    while i < len(ordered):
+        conversation = ordered[i]
+        if conversation["a"] in taken or conversation["b"] in taken:
+            held_back.append(conversation)
+        else:
+            taken[conversation["a"]] = True
+            taken[conversation["b"]] = True
+            kept.append(conversation)
+        i += 1
+    return kept, held_back
+
+
+def _resident_id(person_id):
+    return int(person_id[1:])
+
+
+async def run_neighborhood_round(neighborhood_id, people, client):
+    # one hub round for these people, then one invitation (yes/no gate) per kept pair.
+    counting = usage.CountingClient(client)
+    result = await orchestrator.run_round(people, client=counting, neighborhood_id=neighborhood_id)
+    run_id = result["run_id"]
+
+    names = {}
+    i = 0
+    while i < len(people):
+        names[people[i]["id"]] = people[i]["name"]
+        i += 1
+
+    kept, held_back = pick_invitations(result["invitations"])
+    i = 0
+    while i < len(held_back):
+        conversation = held_back[i]
+        db.log_event(run_id, "code", "check", "Held back the invitation for " + names[conversation["a"]] + " + "
+                     + names[conversation["b"]] + ": one of them already has a stronger invitation this round.",
+                     str(conversation["id"]))
+        i += 1
+
+    i = 0
+    while i < len(kept):
+        conversation = kept[i]
+        a = conversation["a"]
+        b = conversation["b"]
+        verdict = conversation["verdict"]
+        invite = verdict["invite"]
+        details = {
+            "conversation_id": conversation["id"],
+            "invite": {"activity": str(invite.get("activity", "")), "when": str(invite.get("when", "")),
+                       "where": str(invite.get("where", ""))},
+            "pitches": {a: _blind(invite.get("to_a"), names[b]), b: _blind(invite.get("to_b"), names[a])},
+        }
+        match_id = db.create_invitation(run_id, i, [a, b], verdict["headline"], verdict["depth"], details)
+        db.create_pending_acceptances(match_id, [_resident_id(a), _resident_id(b)])
+        db.log_event(run_id, "system", "system", "Invitation sent to " + names[a] + " and " + names[b]
+                     + ". Nothing is revealed until both say yes.", str(conversation["id"]))
+        i += 1
+
+    db.set_run_usage(run_id, counting.counter)
+    return run_id
+
+
+def _people_for(neighborhood_id):
+    eligible = db.list_eligible_residents(neighborhood_id)
+    people = []
+    i = 0
+    while i < len(eligible):
+        people.append(resident_to_person(eligible[i]))
+        i += 1
+    return people
 
 
 async def check_and_trigger_batch(neighborhood_id, client=None):
-    # called right after a resident's profile completes. Cheap early-outs
-    # (unknown neighborhood, below threshold) never touch the CAS, so almost
-    # every call is a single fast SELECT.
+    # called right after a resident joins. Cheap early-outs (unknown
+    # neighborhood, below threshold) never touch the one-shot CAS.
     neighborhood = db.get_neighborhood(neighborhood_id)
     if neighborhood is None:
         return
-
-    # eligible = profile-complete AND not already tied up in a live match --
-    # includes anyone released back into the pool by a Stage 5 decline (see
-    # db.list_eligible_residents), so a dissolved match's members are
-    # naturally back in the running for the neighborhood's next trigger.
-    eligible = db.list_eligible_residents(neighborhood_id)
-    if len(eligible) < neighborhood["batch_threshold"]:
+    people = _people_for(neighborhood_id)
+    if len(people) < neighborhood["batch_threshold"]:
         return
-
-    won = db.try_trigger_batch(neighborhood_id)
-    if not won:
-        return   # another near-simultaneous completion already triggered this batch
-
-    profiles = []
-    i = 0
-    while i < len(eligible):
-        profiles.append(resident_to_profile(eligible[i], neighborhood))
-        i += 1
-
+    if not db.try_trigger_batch(neighborhood_id):
+        return   # another near-simultaneous join already triggered this round
     if client is None:
         client = config.get_client()
-
-    # real resident data is always run live (same reasoning as onboarding.py:
-    # this is private, authenticated, real conversation data, never the
-    # demo/BYOK toggles the public admin console uses).
     try:
-        await _run_and_persist(neighborhood_id, profiles, client)
+        await run_neighborhood_round(neighborhood_id, people, client)
     except Exception as error:
-        # the CAS already fired, so this neighborhood's one-shot trigger is
-        # spent -- an operator has to intervene (Stage 6's admin surface --
-        # its manual "trigger batch now" override) if this happens. Not
-        # swallowing it silently, but not crashing the fire-and-forget task's
-        # caller either (same failure-isolation philosophy as onboarding.py's
-        # extraction-call try/except).
-        print("[batch] neighborhood {} pipeline run failed: {}".format(neighborhood_id, error))
+        # the CAS already fired, so an operator re-runs it from the admin
+        # dashboard; never surface this through an unrelated resident's request.
+        print("[batch] neighborhood {} round failed: {}".format(neighborhood_id, error))
 
 
-async def _run_and_persist(neighborhood_id, profiles, client):
-    # shared by the automatic threshold trigger above and the admin
-    # dashboard's manual override below -- wraps the client so the admin
-    # dashboard's usage visibility (Stage 6) works for both the same way.
-    counting_client = usage.CountingClient(client)
-    result = await run_pipeline(profiles, client=counting_client, verbose=False)
-    signature = json.dumps(profiles, sort_keys=True)
-    return db.persist_run_result("live", signature, result, neighborhood_id=neighborhood_id)
+def schedule_check(neighborhood_id):
+    # fire-and-forget from a request handler: the resident's "you're in" must
+    # not wait on (or fail because of) a whole round of agent conversations.
+    task = asyncio.get_running_loop().create_task(check_and_trigger_batch(neighborhood_id))
+    _RUNNING.add(task)
+    task.add_done_callback(_RUNNING.discard)
+    return task
 
 
 async def force_trigger_batch(neighborhood_id, client=None):
-    # the admin dashboard's manual "trigger batch now" override (Stage 6):
-    # bypasses batch_threshold entirely (useful for testing, and for
-    # re-matching residents a decline released back into the pool -- nothing
-    # else currently re-triggers for them, see ROADMAP.md's Stage 5 caveat).
-    # Still needs at least 2 eligible residents (master_claw.py's own hard
-    # floor -- H4 -- for any group at all). Unlike check_and_trigger_batch
-    # this runs synchronously inside an authenticated admin request, so a
-    # pipeline exception is allowed to propagate to the caller (app.py's
-    # route reports it as a real error) instead of being swallowed.
+    # the admin dashboard's "run a round now": ignores batch_threshold, and runs
+    # inside the admin's request, so a failure is reported back as an error.
     neighborhood = db.get_neighborhood(neighborhood_id)
     if neighborhood is None:
         return None, "No such neighborhood."
-
-    eligible = db.list_eligible_residents(neighborhood_id)
-    if len(eligible) < 2:
-        return None, "Not enough eligible residents to form even one group (need at least 2)."
-
-    profiles = []
-    i = 0
-    while i < len(eligible):
-        profiles.append(resident_to_profile(eligible[i], neighborhood))
-        i += 1
-
+    people = _people_for(neighborhood_id)
+    if len(people) < 2:
+        return None, "Not enough residents with an agent to pair anyone (need at least 2)."
     if client is None:
         client = config.get_client()
-
     db.mark_batch_triggered(neighborhood_id)
-    run_id = await _run_and_persist(neighborhood_id, profiles, client)
+    run_id = await run_neighborhood_round(neighborhood_id, people, client)
     return run_id, None

@@ -29,8 +29,8 @@
   th, td { text-align:left; padding:7px 8px; border-bottom:1px solid var(--line); }
   th { color:var(--muted); font-weight:600; text-transform:uppercase; font-size:11px; letter-spacing:.4px; }
   .pill { display:inline-block; border-radius:999px; padding:2px 10px; font-size:12px; font-weight:600; }
-  .pill-onboarding { background:#f1efe9; color:var(--muted); }
-  .pill-complete_unmatched { background:var(--accent-soft); color:var(--accent); }
+  .pill-joining { background:#f1efe9; color:var(--muted); }
+  .pill-in_pool { background:var(--accent-soft); color:var(--accent); }
   .pill-match_pending { background:#fdf1dc; color:var(--amber); }
   .pill-match_waiting { background:#fdf1dc; color:var(--amber); }
   .pill-sealed { background:#e6f6ee; color:var(--green); }
@@ -45,12 +45,22 @@
   .ok { color:var(--green); font-size:13.5px; margin-top:8px; }
   .muted { color:var(--muted); }
   .errline { font-size:12.5px; color:var(--red); margin-top:2px; }
+  .conv { border:1px solid var(--line); border-radius:12px; padding:12px 14px; margin-top:10px; }
+  .conv-head { font-weight:700; }
+  .turn { font-size:13.5px; margin-top:8px; white-space:pre-wrap; }
+  .turn b { color:var(--accent); }
+  .verdict { font-size:13px; background:#f1efe9; border-radius:8px; padding:8px 10px; margin-top:10px; white-space:pre-wrap; }
+  .log { font:12.5px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace; background:#f1efe9; border-radius:10px;
+    padding:8px 12px; max-height:520px; overflow:auto; }
+  .logline { padding:3px 0; border-bottom:1px solid var(--line); white-space:pre-wrap; overflow-wrap:anywhere; }
+  .logline:last-child { border-bottom:0; }
+  .who-hub { font-weight:700; } .who-agent { color:var(--accent); } .who-code { color:var(--amber); }
 </style>
 </head>
 <body>
 <div class="wrap">
   <h1>Clawnly Admin</h1>
-  <p class="tagline">Neighborhood progress, resident status, and batch runs.</p>
+  <p class="tagline">Neighborhood progress, resident status, and every hub round behind the scenes.</p>
 
   <div id="not-authorized" class="card" style="display:none">
     <p>You need to be logged in as an admin to see this page.</p>
@@ -70,7 +80,7 @@
       <div class="bar-label" id="detail-progress-label"></div>
       <div class="status-triggered" id="detail-triggered" style="display:none"></div>
       <div style="margin-top:12px">
-        <button class="primary" id="trigger-btn">Trigger batch now</button>
+        <button class="primary" id="trigger-btn">Run a hub round now</button>
         <span id="trigger-status"></span>
       </div>
     </div>
@@ -78,17 +88,33 @@
     <div class="card section">
       <h2>Residents</h2>
       <table>
-        <thead><tr><th>Email</th><th>Name</th><th>Consent</th><th>Complete</th><th>Status</th></tr></thead>
+        <thead><tr><th>Email</th><th>Name</th><th>Consent</th><th>Agent from</th><th>Status</th></tr></thead>
         <tbody id="residents-body"></tbody>
       </table>
     </div>
 
     <div class="card section">
-      <h2>Recent runs</h2>
+      <h2>Recent hub rounds</h2>
       <table>
-        <thead><tr><th>#</th><th>When</th><th>Mode</th><th>Groups</th><th>Unmatched</th><th>API calls</th></tr></thead>
+        <thead><tr><th>#</th><th>When</th><th>Conversations</th><th>Invitations</th><th>Failed</th><th>API calls</th><th></th></tr></thead>
         <tbody id="runs-body"></tbody>
       </table>
+    </div>
+  </div>
+
+  <div id="run-view" style="display:none">
+    <p class="back" id="run-back-link">&larr; Back to the neighborhood</p>
+    <div class="card section">
+      <h2 id="run-title">Behind the scenes</h2>
+      <p class="muted" id="run-meta"></p>
+    </div>
+    <div class="card section">
+      <h2>Agent conversations</h2>
+      <div id="run-conversations"></div>
+    </div>
+    <div class="card section">
+      <h2>Activity log</h2>
+      <div class="log" id="run-log"></div>
     </div>
   </div>
 </div>
@@ -96,15 +122,15 @@
 function esc(s){ return (s==null?"":String(s)).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
 
 function show(id){
-  ["not-authorized", "list-view", "detail-view"].forEach(function(other){
+  ["not-authorized", "list-view", "detail-view", "run-view"].forEach(function(other){
     document.getElementById(other).style.display = (other === id) ? "block" : "none";
   });
 }
 
 function statusLabel(s){
   var labels = {
-    onboarding: "Onboarding", complete_unmatched: "Complete, unmatched",
-    match_pending: "Match pending", match_waiting: "Waiting on group",
+    joining: "Joining", in_pool: "Agent in, no invitation",
+    match_pending: "Invited, not answered", match_waiting: "Said yes, waiting",
     sealed: "Sealed", dissolved: "Dissolved",
   };
   return labels[s] || s;
@@ -165,7 +191,7 @@ function loadDetail(id){
         "<td>" + esc(r.email) + "</td>" +
         "<td>" + esc(r.name || "-") + "</td>" +
         "<td>" + (r.consent_agreed_at ? "yes" : "no") + "</td>" +
-        "<td>" + (r.profile_complete_at ? "yes" : "no") + "</td>" +
+        "<td>" + esc(r.profile_complete_at ? (r.source || "yes") : "-") + "</td>" +
         '<td><span class="pill pill-' + esc(r.status) + '">' + esc(statusLabel(r.status)) + "</span></td>";
       rbody.appendChild(tr);
     });
@@ -178,21 +204,13 @@ function loadDetail(id){
       tr.innerHTML =
         "<td>" + run.id + "</td>" +
         "<td>" + esc(run.created_at) + "</td>" +
-        "<td>" + esc(run.mode) + "</td>" +
-        "<td>" + run.group_count + "</td>" +
-        "<td>" + run.unmatched_count + "</td>" +
-        "<td>" + apiCalls + "</td>";
+        "<td>" + run.conversation_count + "</td>" +
+        "<td>" + run.invitation_count + "</td>" +
+        "<td>" + run.failed_count + "</td>" +
+        "<td>" + esc(apiCalls) + "</td>" +
+        '<td><button data-run="' + Number(run.id) + '">Behind the scenes</button></td>';
+      tr.querySelector("button").addEventListener("click", function(){ loadRun(run.id, id); });
       runsBody.appendChild(tr);
-      if (run.interview_errors && run.interview_errors.length > 0) {
-        var errRow = document.createElement("tr");
-        var errCell = document.createElement("td");
-        errCell.colSpan = 6;
-        errCell.className = "errline";
-        errCell.textContent = run.interview_errors.length + " interview failure(s): " +
-          run.interview_errors.map(function(e){ return e.id; }).join(", ");
-        errRow.appendChild(errCell);
-        runsBody.appendChild(errRow);
-      }
     });
 
     var triggerBtn = document.getElementById("trigger-btn");
@@ -209,7 +227,7 @@ function loadDetail(id){
           triggerBtn.disabled = false;
           if (res.ok) {
             triggerStatus.className = "ok";
-            triggerStatus.textContent = "Run #" + res.data.run_id + " complete.";
+            triggerStatus.textContent = "Round #" + res.data.run_id + " complete.";
             loadDetail(id);
           } else {
             triggerStatus.className = "err";
@@ -228,6 +246,68 @@ function loadDetail(id){
 }
 
 document.getElementById("back-link").addEventListener("click", loadList);
+
+function textEl(tag, cls, text){
+  var el = document.createElement(tag);
+  if (cls) { el.className = cls; }
+  el.textContent = text;
+  return el;
+}
+
+function loadRun(runId, neighborhoodId){
+  document.getElementById("run-back-link").onclick = function(){ loadDetail(neighborhoodId); };
+  fetch("/api/admin/runs/" + runId).then(function(r){
+    if (r.status === 401 || r.status === 403) { show("not-authorized"); return null; }
+    return r.json();
+  }).then(function(data){
+    if (data == null) { return; }
+    var names = data.names;
+    function nameOf(pid){ return names[pid] || pid; }
+    document.getElementById("run-title").textContent = "Behind the scenes -- round #" + data.run.id;
+    var calls = "-";
+    if (data.run.usage) { calls = data.run.usage.total; }
+    document.getElementById("run-meta").textContent = data.run.created_at + " -- " + calls + " API calls";
+
+    var box = document.getElementById("run-conversations");
+    box.textContent = "";
+    if (data.conversations.length === 0) { box.appendChild(textEl("p", "muted", "The hub didn't pair anyone this round.")); }
+    data.conversations.forEach(function(c){
+      var card = document.createElement("div");
+      card.className = "conv";
+      card.appendChild(textEl("div", "conv-head", nameOf(c.a) + "'s agent + " + nameOf(c.b) + "'s agent"));
+      if (c.why) { card.appendChild(textEl("div", "muted", "Why the hub paired them: " + c.why)); }
+      c.turns.forEach(function(t){
+        var line = document.createElement("div");
+        line.className = "turn";
+        line.appendChild(textEl("b", "", nameOf(t.by) + "'s agent: "));
+        line.appendChild(document.createTextNode(t.text));
+        card.appendChild(line);
+      });
+      var v = c.verdict;
+      var summary = "No verdict (the conversation failed partway).";
+      if (v) {
+        summary = "Hub verdict: depth " + v.depth + "/10 -- " + (v.invited ? "INVITED" : "not invited") + "\n" +
+          v.headline + "\n\nReasoning: " + v.thoughts;
+        if (v.gate && v.gate.length > 0) { summary += "\n\nCode gate: " + v.gate.join("; "); }
+        if (v.dropped && v.dropped.length > 0) { summary += "\nQuotes discarded (not in the chat): " + v.dropped.join(" | "); }
+      }
+      card.appendChild(textEl("div", "verdict", summary));
+      box.appendChild(card);
+    });
+
+    var log = document.getElementById("run-log");
+    log.textContent = "";
+    data.events.forEach(function(e){
+      var line = document.createElement("div");
+      line.className = "logline";
+      line.appendChild(textEl("span", "who-" + e.actor, (e.created_at || "").slice(11, 19) + "  " + e.actor + " / " + e.kind + "  "));
+      line.appendChild(document.createTextNode(e.text));
+      log.appendChild(line);
+    });
+    show("run-view");
+    window.scrollTo(0, 0);
+  }).catch(function(){ show("not-authorized"); });
+}
 
 fetch("/api/me").then(function(r){
   if (!r.ok) { show("not-authorized"); return null; }

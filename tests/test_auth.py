@@ -1,8 +1,9 @@
 """Tests for auth.py + the /auth and /api/auth/* /api/me routes in app.py.
 
 Real Google OAuth and real Resend calls are never made in tests -- the OAuth
-code exchange and the email send are monkeypatched, the same way _client_for
-is already mocked for Anthropic calls in test_app.py.
+code exchange and the email send are monkeypatched, and Claude calls go
+through tests/conftest.py's FakeClient. Also covers the other pilot routes
+(consent, bring your agent, my-match, admin) that share this session model.
 """
 
 import os
@@ -14,14 +15,12 @@ import app as webapp
 import auth
 import config
 import db
-import onboarding
-from users import USERS
 
 client = TestClient(webapp.app)
 
 
 def reset_state():
-    db.reset_all(USERS)
+    db.reset_all()
     os.environ.pop("CLAWNLY_ADMIN_EMAILS", None)
 
 
@@ -404,7 +403,7 @@ def test_api_consent_records_agreement_and_api_me_reflects_it():
         client.cookies.clear()
 
 
-# ----- routes: onboarding (PILOT_PLAN stage 3) --------------------------------
+# ----- routes: the resident signup page ------------------------------------------
 
 def _consented_resident_session():
     nb = db.get_or_create_neighborhood("ballard", "Ballard", 100)
@@ -419,83 +418,6 @@ def test_onboarding_page_serves():
     r = client.get("/onboarding")
     assert r.status_code == 200
     assert "text/html" in r.headers["content-type"]
-
-
-def test_api_onboarding_history_requires_login():
-    reset_state()
-    r = client.get("/api/onboarding/history")
-    assert r.status_code == 401
-
-
-def test_api_onboarding_history_requires_consent():
-    reset_state()
-    nb = db.get_or_create_neighborhood("ballard", "Ballard", 100)
-    resident = db.get_or_create_resident(nb["id"], "a@example.com", "magic_link")
-    token = auth.start_session("a@example.com", "resident", resident["id"], nb["id"])
-    client.cookies.set(auth.SESSION_COOKIE_NAME, token)
-    try:
-        r = client.get("/api/onboarding/history")
-        assert r.status_code == 403
-    finally:
-        client.cookies.clear()
-
-
-def test_api_onboarding_history_reflects_persisted_state():
-    reset_state()
-    resident, token = _consented_resident_session()
-    db.save_onboarding_message(resident["id"], "user", "hi")
-    db.save_onboarding_message(resident["id"], "assistant", "hello!")
-    client.cookies.set(auth.SESSION_COOKIE_NAME, token)
-    try:
-        r = client.get("/api/onboarding/history")
-        assert r.status_code == 200
-        data = r.json()
-        assert data["messages"] == [{"role": "user", "content": "hi"},
-                                     {"role": "assistant", "content": "hello!"}]
-        assert data["complete"] is False
-    finally:
-        client.cookies.clear()
-
-
-def test_api_onboarding_message_requires_login():
-    reset_state()
-    r = client.post("/api/onboarding/message", json={"message": "hi"})
-    assert r.status_code == 401
-
-
-def test_api_onboarding_message_rejects_empty_message():
-    reset_state()
-    resident, token = _consented_resident_session()
-    client.cookies.set(auth.SESSION_COOKIE_NAME, token)
-    try:
-        r = client.post("/api/onboarding/message", json={"message": "   "})
-        assert r.status_code == 400
-    finally:
-        client.cookies.clear()
-
-
-def test_api_onboarding_message_round_trip(monkeypatch):
-    reset_state()
-    from conftest import FakeClient, json_body
-    resident, token = _consented_resident_session()
-    slots = {name: False for name in onboarding.SLOT_NAMES}
-    fake = FakeClient(onboarding_text="Nice to meet you!",
-                       extraction_queue=[json_body({"slots": slots, "fields": {}})])
-    monkeypatch.setattr(config, "get_client", lambda: fake)
-    client.cookies.set(auth.SESSION_COOKIE_NAME, token)
-    try:
-        r = client.post("/api/onboarding/message", json={"message": "hi there"})
-        assert r.status_code == 200
-        data = r.json()
-        assert data["reply"] == "Nice to meet you!"
-        assert data["complete"] is False
-        assert data["slots_status"] == slots
-        assert db.get_onboarding_messages(resident["id"]) == [
-            {"role": "user", "content": "hi there"},
-            {"role": "assistant", "content": "Nice to meet you!"},
-        ]
-    finally:
-        client.cookies.clear()
 
 
 # ----- routes: my-match (mutual reveal gate, stage 5) -------------------------
@@ -530,11 +452,8 @@ def test_api_my_match_reflects_pending_state():
     reset_state()
     resident, token = _consented_resident_session()
     other = db.get_or_create_resident(resident["neighborhood_id"], "other@example.com", "magic_link")
-    run_id = db.create_run("live", "sig", resident["neighborhood_id"])
-    match_id = db.save_match(run_id, 0, {
-        "group": ["r" + str(resident["id"]), "r" + str(other["id"])],
-        "reason": "Shared weekend hikes.", "scores": {}, "why_not": [],
-    })
+    run_id = db.create_run("agents", "", resident["neighborhood_id"])
+    match_id = db.create_invitation(run_id, 0, ["r" + str(resident["id"]), "r" + str(other["id"])], "headline", 9, {"invite": {}, "pitches": {}})
     db.create_pending_acceptances(match_id, [resident["id"], other["id"]])
     client.cookies.set(auth.SESSION_COOKIE_NAME, token)
     try:
@@ -559,10 +478,8 @@ def test_api_my_match_respond_rejects_a_non_member_match_id():
     resident, token = _consented_resident_session()
     other_nb = db.get_or_create_neighborhood("fremont", "Fremont", 100)
     other = db.get_or_create_resident(other_nb["id"], "other@example.com", "magic_link")
-    run_id = db.create_run("live", "sig", other_nb["id"])
-    match_id = db.save_match(run_id, 0, {
-        "group": ["r" + str(other["id"])], "reason": "not yours", "scores": {}, "why_not": [],
-    })
+    run_id = db.create_run("agents", "", other_nb["id"])
+    match_id = db.create_invitation(run_id, 0, ["r" + str(other["id"])], "headline", 9, {"invite": {}, "pitches": {}})
     db.create_pending_acceptances(match_id, [other["id"]])
     client.cookies.set(auth.SESSION_COOKIE_NAME, token)
     try:
@@ -577,11 +494,8 @@ def test_api_my_match_respond_accept_round_trip():
     reset_state()
     resident, token = _consented_resident_session()
     other = db.get_or_create_resident(resident["neighborhood_id"], "other@example.com", "magic_link")
-    run_id = db.create_run("live", "sig", resident["neighborhood_id"])
-    match_id = db.save_match(run_id, 0, {
-        "group": ["r" + str(resident["id"]), "r" + str(other["id"])],
-        "reason": "Shared weekend hikes.", "scores": {}, "why_not": [],
-    })
+    run_id = db.create_run("agents", "", resident["neighborhood_id"])
+    match_id = db.create_invitation(run_id, 0, ["r" + str(resident["id"]), "r" + str(other["id"])], "headline", 9, {"invite": {}, "pitches": {}})
     db.create_pending_acceptances(match_id, [resident["id"], other["id"]])
     client.cookies.set(auth.SESSION_COOKIE_NAME, token)
     try:
@@ -653,8 +567,8 @@ def test_api_admin_neighborhood_detail_unknown_id():
 def test_api_admin_neighborhood_detail_includes_residents_and_runs():
     reset_state()
     nb = db.get_or_create_neighborhood("ballard", "Ballard", 10)
-    resident = db.get_or_create_resident(nb["id"], "a@example.com", "google")
-    db.mark_profile_complete(resident["id"])
+    from conftest import make_joined_resident
+    make_joined_resident(nb, "a@example.com", "Alex")
     token = _admin_session()
     client.cookies.set(auth.SESSION_COOKIE_NAME, token)
     try:
@@ -663,7 +577,7 @@ def test_api_admin_neighborhood_detail_includes_residents_and_runs():
         data = r.json()
         assert data["neighborhood"]["complete_count"] == 1
         assert data["residents"][0]["email"] == "a@example.com"
-        assert data["residents"][0]["status"] == "complete_unmatched"
+        assert data["residents"][0]["status"] == "in_pool"
         assert data["runs"] == []
     finally:
         client.cookies.clear()
@@ -783,3 +697,50 @@ def test_onboarding_page_is_now_bring_your_agent():
     assert r.status_code == 200
     assert "Bring your agent" in r.text
     assert "/api/agent/preview" in r.text
+
+
+def test_confirm_schedules_the_hub_check_once(monkeypatch):
+    from conftest import FakeClient, json_body
+    import batch
+    reset_state()
+    scheduled = []
+    monkeypatch.setattr(batch, "schedule_check", lambda neighborhood_id: scheduled.append(neighborhood_id))
+    fake = FakeClient(card_queue=[json_body({"essence": "a warm host"})])
+    monkeypatch.setattr(config, "get_client", lambda: fake)
+    resident, token = _consented_resident_session()
+    client.cookies.set(auth.SESSION_COOKIE_NAME, token)
+    try:
+        client.post("/api/agent/preview", json={"name": "Noa", "source": "Claude", "text": AGENT_TEXT})
+        assert client.post("/api/agent/confirm").status_code == 200
+        assert client.post("/api/agent/confirm").status_code == 200     # already in: no second check
+        assert scheduled == [resident["neighborhood_id"]]
+    finally:
+        client.cookies.clear()
+
+
+def test_api_admin_run_detail_is_admin_only_and_complete():
+    reset_state()
+    run_id = db.create_run("agents", "")
+    db.log_event(run_id, "hub", "thought", "why I paired them")
+    assert client.get("/api/admin/runs/" + str(run_id)).status_code == 401
+    resident, token = _consented_resident_session()
+    client.cookies.set(auth.SESSION_COOKIE_NAME, token)
+    try:
+        assert client.get("/api/admin/runs/" + str(run_id)).status_code == 403
+    finally:
+        client.cookies.clear()
+    client.cookies.set(auth.SESSION_COOKIE_NAME, _admin_session())
+    try:
+        r = client.get("/api/admin/runs/" + str(run_id))
+        assert r.status_code == 200
+        assert r.json()["events"][0]["text"] == "why I paired them"
+        assert client.get("/api/admin/runs/999999").status_code == 404
+    finally:
+        client.cookies.clear()
+
+
+def test_root_points_residents_to_their_invite_link():
+    reset_state()
+    r = client.get("/")
+    assert r.status_code == 200
+    assert "invite link" in r.text

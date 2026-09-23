@@ -244,9 +244,11 @@ def _verdict_system(a, b):
         ' "tensions": ["honest risks"],',
         ' "invite": {"activity": "a specific low-pressure activity that fits both", "when": "a time both are free",',
         '   "where": "an area that works for both",',
-        '   "to_a": "2 sentences to ' + a["name"] + ' on why meet ' + b["name"] + ' (only what ' + b["name"] + '\'s agent shared)",',
-        '   "to_b": "2 sentences to ' + b["name"] + ' on why meet ' + a["name"] + ' (only what ' + a["name"] + '\'s agent shared)"}}',
+        '   "to_a": "2 sentences to ' + a["name"] + ' on why meet this person (only what ' + b["name"] + '\'s agent shared)",',
+        '   "to_b": "2 sentences to ' + b["name"] + ' on why meet this person (only what ' + a["name"] + '\'s agent shared)"}}',
         "Give 2-4 evidence items. Quotes must be verbatim or code will discard them.",
+        "to_a and to_b are read BEFORE either person knows who the other is: never name the other person",
+        "in them -- say \"they\" -- and include nothing that would identify them.",
     ]
     return "\n".join(lines)
 
@@ -262,7 +264,7 @@ async def judge(a, b, turns, client, record, ref=None):
         max_tokens=16000,
         system=_verdict_system(a, b),
         messages=[{"role": "user", "content": "Logistics from their cards:\n" + logistics + "\n\nTRANSCRIPT:\n" + transcript}],
-        output_config={"effort": config.MATCH_EFFORT},
+        output_config={"effort": config.HUB_EFFORT},
     )
     raw = extract_json(join_text(message))
     if raw is None:

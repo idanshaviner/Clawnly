@@ -6,7 +6,6 @@ import bring_agent
 import db
 import dossier
 from conftest import FakeClient, json_body, run
-from users import USERS
 
 TEXT = "You're 31 and moved here eight months ago. You miss long Friday dinners. " * 8
 
@@ -18,7 +17,7 @@ def card_reply():
 
 def resident():
     db.init_db()
-    db.reset_all(USERS)
+    db.reset_all()
     nb = db.get_or_create_neighborhood("ten-trails", "Ten Trails", 10)
     r = db.get_or_create_resident(nb["id"], "noa@example.com", "magic_link")
     db.record_consent(r["id"])
@@ -94,13 +93,3 @@ def test_confirm_joins_with_the_stored_draft_and_locks_it():
     # confirming again is harmless
     state, error = bring_agent.confirm(joined)
     assert error is None and state["joined"] is True
-
-
-def test_confirm_does_not_fire_the_old_batch_pipeline(monkeypatch):
-    import batch
-    fired = []
-    monkeypatch.setattr(batch, "check_and_trigger_batch", lambda *a, **k: fired.append(a))
-    r = resident()
-    run(bring_agent.preview(r, "Noa", "Muse", TEXT, FakeClient(card_queue=[card_reply()])))
-    bring_agent.confirm(db.get_resident(r["id"]))
-    assert fired == []

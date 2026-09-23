@@ -133,9 +133,11 @@ async def build_card(source, text, client=None):
 
 
 def card_text(card):
-    # the card as plain lines, for the hub's pairing prompt.
+    # the card as plain lines, for the hub's pairing prompt. Cards are stored
+    # JSON, so a field missing from an older card reads as "unknown".
     if card is None:
         return "(no card yet)"
+    card = clean_card(card)
     lines = [
         "Essence: " + card["essence"],
         "Chapter of life: " + card["chapter"],

@@ -16,7 +16,7 @@ def test_get_client_raises_clear_error_when_no_key(monkeypatch):
     with pytest.raises(ValueError) as info:
         config.get_client()
     msg = str(info.value)
-    assert "Demo mode" in msg and ".env" in msg
+    assert "ANTHROPIC_API_KEY" in msg and ".env" in msg
 
 
 def test_get_client_builds_with_key(monkeypatch):

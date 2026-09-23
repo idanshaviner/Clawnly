@@ -6,14 +6,13 @@ import json
 import db
 import orchestrator
 from conftest import FakeClient, json_body, run
-from users import USERS
 
 LONG = "You are someone real with a real life and real needs from friends. " * 10
 
 
 def reset():
     db.init_db()
-    db.reset_all(USERS)
+    db.reset_all()
 
 
 def people():

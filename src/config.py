@@ -42,6 +42,13 @@ HUB_EFFORT = "medium"
 # (the admin dashboard can always run a round sooner.)
 MATCH_BATCH_THRESHOLD = 10
 
+# after a neighborhood's first round, the hub runs again every night on its
+# own (nightly.py), during this hour of the day in this time zone -- overnight,
+# so invitations are waiting in the morning. Override with CLAWNLY_NIGHTLY_HOUR
+# (0-23) and CLAWNLY_TIMEZONE (e.g. "Asia/Jerusalem").
+NIGHTLY_ROUND_HOUR = 3
+NIGHTLY_TIMEZONE = "America/Los_Angeles"
+
 
 # who can see the admin dashboard. Comma-separated emails in
 # CLAWNLY_ADMIN_EMAILS, e.g. "you@example.com,cofounder@example.com". Plain

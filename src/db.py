@@ -4,7 +4,8 @@ Pure storage plumbing -- it knows nothing about how agents talk or how the hub
 decides; it saves and loads the plain dicts those modules produce.
 
 Tables:
-  neighborhoods     -- one invite-link cohort (slug, batch threshold, trigger state)
+  neighborhoods     -- one invite-link cohort (slug, secret invite code, batch
+                       threshold, first-round and last-nightly-round state)
   residents         -- a real person's account + the dossier they brought
                        (what their own AI wrote about them) + its card
   sessions          -- durable login sessions
@@ -82,7 +83,7 @@ def init_db():
     conn.execute("""CREATE TABLE IF NOT EXISTS neighborhoods (
         id INTEGER PRIMARY KEY AUTOINCREMENT, slug TEXT UNIQUE, name TEXT,
         invite_code TEXT, batch_threshold INTEGER, batch_triggered_at TEXT,
-        created_at TEXT
+        nightly_round_on TEXT, created_at TEXT
     )""")
     conn.execute("""CREATE TABLE IF NOT EXISTS residents (
         id INTEGER PRIMARY KEY AUTOINCREMENT, neighborhood_id INTEGER, email TEXT,
@@ -140,6 +141,7 @@ def init_db():
     _ensure_column(conn, "residents", "card", "TEXT")
     _ensure_column(conn, "residents", "dossier_previews", "INTEGER")
     _ensure_column(conn, "events", "neighborhood_id", "INTEGER")
+    _ensure_column(conn, "neighborhoods", "nightly_round_on", "TEXT")
 
     conn.commit()
 
@@ -356,6 +358,19 @@ def try_trigger_batch(neighborhood_id):
     cur = conn.execute(
         "UPDATE neighborhoods SET batch_triggered_at = ? WHERE id = ? AND batch_triggered_at IS NULL",
         (_now(), neighborhood_id),
+    )
+    conn.commit()
+    return cur.rowcount == 1
+
+
+def claim_nightly_round(neighborhood_id, night):
+    # compare-and-swap on the night's date ("2026-09-24"): true for exactly one
+    # caller per neighborhood per night, so a restart mid-hour can't run it twice.
+    conn = _get_conn()
+    cur = conn.execute(
+        "UPDATE neighborhoods SET nightly_round_on = ? WHERE id = ? "
+        "AND (nightly_round_on IS NULL OR nightly_round_on != ?)",
+        (night, neighborhood_id, night),
     )
     conn.commit()
     return cur.rowcount == 1

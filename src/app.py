@@ -8,6 +8,7 @@ server's own key (config.get_client()) -- real residents, real data.
 Run:  .venv/bin/python src/app.py   (or double-click Clawnly.command)
 """
 
+import contextlib
 import html
 import os
 import re
@@ -22,8 +23,17 @@ import bring_agent
 import config
 import db
 import my_match
+import nightly
 
-app = FastAPI(title="Clawnly")
+
+@contextlib.asynccontextmanager
+async def lifespan(app):
+    # the nightly rounds live as long as the server does
+    nightly.start()
+    yield
+
+
+app = FastAPI(title="Clawnly", lifespan=lifespan)
 
 db.init_db()
 

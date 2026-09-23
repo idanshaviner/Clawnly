@@ -33,7 +33,8 @@ name-blind pitches) are enforced in code, never trusted to the model.
   Don't resurrect them; take ideas from there deliberately.
 - Real-user pilot flow: `/join/<slug>?code=<secret>` -> login (`auth.py`, Google
   OAuth + email magic link, sessions in SQLite) -> `/consent` -> `/onboarding`
-  (bring your agent, `bring_agent.py`) -> hub round -> `/my-match`. Admin at
+  (bring your agent, `bring_agent.py`) -> first hub round at the threshold, then
+  one every night (`nightly.py`, a loop the app starts) -> `/my-match`. Admin at
   `/admin`, which is also the only place a neighborhood (and its secret invite
   link) is created.
 - Security rules the tests pin down -- keep them: no join or login without the

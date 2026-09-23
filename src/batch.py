@@ -1,10 +1,10 @@
 """Batch trigger: runs the hub (orchestrator.run_round) for a neighborhood
 and turns its invitations into the mutual yes/no gate (my_match.py).
 
-No scheduler or poller: the only event that can cross a neighborhood's
-threshold is a resident joining with their agent, so app.py calls
-schedule_check() right after a successful bring-your-agent confirm. The
-admin dashboard can also run a round directly (force_trigger_batch).
+The FIRST round starts when joins cross the neighborhood's threshold: app.py
+calls schedule_check() right after a successful bring-your-agent confirm.
+After that, nightly.py runs a round every night, and the admin dashboard can
+run one any time (force_trigger_batch).
 
 Rules enforced here in code, on top of the hub's own gate:
   - one invitation per person per round -- the strongest (highest depth)
@@ -113,7 +113,8 @@ async def run_neighborhood_round(neighborhood_id, people, client):
     return run_id
 
 
-def _people_for(neighborhood_id):
+def people_for(neighborhood_id):
+    # everyone who has brought their agent and isn't holding a live invitation
     eligible = db.list_eligible_residents(neighborhood_id)
     people = []
     i = 0
@@ -129,7 +130,7 @@ async def check_and_trigger_batch(neighborhood_id, client=None):
     neighborhood = db.get_neighborhood(neighborhood_id)
     if neighborhood is None:
         return
-    people = _people_for(neighborhood_id)
+    people = people_for(neighborhood_id)
     if len(people) < neighborhood["batch_threshold"]:
         return
     if not db.try_trigger_batch(neighborhood_id):
@@ -166,7 +167,7 @@ async def force_trigger_batch(neighborhood_id, client=None, by=None):
     neighborhood = db.get_neighborhood(neighborhood_id)
     if neighborhood is None:
         return None, "No such neighborhood."
-    people = _people_for(neighborhood_id)
+    people = people_for(neighborhood_id)
     if len(people) < 2:
         return None, "Not enough residents with an agent to pair anyone (need at least 2)."
     if client is None:

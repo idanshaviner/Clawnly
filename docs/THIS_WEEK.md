@@ -46,7 +46,7 @@ else serves them.
 | **Mon** | Hub + Claw + event log in the real app. | Done |
 | **Tue** | Signup becomes "Bring your agent". | Done |
 | **Wed** | Hub wired into the pilot; invitations on the yes/no screen; old logic deleted. | Done |
-| **Thu** | Admin "behind the scenes" (done), hit-rate tile, deploy to Render. | In progress |
+| **Thu** | Admin "behind the scenes" (done), security pass (done), nightly rounds (done), hit-rate tile, deploy to Render. | In progress |
 | **Fri** | Real people join; run a round; tune prompts from the real conversations. | Next |
 | **Weekend** | Meetings happen. Ask: "Did you meet? Would you meet again?" | Next |
 

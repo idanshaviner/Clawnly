@@ -35,7 +35,11 @@ and every human step (signup, join, yes/no, reveal, meetup answer, admin actions
 3. **Bring your agent** `/onboarding` -> copy one prompt into the AI that knows
    them, paste its answer, see the card their agent will carry (with a
    "real-you" score and what the agent will say "I don't know" about), join.
-4. **Wait.** When enough neighbors have joined, the hub runs a round on its own.
+4. **Wait.** When enough neighbors have joined, the hub runs the first round on
+   its own. After that it runs again every night (3 AM Seattle time by default),
+   so late joiners and anyone released by a "no" get new conversations. It
+   skips a night, without spending anything, when no pair of free people is
+   left who haven't already talked.
 5. **Invitation** `/my-match` -> "Your agent found someone" with a pitch that
    doesn't reveal who. Yes or no. If both say yes: first names and the proposed
    meetup appear, and each answers "I'll be there" or "need a different time"
@@ -98,7 +102,8 @@ src/
   agent_talk.py     the Claw: one person's agent in a private conversation
   orchestrator.py   the hub: pair -> talk -> judge -> gate, all logged
   batch.py          runs a hub round for a neighborhood -> yes/no invitations
-  my_match.py       the mutual yes/no gate and the reveal
+  my_match.py       the mutual yes/no gate, the reveal, and the meetup answer
+  nightly.py        the hub's automatic round every night after the first
   admin.py          dashboard aggregation + a round's behind-the-scenes record
   ai_log.py         logs every Claude call verbatim (prompt, reply, tokens, time, errors)
   llm_io.py         reading JSON out of model replies
@@ -131,6 +136,7 @@ Secrets go in a gitignored `.env` at the project root, one `NAME=value` per line
 | `RESEND_API_KEY` | emailed sign-in links (without it, links print to the server console: fine locally) |
 | `CLAWNLY_ADMIN_EMAILS` | comma-separated emails that can open `/admin` |
 | `CLAWNLY_BASE_URL` | the public address (e.g. `https://…onrender.com`); sign-in links are built from it. Required when deployed |
+| `CLAWNLY_NIGHTLY_HOUR`, `CLAWNLY_TIMEZONE` | optional: when the nightly round runs (default `3` in `America/Los_Angeles`) |
 
 ## Run
 

@@ -339,14 +339,10 @@ def list_neighborhoods():
 
 
 def mark_batch_triggered(neighborhood_id):
-    # the admin dashboard's manual "trigger batch now" override (Stage 6) --
-    # unlike try_trigger_batch's compare-and-swap (the automatic, one-shot,
-    # concurrency-safe guard on a resident completion crossing the
-    # threshold), this is a deliberate, single, authenticated admin action
-    # that's allowed to fire again even after an earlier automatic or manual
-    # trigger -- e.g. to re-match residents a decline released back into the
-    # pool, since nothing else currently re-triggers for them (see
-    # ROADMAP.md's Stage 5 caveat).
+    # the admin's "run a round now" -- unlike try_trigger_batch's
+    # compare-and-swap (the automatic, one-shot guard when joins cross the
+    # threshold), an admin may run it again and again: it is the only way
+    # people who joined late, or were released by a "no", get another round.
     conn = _get_conn()
     conn.execute("UPDATE neighborhoods SET batch_triggered_at = ? WHERE id = ?", (_now(), neighborhood_id))
     conn.commit()

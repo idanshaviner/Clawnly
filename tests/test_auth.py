@@ -61,14 +61,6 @@ def test_start_and_read_session():
 
 # ----- magic link: request + verify (dev-mode, no Resend key) ---------------
 
-def test_magic_link_configured_reflects_env(monkeypatch):
-    clear_env(monkeypatch)
-    monkeypatch.delenv("RESEND_API_KEY", raising=False)
-    assert auth.magic_link_configured() is False
-    monkeypatch.setenv("RESEND_API_KEY", "re_test_123")
-    assert auth.magic_link_configured() is True
-
-
 def test_request_magic_link_dev_mode_prints_instead_of_emailing(monkeypatch, capsys):
     reset_state()
     clear_env(monkeypatch)
@@ -433,7 +425,7 @@ def test_onboarding_page_serves():
     assert "text/html" in r.headers["content-type"]
 
 
-# ----- routes: my-match (mutual reveal gate, stage 5) -------------------------
+# ----- routes: my-match (mutual reveal gate) ---------------------------------
 
 def test_my_match_page_serves():
     reset_state()
@@ -545,7 +537,7 @@ def test_api_my_match_meetup_records_the_answer_after_the_reveal():
         client.cookies.clear()
 
 
-# ----- routes: admin dashboard (stage 6) --------------------------------------
+# ----- routes: admin dashboard ---------------------------------------------
 
 def _admin_session():
     os.environ["CLAWNLY_ADMIN_EMAILS"] = "boss@example.com"

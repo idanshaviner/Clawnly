@@ -359,11 +359,10 @@ async def api_my_match_meetup(body: dict, request: Request):
 
 
 # ============================================================================
-# Real-user pilot: admin dashboard (Stage 6). Neighborhood progress, resident
-# status, recent batch runs + usage, and a manual "trigger batch now"
-# override -- read-only aggregation of data earlier stages already persist
-# (see admin.py's module docstring). Plain/functional styling -- an internal
-# tool, not resident-facing.
+# Admin dashboard: create a neighborhood (and its secret invite link), see
+# progress, resident status, rounds + usage, the activity feed and every AI
+# call, and run a round now. Read-only aggregation lives in admin.py. Plain
+# styling -- an internal tool, not resident-facing.
 # ============================================================================
 
 def _require_admin(request):

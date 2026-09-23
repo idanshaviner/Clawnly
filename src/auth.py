@@ -162,10 +162,6 @@ async def google_login_callback(code, state, redirect_uri):
 
 # ----- email magic link -----------------------------------------------------
 
-def magic_link_configured():
-    return config.resolve_env("RESEND_API_KEY") is not None
-
-
 async def _send_magic_link_email(email, link_url):
     api_key = config.resolve_env("RESEND_API_KEY")
     if api_key is None:

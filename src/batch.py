@@ -19,7 +19,6 @@ import re
 import config
 import db
 import orchestrator
-import usage
 
 
 # fire-and-forget tasks must be referenced, or Python may garbage-collect them mid-run
@@ -74,8 +73,8 @@ def _resident_id(person_id):
 
 async def run_neighborhood_round(neighborhood_id, people, client):
     # one hub round for these people, then one invitation (yes/no gate) per kept pair.
-    counting = usage.CountingClient(client)
-    result = await orchestrator.run_round(people, client=counting, neighborhood_id=neighborhood_id)
+    # (the round itself logs every event and every Claude call, and records usage.)
+    result = await orchestrator.run_round(people, client=client, neighborhood_id=neighborhood_id)
     run_id = result["run_id"]
 
     names = {}
@@ -90,7 +89,7 @@ async def run_neighborhood_round(neighborhood_id, people, client):
         conversation = held_back[i]
         db.log_event(run_id, "code", "check", "Held back the invitation for " + names[conversation["a"]] + " + "
                      + names[conversation["b"]] + ": one of them already has a stronger invitation this round.",
-                     str(conversation["id"]))
+                     str(conversation["id"]), neighborhood_id)
         i += 1
 
     i = 0
@@ -108,11 +107,9 @@ async def run_neighborhood_round(neighborhood_id, people, client):
         }
         match_id = db.create_invitation(run_id, i, [a, b], verdict["headline"], verdict["depth"], details)
         db.create_pending_acceptances(match_id, [_resident_id(a), _resident_id(b)])
-        db.log_event(run_id, "system", "system", "Invitation sent to " + names[a] + " and " + names[b]
-                     + ". Nothing is revealed until both say yes.", str(conversation["id"]))
+        db.log_event(run_id, "system", "system", "Invitation #" + str(match_id) + " sent to " + names[a] + " and "
+                     + names[b] + ". Nothing is revealed until both say yes.", str(conversation["id"]), neighborhood_id)
         i += 1
-
-    db.set_run_usage(run_id, counting.counter)
     return run_id
 
 
@@ -137,13 +134,19 @@ async def check_and_trigger_batch(neighborhood_id, client=None):
         return
     if not db.try_trigger_batch(neighborhood_id):
         return   # another near-simultaneous join already triggered this round
-    if client is None:
-        client = config.get_client()
+    db.log_event(None, "system", "system", "Threshold reached: " + str(len(people)) + " of "
+                 + str(neighborhood["batch_threshold"]) + " neighbors have an agent. Running the first round.",
+                 None, neighborhood_id)
     try:
+        if client is None:
+            client = config.get_client()
         await run_neighborhood_round(neighborhood_id, people, client)
     except Exception as error:
         # the CAS already fired, so an operator re-runs it from the admin
-        # dashboard; never surface this through an unrelated resident's request.
+        # dashboard; never surface this through an unrelated resident's request --
+        # but always leave it in the log (the round's own events show how far it got).
+        db.log_event(None, "system", "system", "The automatic round failed: " + str(error)
+                     + ". Run it again from the admin dashboard.", None, neighborhood_id)
         print("[batch] neighborhood {} round failed: {}".format(neighborhood_id, error))
 
 
@@ -156,9 +159,10 @@ def schedule_check(neighborhood_id):
     return task
 
 
-async def force_trigger_batch(neighborhood_id, client=None):
+async def force_trigger_batch(neighborhood_id, client=None, by=None):
     # the admin dashboard's "run a round now": ignores batch_threshold, and runs
     # inside the admin's request, so a failure is reported back as an error.
+    # `by` is the admin's email, for the log.
     neighborhood = db.get_neighborhood(neighborhood_id)
     if neighborhood is None:
         return None, "No such neighborhood."
@@ -168,5 +172,10 @@ async def force_trigger_batch(neighborhood_id, client=None):
     if client is None:
         client = config.get_client()
     db.mark_batch_triggered(neighborhood_id)
+    who = "An admin"
+    if by:
+        who = "Admin " + by
+    db.log_event(None, "human", "human", who + " ran a round now with " + str(len(people)) + " neighbors.",
+                 None, neighborhood_id)
     run_id = await run_neighborhood_round(neighborhood_id, people, client)
     return run_id, None

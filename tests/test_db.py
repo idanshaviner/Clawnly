@@ -164,7 +164,7 @@ def test_dossier_draft_is_locked_once_joined():
 # ----- invitations + the mutual yes/no gate -----------------------------------
 
 def _invitation(nb, residents):
-    run_id = db.create_run("agents", "", nb["id"])
+    run_id = db.create_run(nb["id"])
     member_ids = ["r" + str(r["id"]) for r in residents]
     details = {"conversation_id": 1, "invite": {"activity": "dinner", "when": "Sun", "where": "here"},
                "pitches": {member_ids[0]: "pitch one"}}
@@ -248,8 +248,8 @@ def test_eligible_excludes_live_invitations_and_includes_dissolved_ones():
 
 def test_events_are_logged_in_order_per_run():
     reset()
-    run_a = db.create_run("agents", "")
-    run_b = db.create_run("agents", "")
+    run_a = db.create_run()
+    run_b = db.create_run()
     db.log_event(run_a, "hub", "thought", "first", None)
     db.log_event(run_b, "code", "check", "other run", None)
     db.log_event(run_a, "agent", "message", "second", "7")
@@ -259,7 +259,7 @@ def test_events_are_logged_in_order_per_run():
 
 def test_agent_conversation_turns_and_verdict_round_trip():
     reset()
-    run_id = db.create_run("agents", "")
+    run_id = db.create_run()
     cid = db.save_agent_conversation(run_id, "r1", "r2", "why", [])
     db.set_agent_turns(cid, [{"by": "r1", "text": "hi"}])
     db.set_agent_verdict(cid, {"depth": 9, "invited": True}, True)
@@ -294,7 +294,7 @@ def test_reset_all_wipes_everything():
     reset()
     nb = db.get_or_create_neighborhood("ballard", "Ballard", 100)
     make_joined_resident(nb, "a@example.com", "Noa")
-    run_id = db.create_run("agents", "", nb["id"])
+    run_id = db.create_run(nb["id"])
     db.log_event(run_id, "hub", "thought", "x")
     db.save_agent_conversation(run_id, "r1", "r2", "", [])
     db.create_session("tok-1", "a@example.com", "resident", 1, nb["id"], 3600)
@@ -307,3 +307,27 @@ def test_reset_all_wipes_everything():
     assert db.get_session("tok-1") is None
     assert db.list_events(run_id) == []
     assert db.list_agent_conversations() == []
+
+
+# ----- ai_calls + neighborhood activity ---------------------------------------------------
+
+def test_ai_calls_split_into_rounds_and_signups():
+    reset()
+    db.log_ai_call(1, 9, None, "pairing", "m", "s", [], "r", 1, 2, 3, None)
+    db.log_ai_call(None, 9, 4, "card", "m", "s", [{"role": "user", "content": "x"}], "r", None, None, 3, None)
+    db.log_ai_call(None, 8, 5, "card", "m", "s", [], None, None, None, 3, "boom")
+    assert [c["purpose"] for c in db.list_ai_calls(1)] == ["pairing"]
+    signup = db.list_signup_ai_calls(9)
+    assert len(signup) == 1 and signup[0]["resident_id"] == 4
+    assert signup[0]["messages"] == [{"role": "user", "content": "x"}]
+    assert db.list_signup_ai_calls(8)[0]["error"] == "boom"
+
+
+def test_neighborhood_events_keep_the_most_recent_in_order():
+    reset()
+    i = 0
+    while i < 5:
+        db.log_event(None, "system", "system", "e" + str(i), None, 3)
+        i += 1
+    db.log_event(None, "system", "system", "elsewhere", None, 4)
+    assert [e["text"] for e in db.list_neighborhood_events(3, limit=3)] == ["e2", "e3", "e4"]

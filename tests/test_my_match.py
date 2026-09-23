@@ -23,7 +23,7 @@ def make_match(nb, residents):
     pitches = {}
     for member_id in member_ids:
         pitches[member_id] = "You both want a steady weekly table. " + member_id
-    run_id = db.create_run("agents", "", nb["id"])
+    run_id = db.create_run(nb["id"])
     details = {"conversation_id": 1,
                "invite": {"activity": "a short hike", "when": "Saturday morning", "where": "Ten Trails trailhead"},
                "pitches": pitches}
@@ -211,3 +211,39 @@ def test_respond_a_second_time_does_not_flip_the_first_answer():
     my_match.respond(alex, match_id, "decline")   # too late -- already accepted
     assert db.get_acceptance(match_id, alex["id"])["status"] == "accepted"
     assert db.get_match(match_id)["dissolved_at"] is None
+
+
+# ----- logs ----------------------------------------------------------------------
+
+def test_every_answer_and_the_reveal_are_logged():
+    reset()
+    nb = make_neighborhood()
+    alex = make_resident(nb, "a@example.com", "Alex")
+    bao = make_resident(nb, "b@example.com", "Bao")
+    match_id = make_match(nb, [alex, bao])
+    my_match.respond(alex, match_id, "accept")
+    my_match.respond(bao, match_id, "accept")
+    texts = [e["text"] for e in db.list_neighborhood_events(nb["id"])]
+    assert texts == [
+        "Alex said YES to invitation #" + str(match_id) + ".",
+        "Bao said YES to invitation #" + str(match_id) + ".",
+        "Invitation #" + str(match_id) + " sealed: everyone said yes. First names and the meetup are revealed.",
+    ]
+    # the events belong to the round that made the invitation
+    run_id = db.get_match(match_id)["run_id"]
+    assert len(db.list_events(run_id)) == 3
+
+
+def test_a_no_and_the_dissolve_are_logged_and_a_repeat_answer_is_not():
+    reset()
+    nb = make_neighborhood()
+    alex = make_resident(nb, "a@example.com", "Alex")
+    bao = make_resident(nb, "b@example.com", "Bao")
+    match_id = make_match(nb, [alex, bao])
+    my_match.respond(alex, match_id, "decline")
+    my_match.respond(alex, match_id, "accept")        # too late, changes nothing, logs nothing
+    texts = [e["text"] for e in db.list_neighborhood_events(nb["id"])]
+    assert texts == [
+        "Alex said NO to invitation #" + str(match_id) + ".",
+        "Invitation #" + str(match_id) + " dissolved. Nobody's name was revealed; everyone in it is back in the pool.",
+    ]

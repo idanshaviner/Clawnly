@@ -55,6 +55,13 @@
   .logline { padding:3px 0; border-bottom:1px solid var(--line); white-space:pre-wrap; overflow-wrap:anywhere; }
   .logline:last-child { border-bottom:0; }
   .who-hub { font-weight:700; } .who-agent { color:var(--accent); } .who-code { color:var(--amber); }
+  .who-human { color:var(--green); font-weight:600; }
+  details.call { border:1px solid var(--line); border-radius:10px; padding:8px 12px; margin-top:8px; }
+  details.call summary { cursor:pointer; font-size:13.5px; }
+  details.call .err { margin:6px 0 0; }
+  .callpart { font-size:11px; text-transform:uppercase; letter-spacing:.5px; color:var(--muted); margin-top:10px; }
+  pre.calltext { white-space:pre-wrap; overflow-wrap:anywhere; background:#f1efe9; border-radius:8px; padding:8px 10px;
+    font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace; max-height:360px; overflow:auto; margin:4px 0 0; }
 </style>
 </head>
 <body>
@@ -100,6 +107,17 @@
         <tbody id="runs-body"></tbody>
       </table>
     </div>
+
+    <div class="card section">
+      <h2>Activity</h2>
+      <p class="muted">Everything that happened in this neighborhood, oldest first: signups, rounds, invitations, every yes and no.</p>
+      <div class="log" id="activity-log"></div>
+    </div>
+
+    <div class="card section">
+      <h2>AI calls outside rounds (signup cards)</h2>
+      <div id="signup-calls"></div>
+    </div>
   </div>
 
   <div id="run-view" style="display:none">
@@ -115,6 +133,10 @@
     <div class="card section">
       <h2>Activity log</h2>
       <div class="log" id="run-log"></div>
+    </div>
+    <div class="card section">
+      <h2>Every AI call, verbatim</h2>
+      <div id="run-calls"></div>
     </div>
   </div>
 </div>
@@ -213,6 +235,9 @@ function loadDetail(id){
       runsBody.appendChild(tr);
     });
 
+    renderEvents(document.getElementById("activity-log"), data.activity.events);
+    renderCalls(document.getElementById("signup-calls"), data.activity.signup_ai_calls);
+
     var triggerBtn = document.getElementById("trigger-btn");
     var triggerStatus = document.getElementById("trigger-status");
     triggerStatus.textContent = "";
@@ -246,6 +271,42 @@ function loadDetail(id){
 }
 
 document.getElementById("back-link").addEventListener("click", loadList);
+
+function renderEvents(box, events){
+  box.textContent = "";
+  if (events.length === 0) { box.appendChild(textEl("div", "muted", "Nothing logged yet.")); return; }
+  events.forEach(function(e){
+    var line = document.createElement("div");
+    line.className = "logline";
+    line.appendChild(textEl("span", "who-" + e.actor, (e.created_at || "").slice(5, 19).replace("T", " ") + "  " + e.actor + " / " + e.kind + "  "));
+    line.appendChild(document.createTextNode(e.text));
+    box.appendChild(line);
+  });
+}
+
+function renderCalls(box, calls){
+  box.textContent = "";
+  if (calls.length === 0) { box.appendChild(textEl("p", "muted", "No AI calls.")); return; }
+  calls.forEach(function(c){
+    var d = document.createElement("details");
+    d.className = "call";
+    var tokens = "";
+    if (c.input_tokens !== null && c.output_tokens !== null) { tokens = " -- " + c.input_tokens + " in / " + c.output_tokens + " out tokens"; }
+    var head = "#" + c.id + "  " + c.purpose + "  " + c.model + "  " + c.ms + " ms" + tokens;
+    if (c.error) { head += "  FAILED"; }
+    d.appendChild(textEl("summary", "", head));
+    if (c.error) { d.appendChild(textEl("p", "err", c.error)); }
+    d.appendChild(textEl("div", "callpart", "System prompt"));
+    d.appendChild(textEl("pre", "calltext", c.system));
+    c.messages.forEach(function(m){
+      d.appendChild(textEl("div", "callpart", "Message (" + m.role + ")"));
+      d.appendChild(textEl("pre", "calltext", typeof m.content === "string" ? m.content : JSON.stringify(m.content)));
+    });
+    d.appendChild(textEl("div", "callpart", "Reply"));
+    d.appendChild(textEl("pre", "calltext", c.reply === null ? "(no reply)" : c.reply));
+    box.appendChild(d);
+  });
+}
 
 function textEl(tag, cls, text){
   var el = document.createElement(tag);
@@ -295,15 +356,8 @@ function loadRun(runId, neighborhoodId){
       box.appendChild(card);
     });
 
-    var log = document.getElementById("run-log");
-    log.textContent = "";
-    data.events.forEach(function(e){
-      var line = document.createElement("div");
-      line.className = "logline";
-      line.appendChild(textEl("span", "who-" + e.actor, (e.created_at || "").slice(11, 19) + "  " + e.actor + " / " + e.kind + "  "));
-      line.appendChild(document.createTextNode(e.text));
-      log.appendChild(line);
-    });
+    renderEvents(document.getElementById("run-log"), data.events);
+    renderCalls(document.getElementById("run-calls"), data.ai_calls);
     show("run-view");
     window.scrollTo(0, 0);
   }).catch(function(){ show("not-authorized"); });

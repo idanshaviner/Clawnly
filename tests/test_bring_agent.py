@@ -93,3 +93,16 @@ def test_confirm_joins_with_the_stored_draft_and_locks_it():
     # confirming again is harmless
     state, error = bring_agent.confirm(joined)
     assert error is None and state["joined"] is True
+
+
+def test_signup_is_in_the_neighborhood_log_including_the_ai_call():
+    r = resident()
+    run(bring_agent.preview(r, "Noa", "ChatGPT", TEXT, FakeClient(card_queue=[card_reply()])))
+    bring_agent.confirm(db.get_resident(r["id"]))
+    texts = [e["text"] for e in db.list_neighborhood_events(r["neighborhood_id"])]
+    assert texts[0] == "Noa built their agent's card from ChatGPT (real-you score 5/5)."
+    assert texts[1] == "Noa joined with their agent from ChatGPT. 1 of 10 needed for the first round."
+    calls = db.list_signup_ai_calls(r["neighborhood_id"])
+    assert len(calls) == 1
+    assert calls[0]["purpose"] == "card" and calls[0]["resident_id"] == r["id"]
+    assert "moved here eight months ago" in calls[0]["messages"][0]["content"]

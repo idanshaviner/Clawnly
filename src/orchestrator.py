@@ -13,8 +13,9 @@ One round, start to finish, with no human involved until the invitation:
                MIN_VERIFIED_EVIDENCE quotes must appear word for word in the
                transcript (any other quote is discarded as made up).
 
-Every step is written to db.events as it happens (the behind-the-scenes log)
-and every conversation + verdict to db.agent_conversations.
+Every step is written to db.events as it happens (the behind-the-scenes log),
+every conversation + verdict to db.agent_conversations, and every Claude call
+verbatim to db.ai_calls (ai_log.LoggedClient).
 
 Run it on the fictional sample people (real API calls, needs a key):
     .venv/bin/python src/orchestrator.py
@@ -23,6 +24,7 @@ Run it on the fictional sample people (real API calls, needs a key):
 import asyncio
 import re
 
+import ai_log
 import config
 import db
 import dossier
@@ -47,12 +49,13 @@ def pair_key(a, b):
 class Recorder:
     # writes each behind-the-scenes event to the db, and optionally streams it
     # (a web page or the CLI printing it live).
-    def __init__(self, run_id, on_event=None):
+    def __init__(self, run_id, on_event=None, neighborhood_id=None):
         self.run_id = run_id
         self.on_event = on_event
+        self.neighborhood_id = neighborhood_id
 
     def __call__(self, actor, kind, text, ref=None):
-        db.log_event(self.run_id, actor, kind, text, ref)
+        db.log_event(self.run_id, actor, kind, text, ref, self.neighborhood_id)
         if self.on_event is not None:
             self.on_event({"actor": actor, "kind": kind, "text": text, "ref": ref})
 
@@ -327,13 +330,27 @@ async def _talk_and_judge(pair, people_by_id, run_id, client, record, limiter):
 async def run_round(people, client=None, on_event=None, neighborhood_id=None):
     # people: [{"id", "name", "source", "dossier", "card"?}, ...]. Cards are
     # built here for anyone who doesn't have one yet. Returns
-    # {"run_id", "conversations", "invitations"}.
+    # {"run_id", "conversations", "invitations", "usage"}. Every Claude call
+    # the round makes is logged verbatim (ai_log) against this run.
     if client is None:
         client = config.get_client()
-    run_id = db.create_run("agents", "", neighborhood_id)
-    record = Recorder(run_id, on_event)
+    run_id = db.create_run(neighborhood_id)
+    logged = ai_log.LoggedClient(client, run_id=run_id, neighborhood_id=neighborhood_id)
+    record = Recorder(run_id, on_event, neighborhood_id)
     record("system", "system", "Round started with " + str(len(people)) + " people. No human is involved until the invitations.")
+    try:
+        result = await _run_round_body(people, logged, run_id, record)
+    except Exception as error:
+        # a crash mid-round still leaves a record of how far it got and why it stopped
+        record("system", "system", "Round failed: " + str(error))
+        raise
+    finally:
+        db.set_run_usage(run_id, logged.counter)
+    result["usage"] = logged.counter
+    return result
 
+
+async def _run_round_body(people, client, run_id, record):
     people_by_id = {}
     i = 0
     while i < len(people):
@@ -386,7 +403,6 @@ async def run_round(people, client=None, on_event=None, neighborhood_id=None):
         i += 1
     record("system", "system", "Round finished: " + str(len(conversations)) + " conversation(s), "
            + str(len(invitations)) + " invitation(s).")
-    db.finish_run(run_id, [])
     return {"run_id": run_id, "conversations": conversations, "invitations": invitations}
 
 

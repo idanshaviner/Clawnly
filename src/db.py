@@ -14,6 +14,9 @@ Tables:
   runs              -- one row per hub round (mode, neighborhood, API-call usage)
   events            -- the behind-the-scenes log: every hub thought and decision,
                        every agent message, every code check, every human action
+                       (signup, join, yes/no, reveal, admin actions)
+  ai_calls          -- every call to Claude, verbatim: purpose, model, the exact
+                       prompt, the raw reply, tokens, time taken, any error
   agent_conversations -- one private Claw-to-Claw conversation + the hub's verdict
   matches           -- one invitation the hub sent (member ids, the hub's
                        headline, and details: pitches, the proposed meetup, the
@@ -64,8 +67,7 @@ def _ensure_column(conn, table, column, coltype):
 def init_db():
     conn = _get_conn()
     conn.execute("""CREATE TABLE IF NOT EXISTS runs (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, mode TEXT, users_signature TEXT,
-        unmatched_ids TEXT, created_at TEXT
+        id INTEGER PRIMARY KEY AUTOINCREMENT, mode TEXT, created_at TEXT
     )""")
     conn.execute("""CREATE TABLE IF NOT EXISTS matches (
         id INTEGER PRIMARY KEY AUTOINCREMENT, run_id INTEGER, group_index INTEGER,
@@ -110,6 +112,12 @@ def init_db():
         id INTEGER PRIMARY KEY AUTOINCREMENT, run_id INTEGER, actor TEXT, kind TEXT,
         text TEXT, ref TEXT, created_at TEXT
     )""")
+    conn.execute("""CREATE TABLE IF NOT EXISTS ai_calls (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, run_id INTEGER, neighborhood_id INTEGER,
+        resident_id INTEGER, purpose TEXT, model TEXT, system TEXT, messages TEXT,
+        reply TEXT, input_tokens INTEGER, output_tokens INTEGER, ms INTEGER, error TEXT,
+        created_at TEXT
+    )""")
     conn.execute("""CREATE TABLE IF NOT EXISTS agent_conversations (
         id INTEGER PRIMARY KEY AUTOINCREMENT, run_id INTEGER, a_id TEXT, b_id TEXT,
         why TEXT, turns TEXT, verdict TEXT, invited INTEGER, created_at TEXT
@@ -121,8 +129,7 @@ def init_db():
     # once anyone says no.
     _ensure_column(conn, "matches", "sealed_at", "TEXT")
     _ensure_column(conn, "matches", "dissolved_at", "TEXT")
-    # per-run API call tally (Stage 6 admin usage visibility) -- reuses the
-    # existing CountingClient call-count pattern, JSON {"total":N,"by_model":{}}.
+    # per-round API call tally (ai_log.LoggedClient), JSON {"total":N,"by_model":{}}.
     _ensure_column(conn, "runs", "usage", "TEXT")
     # bring-your-agent signup (replaces the onboarding chat): what the
     # resident's own AI wrote about them, where it came from, the card the
@@ -133,20 +140,21 @@ def init_db():
     _ensure_column(conn, "residents", "dossier_previews", "INTEGER")
     # an invitation's pitches, proposed meetup and source conversation (JSON)
     _ensure_column(conn, "matches", "details", "TEXT")
+    # so a neighborhood's whole story (signups, rounds, answers) reads as one feed
+    _ensure_column(conn, "events", "neighborhood_id", "INTEGER")
 
     conn.commit()
 
 
 # ----- runs ----------------------------------------------------------------------
 
-def create_run(mode, users_signature, neighborhood_id=None):
-    # neighborhood_id is None for a round run outside the pilot (e.g. the
-    # orchestrator CLI on the sample people).
+def create_run(neighborhood_id=None):
+    # one hub round. neighborhood_id is None for a round run outside the pilot
+    # (e.g. the orchestrator CLI on the sample people).
     conn = _get_conn()
     cur = conn.execute(
-        "INSERT INTO runs (mode, users_signature, unmatched_ids, created_at, neighborhood_id) "
-        "VALUES (?, ?, ?, ?, ?)",
-        (mode, users_signature, json.dumps([]), _now(), neighborhood_id),
+        "INSERT INTO runs (mode, created_at, neighborhood_id) VALUES (?, ?, ?)",
+        ("agents", _now(), neighborhood_id),
     )
     conn.commit()
     return cur.lastrowid
@@ -162,12 +170,6 @@ def get_run(run_id):
         usage = json.loads(row["usage"])
     return {"id": row["id"], "mode": row["mode"], "neighborhood_id": row["neighborhood_id"],
             "created_at": row["created_at"], "usage": usage}
-
-
-def finish_run(run_id, unmatched_ids):
-    conn = _get_conn()
-    conn.execute("UPDATE runs SET unmatched_ids = ? WHERE id = ?", (json.dumps(unmatched_ids), run_id))
-    conn.commit()
 
 
 # ----- invitations (stored as matches) -------------------------------------------
@@ -208,8 +210,7 @@ def get_match(match_id):
 
 
 def set_run_usage(run_id, usage):
-    # per-run API call tally -- set when the round ran with a CountingClient
-    # (see usage.py).
+    # per-round API call tally from ai_log.LoggedClient
     conn = _get_conn()
     conn.execute("UPDATE runs SET usage = ? WHERE id = ?", (json.dumps(usage), run_id))
     conn.commit()
@@ -658,16 +659,24 @@ def mark_match_dissolved(match_id):
 
 # ----- agent-to-agent orchestration: events + conversations ------------------------
 
-def log_event(run_id, actor, kind, text, ref=None):
+def log_event(run_id, actor, kind, text, ref=None, neighborhood_id=None):
     # one line of the behind-the-scenes log. actor is who acted (hub / agent /
     # code / human / system); kind is what it was (thought / decision / message /
     # check / human / system). ref points at the conversation it belongs to.
+    # run_id is None for things that happen outside a hub round (a signup, a yes/no).
     conn = _get_conn()
     conn.execute(
-        "INSERT INTO events (run_id, actor, kind, text, ref, created_at) VALUES (?, ?, ?, ?, ?, ?)",
-        (run_id, actor, kind, text, ref, _now()),
+        "INSERT INTO events (run_id, actor, kind, text, ref, created_at, neighborhood_id) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?)",
+        (run_id, actor, kind, text, ref, _now(), neighborhood_id),
     )
     conn.commit()
+
+
+def _row_to_event(row):
+    return {"id": row["id"], "run_id": row["run_id"], "neighborhood_id": row["neighborhood_id"],
+            "actor": row["actor"], "kind": row["kind"], "text": row["text"], "ref": row["ref"],
+            "created_at": row["created_at"]}
 
 
 def list_events(run_id):
@@ -676,9 +685,70 @@ def list_events(run_id):
     out = []
     i = 0
     while i < len(rows):
-        row = rows[i]
-        out.append({"id": row["id"], "actor": row["actor"], "kind": row["kind"], "text": row["text"],
-                    "ref": row["ref"], "created_at": row["created_at"]})
+        out.append(_row_to_event(rows[i]))
+        i += 1
+    return out
+
+
+def list_neighborhood_events(neighborhood_id, limit=500):
+    # the neighborhood's whole story, oldest first: the most recent `limit` events
+    conn = _get_conn()
+    rows = conn.execute(
+        "SELECT * FROM (SELECT * FROM events WHERE neighborhood_id = ? ORDER BY id DESC LIMIT ?) ORDER BY id",
+        (neighborhood_id, limit),
+    ).fetchall()
+    out = []
+    i = 0
+    while i < len(rows):
+        out.append(_row_to_event(rows[i]))
+        i += 1
+    return out
+
+
+def log_ai_call(run_id, neighborhood_id, resident_id, purpose, model, system, messages, reply,
+                input_tokens, output_tokens, ms, error):
+    conn = _get_conn()
+    conn.execute(
+        "INSERT INTO ai_calls (run_id, neighborhood_id, resident_id, purpose, model, system, messages, "
+        "reply, input_tokens, output_tokens, ms, error, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (run_id, neighborhood_id, resident_id, purpose, model, system, json.dumps(messages), reply,
+         input_tokens, output_tokens, ms, error, _now()),
+    )
+    conn.commit()
+
+
+def _row_to_ai_call(row):
+    return {"id": row["id"], "run_id": row["run_id"], "neighborhood_id": row["neighborhood_id"],
+            "resident_id": row["resident_id"], "purpose": row["purpose"], "model": row["model"],
+            "system": row["system"], "messages": json.loads(row["messages"]), "reply": row["reply"],
+            "input_tokens": row["input_tokens"], "output_tokens": row["output_tokens"],
+            "ms": row["ms"], "error": row["error"], "created_at": row["created_at"]}
+
+
+def list_ai_calls(run_id):
+    # every Claude call a hub round made, in order
+    conn = _get_conn()
+    rows = conn.execute("SELECT * FROM ai_calls WHERE run_id = ? ORDER BY id", (run_id,)).fetchall()
+    out = []
+    i = 0
+    while i < len(rows):
+        out.append(_row_to_ai_call(rows[i]))
+        i += 1
+    return out
+
+
+def list_signup_ai_calls(neighborhood_id, limit=100):
+    # Claude calls made outside a round (building people's cards at signup), newest last
+    conn = _get_conn()
+    rows = conn.execute(
+        "SELECT * FROM (SELECT * FROM ai_calls WHERE neighborhood_id = ? AND run_id IS NULL "
+        "ORDER BY id DESC LIMIT ?) ORDER BY id",
+        (neighborhood_id, limit),
+    ).fetchall()
+    out = []
+    i = 0
+    while i < len(rows):
+        out.append(_row_to_ai_call(rows[i]))
         i += 1
     return out
 
@@ -742,7 +812,7 @@ def reset_all():
     conn = _get_conn()
     tables = ["runs", "matches", "neighborhoods", "residents", "sessions",
               "magic_link_tokens", "oauth_states", "match_acceptances",
-              "events", "agent_conversations"]
+              "events", "agent_conversations", "ai_calls"]
     i = 0
     while i < len(tables):
         conn.execute("DELETE FROM " + tables[i])

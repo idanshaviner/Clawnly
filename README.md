@@ -10,8 +10,10 @@ people's agents. A **hub** decides who should talk, reads every conversation,
 and invites two people to meet only when the fit is deep and it can prove it
 with quotes from the conversation. Humans step in once: yes or no.
 
-Everything behind the scenes is logged and readable: every hub thought and
-decision, every agent message, every check the code runs on the hub.
+Everything behind the scenes is logged and readable in `/admin`: every hub
+thought and decision, every agent message, every check the code runs on the
+hub, every Claude call verbatim (exact prompt, raw reply, tokens, time, errors),
+and every human step (signup, join, yes/no, reveal, admin actions).
 
 ---
 
@@ -56,7 +58,7 @@ The admin can also run a round right away.
                                                         depth >= 8 AND >= 2 quotes that
                                                         really appear in the transcript
 
-             every step above is written to db.events (the behind-the-scenes log)
+   every step above -> db.events (the activity log); every Claude call -> db.ai_calls (verbatim)
 ```
 
 **Rules enforced in code, never trusted to the model:**
@@ -87,7 +89,7 @@ src/
   batch.py          runs a hub round for a neighborhood -> yes/no invitations
   my_match.py       the mutual yes/no gate and the reveal
   admin.py          dashboard aggregation + a round's behind-the-scenes record
-  usage.py          counts API calls per round, by model
+  ai_log.py         logs every Claude call verbatim (prompt, reply, tokens, time, errors)
   llm_io.py         reading JSON out of model replies
   sample_people.py  8 fictional people for trying a round from the command line
   web/              join, consent, onboarding (bring your agent), my-match,

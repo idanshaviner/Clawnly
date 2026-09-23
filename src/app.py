@@ -355,6 +355,7 @@ async def api_admin_neighborhood_detail(neighborhood_id: int, request: Request):
         "neighborhood": admin.neighborhood_progress(neighborhood),
         "residents": admin.resident_summaries(neighborhood_id),
         "runs": admin.recent_run_summaries(neighborhood_id),
+        "activity": admin.neighborhood_activity(neighborhood_id),
     }
 
 
@@ -364,7 +365,7 @@ async def api_admin_trigger(neighborhood_id: int, request: Request):
     if error_response is not None:
         return error_response
     try:
-        run_id, error = await batch.force_trigger_batch(neighborhood_id)
+        run_id, error = await batch.force_trigger_batch(neighborhood_id, by=session.get("email"))
     except Exception as error:
         return JSONResponse(status_code=500, content={"error": str(error)})
     if error is not None:

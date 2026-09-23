@@ -121,7 +121,7 @@ def test_threshold_runs_one_round_and_creates_blind_invitations():
     events = db.list_events(runs[0]["id"])
     texts = [e["text"] for e in events]
     assert any("Held back the invitation for Noa + Marcus" in t for t in texts)
-    assert any("Invitation sent to Noa and Sam" in t for t in texts)
+    assert any("sent to Noa and Sam" in t for t in texts)
 
 
 def test_trigger_fires_only_once():
@@ -191,3 +191,30 @@ def test_force_trigger_needs_two_people_and_a_real_neighborhood():
     assert run_id is None and "at least 2" in error
     run_id, error = run(batch.force_trigger_batch(999999, client=FakeClient()))
     assert run_id is None and "No such neighborhood" in error
+
+
+# ----- logs -------------------------------------------------------------------------
+
+def test_the_automatic_trigger_and_a_failed_round_are_in_the_neighborhood_log():
+    reset_db()
+    nb = neighborhood(threshold=2)
+    make_joined_resident(nb, "a@example.com", "Noa")
+    make_joined_resident(nb, "b@example.com", "Marcus")
+    run(batch.check_and_trigger_batch(nb["id"], client=FakeClient()))     # the pairing call blows up
+    texts = [e["text"] for e in db.list_neighborhood_events(nb["id"])]
+    assert texts[0] == "Threshold reached: 2 of 2 neighbors have an agent. Running the first round."
+    assert any(t.startswith("Round failed:") for t in texts)
+    assert texts[-1].startswith("The automatic round failed:")
+
+
+def test_an_admin_run_says_who_ran_it():
+    reset_db()
+    nb = neighborhood(threshold=100)
+    noa = make_joined_resident(nb, "a@example.com", "Noa")
+    marcus = make_joined_resident(nb, "b@example.com", "Marcus")
+    client = FakeClient(agent_fn=speaker_fn, pairing_queue=[pairing([{"a": rid(noa), "b": rid(marcus), "why": "x"}])],
+                        verdict_fn=verdict_fn({}))
+    run(batch.force_trigger_batch(nb["id"], client=client, by="boss@example.com"))
+    texts = [e["text"] for e in db.list_neighborhood_events(nb["id"])]
+    assert texts[0] == "Admin boss@example.com ran a round now with 2 neighbors."
+    assert "Round started with 2 people. No human is involved until the invitations." in texts

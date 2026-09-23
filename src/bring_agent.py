@@ -9,10 +9,13 @@ answer back. Two steps:
              sends back), marking the profile complete.
 
 The pasted text becomes the dossier: the only thing the resident's Claw ever
-knows about them (agent_talk.py). Pure routing + validation around dossier.py;
-app.py's routes stay thin wrappers, same shape as my_match.py.
+knows about them (agent_talk.py). Both steps are logged to the neighborhood's
+activity feed, and the card-building call itself to db.ai_calls (ai_log).
+App.py's routes stay thin wrappers, same shape as my_match.py.
 """
 
+import ai_log
+import config
 import db
 import dossier
 
@@ -68,9 +71,21 @@ async def preview(resident, name, source, text, client=None):
     if problem is not None:
         return None, problem
     text = text.strip()[:dossier.MAX_DOSSIER_CHARS]
-    card = await dossier.build_card(source, text, client)
+    if client is None:
+        client = config.get_client()
+    logged = ai_log.LoggedClient(client, neighborhood_id=resident["neighborhood_id"], resident_id=resident["id"])
+    card = await dossier.build_card(source, text, logged)
     updated = db.save_dossier_draft(resident["id"], first, source, text, card)
+    db.log_event(None, "human", "human", first + " built their agent's card from " + source + _score_note(card) + ".",
+                 None, resident["neighborhood_id"])
     return status(updated), None
+
+
+def _score_note(card):
+    score = card.get("real_vs_public")
+    if score is None:
+        return ""
+    return " (real-you score " + str(score["score"]) + "/5)"
 
 
 def confirm(resident):
@@ -78,8 +93,12 @@ def confirm(resident):
         return status(resident), None
     if resident.get("card") is None or not resident.get("dossier_text"):
         return None, "Build your agent's card first."
-    # the new hub's batch trigger is wired in the next stage (docs/THIS_WEEK.md,
-    # Wed); deliberately NOT firing batch.check_and_trigger_batch here, which
-    # would run the old profile-field pipeline on a dossier-only resident.
+    # the hub check is scheduled by app.py's route, so this stays request-free and testable
     updated = db.mark_profile_complete(resident["id"])
+    neighborhood = db.get_neighborhood(resident["neighborhood_id"])
+    joined = len(db.list_complete_residents(resident["neighborhood_id"]))
+    text = updated["name"] + " joined with their agent from " + updated["dossier_source"] + "."
+    if neighborhood is not None:
+        text = text + " " + str(joined) + " of " + str(neighborhood["batch_threshold"]) + " needed for the first round."
+    db.log_event(None, "human", "human", text, None, resident["neighborhood_id"])
     return status(updated), None

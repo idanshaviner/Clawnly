@@ -20,7 +20,12 @@ name-blind pitches) are enforced in code, never trusted to the model.
 - **2026-09-23: agent-to-agent pivot, old logic removed.** The core is
   `dossier.py` (import prompt + card) -> `agent_talk.py` (the Claw) ->
   `orchestrator.py` (the hub: pair -> talk -> judge -> gate), with every step in
-  `db.events` and every conversation in `db.agent_conversations`. `batch.py`
+  `db.events`, every conversation in `db.agent_conversations`, and every Claude
+  call verbatim in `db.ai_calls` (`ai_log.LoggedClient`).
+- **Logs are a product requirement, not a nice-to-have** ("we should always have
+  all the logs"). Any new Claude call goes through `ai_log.LoggedClient`; any new
+  human or system step writes a `db.log_event(..., neighborhood_id)`. Tests
+  assert the log lines, so a missing log is a failing test. `batch.py`
   runs a hub round for a neighborhood and turns invitations into the yes/no gate
   (`my_match.py`, stored as `matches` + `match_acceptances`).
 - The old group matcher, negotiation, meetup popups, onboarding chat, demo

@@ -1,7 +1,8 @@
 """Admin dashboard: neighborhood progress, resident status, recent hub
-rounds with usage, and each round's full behind-the-scenes record -- every
-hub thought and decision, every agent message, every code check, and every
-agent-to-agent conversation with its verdict. Read-only; the one write action
+rounds with usage, each round's full behind-the-scenes record -- every hub
+thought and decision, every agent message, every code check, every
+agent-to-agent conversation with its verdict, and every Claude call verbatim --
+and each neighborhood's activity feed (signups, answers, admin actions). Read-only; the one write action
 (running a round now) is batch.force_trigger_batch, called from app.py.
 
 Gated entirely by auth.is_admin(email) via app.py's _require_admin -- the
@@ -85,7 +86,15 @@ def run_detail(run_id):
         names[conversation["a"]] = _name_for(conversation["a"])
         names[conversation["b"]] = _name_for(conversation["b"])
         i += 1
-    return {"run": run, "names": names, "conversations": conversations, "events": db.list_events(run_id)}
+    return {"run": run, "names": names, "conversations": conversations, "events": db.list_events(run_id),
+            "ai_calls": db.list_ai_calls(run_id)}
+
+
+def neighborhood_activity(neighborhood_id):
+    # the neighborhood's whole story as one feed (signups, rounds, answers,
+    # admin actions), plus the Claude calls made outside rounds (signup cards)
+    return {"events": db.list_neighborhood_events(neighborhood_id),
+            "signup_ai_calls": db.list_signup_ai_calls(neighborhood_id)}
 
 
 def _name_for(person_id):

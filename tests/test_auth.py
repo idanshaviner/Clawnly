@@ -452,7 +452,7 @@ def test_api_my_match_reflects_pending_state():
     reset_state()
     resident, token = _consented_resident_session()
     other = db.get_or_create_resident(resident["neighborhood_id"], "other@example.com", "magic_link")
-    run_id = db.create_run("agents", "", resident["neighborhood_id"])
+    run_id = db.create_run(resident["neighborhood_id"])
     match_id = db.create_invitation(run_id, 0, ["r" + str(resident["id"]), "r" + str(other["id"])], "headline", 9, {"invite": {}, "pitches": {}})
     db.create_pending_acceptances(match_id, [resident["id"], other["id"]])
     client.cookies.set(auth.SESSION_COOKIE_NAME, token)
@@ -478,7 +478,7 @@ def test_api_my_match_respond_rejects_a_non_member_match_id():
     resident, token = _consented_resident_session()
     other_nb = db.get_or_create_neighborhood("fremont", "Fremont", 100)
     other = db.get_or_create_resident(other_nb["id"], "other@example.com", "magic_link")
-    run_id = db.create_run("agents", "", other_nb["id"])
+    run_id = db.create_run(other_nb["id"])
     match_id = db.create_invitation(run_id, 0, ["r" + str(other["id"])], "headline", 9, {"invite": {}, "pitches": {}})
     db.create_pending_acceptances(match_id, [other["id"]])
     client.cookies.set(auth.SESSION_COOKIE_NAME, token)
@@ -494,7 +494,7 @@ def test_api_my_match_respond_accept_round_trip():
     reset_state()
     resident, token = _consented_resident_session()
     other = db.get_or_create_resident(resident["neighborhood_id"], "other@example.com", "magic_link")
-    run_id = db.create_run("agents", "", resident["neighborhood_id"])
+    run_id = db.create_run(resident["neighborhood_id"])
     match_id = db.create_invitation(run_id, 0, ["r" + str(resident["id"]), "r" + str(other["id"])], "headline", 9, {"invite": {}, "pitches": {}})
     db.create_pending_acceptances(match_id, [resident["id"], other["id"]])
     client.cookies.set(auth.SESSION_COOKIE_NAME, token)
@@ -720,7 +720,7 @@ def test_confirm_schedules_the_hub_check_once(monkeypatch):
 
 def test_api_admin_run_detail_is_admin_only_and_complete():
     reset_state()
-    run_id = db.create_run("agents", "")
+    run_id = db.create_run()
     db.log_event(run_id, "hub", "thought", "why I paired them")
     assert client.get("/api/admin/runs/" + str(run_id)).status_code == 401
     resident, token = _consented_resident_session()

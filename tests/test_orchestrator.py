@@ -201,3 +201,38 @@ def test_fewer_than_two_people_skips_pairing():
     result = run(orchestrator.run_round(people()[:1], client=client))
     assert "pairing" not in client.kinds()
     assert result["conversations"] == []
+
+
+# ----- logs: every Claude call, usage, and failures -----------------------------------
+
+def test_every_round_call_is_logged_verbatim_with_usage():
+    reset()
+    client = FakeClient(card_fn=card_fn, agent_fn=speaker_fn,
+                        pairing_queue=[pairing([{"a": "s1", "b": "s2", "why": "x"}])],
+                        verdict_fn=verdict_for("Noa\nand Marcus"))
+    result = run(orchestrator.run_round(people(), client=client))
+    calls = db.list_ai_calls(result["run_id"])
+    assert len(calls) == len(client.calls)
+    purposes = [c["purpose"] for c in calls]
+    assert purposes.count("card") == 4 and purposes.count("pairing") == 1
+    assert purposes.count("agent_turn") == 6 and purposes.count("verdict") == 1
+    assert all(c["reply"] for c in calls)
+    assert result["usage"]["total"] == len(client.calls)
+    assert db.get_run(result["run_id"])["usage"]["total"] == len(client.calls)
+
+
+def test_a_crashed_round_leaves_its_failure_and_usage_in_the_log():
+    reset()
+    client = FakeClient(card_fn=card_fn)       # no pairing reply queued -> the hub call blows up
+    try:
+        run(orchestrator.run_round(people(), client=client, neighborhood_id=5))
+        assert False, "expected the round to raise"
+    except IndexError:
+        pass
+    run_id = db.list_runs_for_neighborhood(5)[0]["id"]
+    texts = [e["text"] for e in db.list_events(run_id)]
+    assert any(t.startswith("Round failed:") for t in texts)
+    assert db.get_run(run_id)["usage"]["total"] == 5        # 4 cards + the failed pairing call
+    failed = [c for c in db.list_ai_calls(run_id) if c["error"]]
+    assert len(failed) == 1 and failed[0]["purpose"] == "pairing"
+    assert all(e["neighborhood_id"] == 5 for e in db.list_events(run_id))

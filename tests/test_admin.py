@@ -12,7 +12,7 @@ def make_neighborhood(threshold=3):
 
 
 def invite(nb, residents):
-    run_id = db.create_run("agents", "", nb["id"])
+    run_id = db.create_run(nb["id"])
     member_ids = ["r" + str(r["id"]) for r in residents]
     match_id = db.create_invitation(run_id, 0, member_ids, "headline", 9,
                                     {"conversation_id": 1, "invite": {}, "pitches": {}})
@@ -93,7 +93,7 @@ def test_recent_run_summaries_respects_limit_and_ordering():
     ids = []
     n = 0
     while n < 3:
-        ids.append(db.create_run("agents", "", nb["id"]))
+        ids.append(db.create_run(nb["id"]))
         n += 1
     runs = admin.recent_run_summaries(nb["id"], limit=2)
     assert [r["id"] for r in runs] == [ids[2], ids[1]]   # newest first
@@ -104,7 +104,7 @@ def test_run_detail_has_every_event_and_conversation_with_names():
     nb = make_neighborhood()
     a = make_joined_resident(nb, "a@example.com", "Alex")
     b = make_joined_resident(nb, "b@example.com", "Bao")
-    run_id = db.create_run("agents", "", nb["id"])
+    run_id = db.create_run(nb["id"])
     ra = "r" + str(a["id"])
     rb = "r" + str(b["id"])
     cid = db.save_agent_conversation(run_id, ra, rb, "both want a table", [{"by": ra, "text": "hi"}])
@@ -118,3 +118,24 @@ def test_run_detail_has_every_event_and_conversation_with_names():
     assert detail["conversations"][0]["turns"] == [{"by": ra, "text": "hi"}]
     assert [e["text"] for e in detail["events"]] == ["the hub's reasoning", "Alex's agent: hi"]
     assert admin.run_detail(999999) is None
+
+
+# ----- logs visible to the admin ----------------------------------------------------
+
+def test_neighborhood_activity_and_run_detail_expose_every_log():
+    reset_db()
+    nb = make_neighborhood()
+    run_id = db.create_run(nb["id"])
+    db.log_event(None, "human", "human", "Alex joined.", None, nb["id"])
+    db.log_event(run_id, "hub", "thought", "reasoning", None, nb["id"])
+    db.log_ai_call(run_id, nb["id"], None, "verdict", "claude-opus-5-5", "sys", [{"role": "user", "content": "t"}],
+                   "reply", 10, 5, 42, None)
+    db.log_ai_call(None, nb["id"], 1, "card", "claude-sonnet-4-6", "sys", [], "card reply", None, None, 7, None)
+
+    activity = admin.neighborhood_activity(nb["id"])
+    assert [e["text"] for e in activity["events"]] == ["Alex joined.", "reasoning"]
+    assert [c["purpose"] for c in activity["signup_ai_calls"]] == ["card"]
+
+    detail = admin.run_detail(run_id)
+    assert [c["purpose"] for c in detail["ai_calls"]] == ["verdict"]
+    assert detail["ai_calls"][0]["reply"] == "reply"

@@ -47,11 +47,15 @@ def _all_accepted(acceptances):
     return True
 
 
-def _seal_if_ready(match_id, acceptances):
-    if _all_accepted(acceptances):
-        db.mark_match_sealed(match_id)
-        return True
-    return False
+def _seal_if_ready(match, acceptances, neighborhood_id):
+    if not _all_accepted(acceptances):
+        return False
+    if match["sealed_at"] is None:
+        db.mark_match_sealed(match["id"])
+        db.log_event(match["run_id"], "system", "system", "Invitation #" + str(match["id"])
+                     + " sealed: everyone said yes. First names and the meetup are revealed.",
+                     None, neighborhood_id)
+    return True
 
 
 def _pitch_for(resident, match):
@@ -102,7 +106,7 @@ def get_state(resident):
                 "group_size": len(acceptances)}
 
     acceptances = db.list_match_acceptances(match["id"])
-    sealed = match["sealed_at"] is not None or _seal_if_ready(match["id"], acceptances)
+    sealed = match["sealed_at"] is not None or _seal_if_ready(match, acceptances, resident["neighborhood_id"])
     if not sealed:
         return {"state": "waiting", "match_id": match["id"], "group_size": len(acceptances)}
 
@@ -131,11 +135,20 @@ def respond(resident, match_id, response):
     # this call didn't actually change anything (the resident already
     # answered), don't act on `response` as though it just happened.
     changed = db.respond_to_acceptance(match_id, resident["id"], status)
+    if changed:
+        word = "YES"
+        if status == "declined":
+            word = "NO"
+        db.log_event(match["run_id"], "human", "human", _first_name(resident) + " said " + word
+                     + " to invitation #" + str(match_id) + ".", None, resident["neighborhood_id"])
 
     if changed and status == "declined":
         db.mark_match_dissolved(match_id)
+        db.log_event(match["run_id"], "system", "system", "Invitation #" + str(match_id)
+                     + " dissolved. Nobody's name was revealed; everyone in it is back in the pool.",
+                     None, resident["neighborhood_id"])
     elif changed:
         acceptances = db.list_match_acceptances(match_id)
-        _seal_if_ready(match_id, acceptances)
+        _seal_if_ready(match, acceptances, resident["neighborhood_id"])
 
     return get_state(resident), None

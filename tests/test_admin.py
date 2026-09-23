@@ -14,7 +14,7 @@ def make_neighborhood(threshold=3):
 def invite(nb, residents):
     run_id = db.create_run(nb["id"])
     member_ids = ["r" + str(r["id"]) for r in residents]
-    match_id = db.create_invitation(run_id, 0, member_ids, "headline", 9,
+    match_id = db.create_invitation(run_id, member_ids, "headline", 9,
                                     {"conversation_id": 1, "invite": {}, "pitches": {}})
     db.create_pending_acceptances(match_id, [r["id"] for r in residents])
     return run_id, match_id

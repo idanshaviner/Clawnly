@@ -1,4 +1,4 @@
-"""Bring your agent: the resident signup that replaces the onboarding chat.
+"""Bring your agent: how a resident joins.
 
 After login + consent, a resident copies dossier.IMPORT_PROMPT into the AI
 that already knows them (ChatGPT, Claude, Muse, Instinct, ...) and pastes its

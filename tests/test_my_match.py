@@ -27,7 +27,7 @@ def make_match(nb, residents):
     details = {"conversation_id": 1,
                "invite": {"activity": "a short hike", "when": "Saturday morning", "where": "Ten Trails trailhead"},
                "pitches": pitches}
-    match_id = db.create_invitation(run_id, 0, member_ids, "Alex and Bao both want a steady table", 9, details)
+    match_id = db.create_invitation(run_id, member_ids, "Alex and Bao both want a steady table", 9, details)
     db.create_pending_acceptances(match_id, [r["id"] for r in residents])
     return match_id
 
@@ -64,7 +64,7 @@ def test_pending_shows_only_the_callers_own_pitch():
     state = my_match.get_state(alex)
     assert state["state"] == "pending"
     assert state["group_size"] == 3
-    assert state["reason"] == "You both want a steady weekly table. r" + str(alex["id"])
+    assert state["pitch"] == "You both want a steady weekly table. r" + str(alex["id"])
     assert "other_first_names" not in state
     # the hub's headline names people, so it stays hidden until everyone says yes
     assert "Bao" not in str(state)
@@ -101,7 +101,7 @@ def test_everyone_accepting_seals_the_match_with_full_reveal():
     assert state["state"] == "sealed"
     assert state["other_first_names"] == ["Alex"]   # first name only
     assert state["meetup"] == {"activity": "a short hike", "when": "Saturday morning", "where": "Ten Trails trailhead"}
-    assert state["reason"] == "Alex and Bao both want a steady table"
+    assert state["headline"] == "Alex and Bao both want a steady table"
     assert state["pitch"].endswith("r" + str(bao["id"]))
 
     # alex's own view is sealed too, revealing Bao's first name (not "Bao Lin").
@@ -247,3 +247,48 @@ def test_a_no_and_the_dissolve_are_logged_and_a_repeat_answer_is_not():
         "Alex said NO to invitation #" + str(match_id) + ".",
         "Invitation #" + str(match_id) + " dissolved. Nobody's name was revealed; everyone in it is back in the pool.",
     ]
+
+
+# ----- the meetup answer after the reveal ----------------------------------------------
+
+def test_meetup_answers_are_logged_for_the_admin():
+    reset()
+    nb = make_neighborhood()
+    alex = make_resident(nb, "a@example.com", "Alex")
+    bao = make_resident(nb, "b@example.com", "Bao")
+    match_id = make_match(nb, [alex, bao])
+    my_match.respond(alex, match_id, "accept")
+    my_match.respond(bao, match_id, "accept")
+
+    result, error = my_match.meetup_reply(alex, match_id, "coming")
+    assert error is None and result["answer"] == "coming"
+    result, error = my_match.meetup_reply(bao, match_id, "different_time")
+    assert error is None
+
+    texts = [e["text"] for e in db.list_neighborhood_events(nb["id"])]
+    assert "Alex will be there for invitation #" + str(match_id) + " (a short hike, Saturday morning)." in texts
+    assert ("Bao needs a different time for invitation #" + str(match_id)
+            + " (a short hike, Saturday morning). Follow up with them.") in texts
+
+
+def test_meetup_answer_needs_a_revealed_invitation_the_caller_is_in():
+    reset()
+    nb = make_neighborhood()
+    alex = make_resident(nb, "a@example.com", "Alex")
+    bao = make_resident(nb, "b@example.com", "Bao")
+    cam = make_resident(nb, "c@example.com", "Cam")
+    match_id = make_match(nb, [alex, bao])
+
+    # not revealed yet: nobody has said yes
+    result, error = my_match.meetup_reply(alex, match_id, "coming")
+    assert result is None and "hasn't been revealed" in error
+
+    my_match.respond(alex, match_id, "accept")
+    my_match.respond(bao, match_id, "accept")
+    result, error = my_match.meetup_reply(cam, match_id, "coming")
+    assert result is None and "not a member" in error
+    result, error = my_match.meetup_reply(alex, match_id, "maybe")
+    assert result is None and "answer must be" in error
+
+    texts = [e["text"] for e in db.list_neighborhood_events(nb["id"])]
+    assert not any("will be there" in t or "different time" in t for t in texts)

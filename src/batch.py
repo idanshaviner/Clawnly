@@ -105,7 +105,7 @@ async def run_neighborhood_round(neighborhood_id, people, client):
                        "where": str(invite.get("where", ""))},
             "pitches": {a: _blind(invite.get("to_a"), names[b]), b: _blind(invite.get("to_b"), names[a])},
         }
-        match_id = db.create_invitation(run_id, i, [a, b], verdict["headline"], verdict["depth"], details)
+        match_id = db.create_invitation(run_id, [a, b], verdict["headline"], verdict["depth"], details)
         db.create_pending_acceptances(match_id, [_resident_id(a), _resident_id(b)])
         db.log_event(run_id, "system", "system", "Invitation #" + str(match_id) + " sent to " + names[a] + " and "
                      + names[b] + ". Nothing is revealed until both say yes.", str(conversation["id"]), neighborhood_id)

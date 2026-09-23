@@ -153,12 +153,21 @@
   </div>
 </div>
 <script>
-function esc(s){ return (s==null?"":String(s)).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+function esc(s){
+  var str = "";
+  if (s !== null && s !== undefined) { str = String(s); }
+  return str.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
 
 function show(id){
-  ["not-authorized", "list-view", "detail-view", "run-view"].forEach(function(other){
-    document.getElementById(other).style.display = (other === id) ? "block" : "none";
-  });
+  var views = ["not-authorized", "list-view", "detail-view", "run-view"];
+  var i = 0;
+  while (i < views.length) {
+    var display = "none";
+    if (views[i] === id) { display = "block"; }
+    document.getElementById(views[i]).style.display = display;
+    i++;
+  }
 }
 
 function statusLabel(s){
@@ -170,6 +179,35 @@ function statusLabel(s){
   return labels[s] || s;
 }
 
+function percentJoined(nb){
+  if (nb.batch_threshold <= 0) { return 0; }
+  return Math.min(100, Math.round(100 * nb.complete_count / nb.batch_threshold));
+}
+
+function textEl(tag, cls, text){
+  var el = document.createElement(tag);
+  if (cls) { el.className = cls; }
+  el.textContent = text;
+  return el;
+}
+
+// ----- neighborhoods list -----
+
+function neighborhoodCard(nb){
+  var div = document.createElement("div");
+  div.className = "card nb-card";
+  var html =
+    '<div class="nb-name">' + esc(nb.name) + '</div>' +
+    '<div class="nb-slug">' + esc(nb.slug) + '</div>' +
+    '<div class="bar-track"><div class="bar-fill" style="width:' + percentJoined(nb) + '%"></div></div>' +
+    '<div class="bar-label">' + nb.complete_count + ' / ' + nb.batch_threshold + ' joined (' +
+      nb.resident_count + ' registered)</div>';
+  if (nb.batch_triggered_at) { html += '<div class="status-triggered">First round has run</div>'; }
+  div.innerHTML = html;
+  div.addEventListener("click", function(){ loadDetail(nb.id); });
+  return div;
+}
+
 function loadList(){
   fetch("/api/admin/neighborhoods").then(function(r){
     if (r.status === 401 || r.status === 403) { show("not-authorized"); return null; }
@@ -178,20 +216,11 @@ function loadList(){
     if (data == null) { return; }
     var grid = document.getElementById("nb-grid");
     grid.innerHTML = "";
-    data.neighborhoods.forEach(function(nb){
-      var pct = nb.batch_threshold > 0 ? Math.min(100, Math.round(100 * nb.complete_count / nb.batch_threshold)) : 0;
-      var div = document.createElement("div");
-      div.className = "card nb-card";
-      div.innerHTML =
-        '<div class="nb-name">' + esc(nb.name) + '</div>' +
-        '<div class="nb-slug">' + esc(nb.slug) + '</div>' +
-        '<div class="bar-track"><div class="bar-fill" style="width:' + pct + '%"></div></div>' +
-        '<div class="bar-label">' + nb.complete_count + ' / ' + nb.batch_threshold + ' complete (' +
-          nb.resident_count + ' registered)</div>' +
-        (nb.batch_triggered_at ? '<div class="status-triggered">Batch triggered</div>' : '');
-      div.addEventListener("click", function(){ loadDetail(nb.id); });
-      grid.appendChild(div);
-    });
+    var i = 0;
+    while (i < data.neighborhoods.length) {
+      grid.appendChild(neighborhoodCard(data.neighborhoods[i]));
+      i++;
+    }
     show("list-view");
   }).catch(function(){ show("not-authorized"); });
 }
@@ -211,6 +240,39 @@ document.getElementById("create-btn").addEventListener("click", function(){
     .catch(function(){ status.className = "err"; status.textContent = "Something went wrong. Try again."; });
 });
 
+// ----- one neighborhood -----
+
+function residentRow(r){
+  var consented = "no";
+  if (r.consent_agreed_at) { consented = "yes"; }
+  var agent = "-";
+  if (r.profile_complete_at) { agent = r.source || "yes"; }
+  var tr = document.createElement("tr");
+  tr.innerHTML =
+    "<td>" + esc(r.email) + "</td>" +
+    "<td>" + esc(r.name || "-") + "</td>" +
+    "<td>" + consented + "</td>" +
+    "<td>" + esc(agent) + "</td>" +
+    '<td><span class="pill pill-' + esc(r.status) + '">' + esc(statusLabel(r.status)) + "</span></td>";
+  return tr;
+}
+
+function runRow(run, neighborhoodId){
+  var apiCalls = "-";
+  if (run.usage) { apiCalls = run.usage.total; }
+  var tr = document.createElement("tr");
+  tr.innerHTML =
+    "<td>" + Number(run.id) + "</td>" +
+    "<td>" + esc(run.created_at) + "</td>" +
+    "<td>" + Number(run.conversation_count) + "</td>" +
+    "<td>" + Number(run.invitation_count) + "</td>" +
+    "<td>" + Number(run.failed_count) + "</td>" +
+    "<td>" + esc(apiCalls) + "</td>" +
+    "<td><button>Behind the scenes</button></td>";
+  tr.querySelector("button").addEventListener("click", function(){ loadRun(run.id, neighborhoodId); });
+  return tr;
+}
+
 function loadDetail(id){
   fetch("/api/admin/neighborhoods/" + id).then(function(r){
     if (r.status === 401 || r.status === 403) { show("not-authorized"); return null; }
@@ -221,47 +283,32 @@ function loadDetail(id){
     var nb = data.neighborhood;
     document.getElementById("detail-name").textContent = nb.name;
     document.getElementById("detail-slug").textContent = nb.slug;
-    var pct = nb.batch_threshold > 0 ? Math.min(100, Math.round(100 * nb.complete_count / nb.batch_threshold)) : 0;
-    document.getElementById("detail-bar").style.width = pct + "%";
+    document.getElementById("detail-bar").style.width = percentJoined(nb) + "%";
     document.getElementById("detail-progress-label").textContent =
-      nb.complete_count + " / " + nb.batch_threshold + " complete (" + nb.resident_count + " registered)";
+      nb.complete_count + " / " + nb.batch_threshold + " joined (" + nb.resident_count + " registered)";
     var triggered = document.getElementById("detail-triggered");
     if (nb.batch_triggered_at) {
       triggered.style.display = "block";
-      triggered.textContent = "Batch triggered at " + nb.batch_triggered_at;
+      triggered.textContent = "First round ran at " + nb.batch_triggered_at;
     } else {
       triggered.style.display = "none";
     }
 
     var rbody = document.getElementById("residents-body");
     rbody.innerHTML = "";
-    data.residents.forEach(function(r){
-      var tr = document.createElement("tr");
-      tr.innerHTML =
-        "<td>" + esc(r.email) + "</td>" +
-        "<td>" + esc(r.name || "-") + "</td>" +
-        "<td>" + (r.consent_agreed_at ? "yes" : "no") + "</td>" +
-        "<td>" + esc(r.profile_complete_at ? (r.source || "yes") : "-") + "</td>" +
-        '<td><span class="pill pill-' + esc(r.status) + '">' + esc(statusLabel(r.status)) + "</span></td>";
-      rbody.appendChild(tr);
-    });
+    var i = 0;
+    while (i < data.residents.length) {
+      rbody.appendChild(residentRow(data.residents[i]));
+      i++;
+    }
 
     var runsBody = document.getElementById("runs-body");
     runsBody.innerHTML = "";
-    data.runs.forEach(function(run){
-      var apiCalls = run.usage ? run.usage.total : "-";
-      var tr = document.createElement("tr");
-      tr.innerHTML =
-        "<td>" + run.id + "</td>" +
-        "<td>" + esc(run.created_at) + "</td>" +
-        "<td>" + run.conversation_count + "</td>" +
-        "<td>" + run.invitation_count + "</td>" +
-        "<td>" + run.failed_count + "</td>" +
-        "<td>" + esc(apiCalls) + "</td>" +
-        '<td><button data-run="' + Number(run.id) + '">Behind the scenes</button></td>';
-      tr.querySelector("button").addEventListener("click", function(){ loadRun(run.id, id); });
-      runsBody.appendChild(tr);
-    });
+    i = 0;
+    while (i < data.runs.length) {
+      runsBody.appendChild(runRow(data.runs[i], id));
+      i++;
+    }
 
     renderEvents(document.getElementById("activity-log"), data.activity.events);
     renderCalls(document.getElementById("signup-calls"), data.activity.signup_ai_calls);
@@ -300,47 +347,91 @@ function loadDetail(id){
 
 document.getElementById("back-link").addEventListener("click", loadList);
 
+// ----- the logs -----
+
 function renderEvents(box, events){
   box.textContent = "";
   if (events.length === 0) { box.appendChild(textEl("div", "muted", "Nothing logged yet.")); return; }
-  events.forEach(function(e){
+  var i = 0;
+  while (i < events.length) {
+    var e = events[i];
     var line = document.createElement("div");
     line.className = "logline";
     line.appendChild(textEl("span", "who-" + e.actor, (e.created_at || "").slice(5, 19).replace("T", " ") + "  " + e.actor + " / " + e.kind + "  "));
     line.appendChild(document.createTextNode(e.text));
     box.appendChild(line);
-  });
+    i++;
+  }
+}
+
+function callDetails(c){
+  var d = document.createElement("details");
+  d.className = "call";
+  var tokens = "";
+  if (c.input_tokens !== null && c.output_tokens !== null) { tokens = " -- " + c.input_tokens + " in / " + c.output_tokens + " out tokens"; }
+  var head = "#" + c.id + "  " + c.purpose + "  " + c.model + "  " + c.ms + " ms" + tokens;
+  if (c.error) { head += "  FAILED"; }
+  d.appendChild(textEl("summary", "", head));
+  if (c.error) { d.appendChild(textEl("p", "err", c.error)); }
+  d.appendChild(textEl("div", "callpart", "System prompt"));
+  d.appendChild(textEl("pre", "calltext", c.system));
+  var i = 0;
+  while (i < c.messages.length) {
+    var m = c.messages[i];
+    var content = m.content;
+    if (typeof content !== "string") { content = JSON.stringify(content); }
+    d.appendChild(textEl("div", "callpart", "Message (" + m.role + ")"));
+    d.appendChild(textEl("pre", "calltext", content));
+    i++;
+  }
+  var reply = c.reply;
+  if (reply === null) { reply = "(no reply)"; }
+  d.appendChild(textEl("div", "callpart", "Reply"));
+  d.appendChild(textEl("pre", "calltext", reply));
+  return d;
 }
 
 function renderCalls(box, calls){
   box.textContent = "";
   if (calls.length === 0) { box.appendChild(textEl("p", "muted", "No AI calls.")); return; }
-  calls.forEach(function(c){
-    var d = document.createElement("details");
-    d.className = "call";
-    var tokens = "";
-    if (c.input_tokens !== null && c.output_tokens !== null) { tokens = " -- " + c.input_tokens + " in / " + c.output_tokens + " out tokens"; }
-    var head = "#" + c.id + "  " + c.purpose + "  " + c.model + "  " + c.ms + " ms" + tokens;
-    if (c.error) { head += "  FAILED"; }
-    d.appendChild(textEl("summary", "", head));
-    if (c.error) { d.appendChild(textEl("p", "err", c.error)); }
-    d.appendChild(textEl("div", "callpart", "System prompt"));
-    d.appendChild(textEl("pre", "calltext", c.system));
-    c.messages.forEach(function(m){
-      d.appendChild(textEl("div", "callpart", "Message (" + m.role + ")"));
-      d.appendChild(textEl("pre", "calltext", typeof m.content === "string" ? m.content : JSON.stringify(m.content)));
-    });
-    d.appendChild(textEl("div", "callpart", "Reply"));
-    d.appendChild(textEl("pre", "calltext", c.reply === null ? "(no reply)" : c.reply));
-    box.appendChild(d);
-  });
+  var i = 0;
+  while (i < calls.length) {
+    box.appendChild(callDetails(calls[i]));
+    i++;
+  }
 }
 
-function textEl(tag, cls, text){
-  var el = document.createElement(tag);
-  if (cls) { el.className = cls; }
-  el.textContent = text;
-  return el;
+// ----- one round, behind the scenes -----
+
+function verdictSummary(v){
+  if (!v) { return "No verdict (the conversation failed partway)."; }
+  var outcome = "not invited";
+  if (v.invited) { outcome = "INVITED"; }
+  var summary = "Hub verdict: depth " + v.depth + "/10 -- " + outcome + "\n" +
+    v.headline + "\n\nReasoning: " + v.thoughts;
+  if (v.gate && v.gate.length > 0) { summary += "\n\nCode gate: " + v.gate.join("; "); }
+  if (v.dropped && v.dropped.length > 0) { summary += "\nQuotes discarded (not in the chat): " + v.dropped.join(" | "); }
+  return summary;
+}
+
+function conversationCard(c, names){
+  function nameOf(pid){ return names[pid] || pid; }
+  var card = document.createElement("div");
+  card.className = "conv";
+  card.appendChild(textEl("div", "conv-head", nameOf(c.a) + "'s agent + " + nameOf(c.b) + "'s agent"));
+  if (c.why) { card.appendChild(textEl("div", "muted", "Why the hub paired them: " + c.why)); }
+  var i = 0;
+  while (i < c.turns.length) {
+    var t = c.turns[i];
+    var line = document.createElement("div");
+    line.className = "turn";
+    line.appendChild(textEl("b", "", nameOf(t.by) + "'s agent: "));
+    line.appendChild(document.createTextNode(t.text));
+    card.appendChild(line);
+    i++;
+  }
+  card.appendChild(textEl("div", "verdict", verdictSummary(c.verdict)));
+  return card;
 }
 
 function loadRun(runId, neighborhoodId){
@@ -350,8 +441,6 @@ function loadRun(runId, neighborhoodId){
     return r.json();
   }).then(function(data){
     if (data == null) { return; }
-    var names = data.names;
-    function nameOf(pid){ return names[pid] || pid; }
     document.getElementById("run-title").textContent = "Behind the scenes -- round #" + data.run.id;
     var calls = "-";
     if (data.run.usage) { calls = data.run.usage.total; }
@@ -360,29 +449,11 @@ function loadRun(runId, neighborhoodId){
     var box = document.getElementById("run-conversations");
     box.textContent = "";
     if (data.conversations.length === 0) { box.appendChild(textEl("p", "muted", "The hub didn't pair anyone this round.")); }
-    data.conversations.forEach(function(c){
-      var card = document.createElement("div");
-      card.className = "conv";
-      card.appendChild(textEl("div", "conv-head", nameOf(c.a) + "'s agent + " + nameOf(c.b) + "'s agent"));
-      if (c.why) { card.appendChild(textEl("div", "muted", "Why the hub paired them: " + c.why)); }
-      c.turns.forEach(function(t){
-        var line = document.createElement("div");
-        line.className = "turn";
-        line.appendChild(textEl("b", "", nameOf(t.by) + "'s agent: "));
-        line.appendChild(document.createTextNode(t.text));
-        card.appendChild(line);
-      });
-      var v = c.verdict;
-      var summary = "No verdict (the conversation failed partway).";
-      if (v) {
-        summary = "Hub verdict: depth " + v.depth + "/10 -- " + (v.invited ? "INVITED" : "not invited") + "\n" +
-          v.headline + "\n\nReasoning: " + v.thoughts;
-        if (v.gate && v.gate.length > 0) { summary += "\n\nCode gate: " + v.gate.join("; "); }
-        if (v.dropped && v.dropped.length > 0) { summary += "\nQuotes discarded (not in the chat): " + v.dropped.join(" | "); }
-      }
-      card.appendChild(textEl("div", "verdict", summary));
-      box.appendChild(card);
-    });
+    var i = 0;
+    while (i < data.conversations.length) {
+      box.appendChild(conversationCard(data.conversations[i], data.names));
+      i++;
+    }
 
     renderEvents(document.getElementById("run-log"), data.events);
     renderCalls(document.getElementById("run-calls"), data.ai_calls);

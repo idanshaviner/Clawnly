@@ -121,11 +121,15 @@
   </div>
 </div>
 <script>
-function esc(s){ return (s==null?"":String(s)).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
-
 var STATES = ["loading", "loggedout", "not-yet-batched", "no-match", "pending", "waiting", "sealed", "dissolved"];
 function show(id){
-  STATES.forEach(function(other){ document.getElementById(other).style.display = (other === id) ? "block" : "none"; });
+  var i = 0;
+  while (i < STATES.length) {
+    var display = "none";
+    if (STATES[i] === id) { display = "block"; }
+    document.getElementById(STATES[i]).style.display = display;
+    i++;
+  }
 }
 
 function sizeLabel(n){
@@ -141,7 +145,7 @@ function renderState(data){
 
   if (state === "pending") {
     document.getElementById("pending-size").textContent = sizeLabel(data.group_size);
-    document.getElementById("pending-reason").textContent = data.reason;
+    document.getElementById("pending-reason").textContent = data.pitch;
     document.getElementById("accept-btn").dataset.matchId = data.match_id;
     document.getElementById("decline-btn").dataset.matchId = data.match_id;
     show("pending");
@@ -160,7 +164,9 @@ function renderState(data){
     var meetupBlock = document.getElementById("meetup-block");
     var noteEl = document.getElementById("no-meetup-note");
     if (data.meetup) {
-      document.getElementById("meetup-event").textContent = data.reason;
+      document.getElementById("there-btn").dataset.matchId = data.match_id;
+      document.getElementById("different-time-btn").dataset.matchId = data.match_id;
+      document.getElementById("meetup-event").textContent = data.headline;
       document.getElementById("meetup-activity").textContent = data.meetup.activity;
       document.getElementById("meetup-location").textContent = data.meetup.where;
       document.getElementById("meetup-time").textContent = data.meetup.when;
@@ -223,16 +229,36 @@ document.getElementById("accept-btn").addEventListener("click", function(){
 document.getElementById("decline-btn").addEventListener("click", function(){
   respond(this.dataset.matchId, "decline", this);
 });
+// the answer is recorded (the admin sees it in the activity feed) before we say "noted"
+function answerMeetup(btn, answer, thanks){
+  var ack = document.getElementById("ack");
+  document.getElementById("there-btn").disabled = true;
+  document.getElementById("different-time-btn").disabled = true;
+  fetch("/api/my-match/meetup", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ match_id: Number(btn.dataset.matchId), answer: answer }),
+  }).then(function(r){
+    if (r.ok) {
+      ack.textContent = thanks;
+    } else {
+      ack.textContent = "That didn't go through. Try again.";
+      document.getElementById("there-btn").disabled = false;
+      document.getElementById("different-time-btn").disabled = false;
+    }
+    ack.style.display = "block";
+  }).catch(function(){
+    ack.textContent = "That didn't go through. Try again.";
+    ack.style.display = "block";
+    document.getElementById("there-btn").disabled = false;
+    document.getElementById("different-time-btn").disabled = false;
+  });
+}
 document.getElementById("there-btn").addEventListener("click", function(){
-  var ack = document.getElementById("ack");
-  ack.textContent = "Thanks -- see you there!";
-  ack.style.display = "block";
+  answerMeetup(this, "coming", "Thanks -- see you there!");
 });
-// lightweight note-to-admin for this first pass -- not live re-negotiation.
 document.getElementById("different-time-btn").addEventListener("click", function(){
-  var ack = document.getElementById("ack");
-  ack.textContent = "Thanks -- noted. We'll follow up about timing.";
-  ack.style.display = "block";
+  answerMeetup(this, "different_time", "Thanks -- noted. We'll follow up about timing.");
 });
 
 fetch("/api/me").then(function(r){

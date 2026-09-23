@@ -79,7 +79,13 @@
 <script>
 function show(id){
   var ids = ["loading", "ask", "done", "loggedout"];
-  ids.forEach(function(other){ document.getElementById(other).style.display = (other === id) ? "block" : "none"; });
+  var i = 0;
+  while (i < ids.length) {
+    var display = "none";
+    if (ids[i] === id) { display = "block"; }
+    document.getElementById(ids[i]).style.display = display;
+    i++;
+  }
 }
 
 function goToOnboarding(){

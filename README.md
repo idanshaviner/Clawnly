@@ -13,7 +13,7 @@ with quotes from the conversation. Humans step in once: yes or no.
 Everything behind the scenes is logged and readable in `/admin`: every hub
 thought and decision, every agent message, every check the code runs on the
 hub, every Claude call verbatim (exact prompt, raw reply, tokens, time, errors),
-and every human step (signup, join, yes/no, reveal, admin actions).
+and every human step (signup, join, yes/no, reveal, meetup answer, admin actions).
 
 ---
 
@@ -38,7 +38,9 @@ and every human step (signup, join, yes/no, reveal, admin actions).
 4. **Wait.** When enough neighbors have joined, the hub runs a round on its own.
 5. **Invitation** `/my-match` -> "Your agent found someone" with a pitch that
    doesn't reveal who. Yes or no. If both say yes: first names and the proposed
-   meetup appear. If either says no, both go back into the pool.
+   meetup appear, and each answers "I'll be there" or "need a different time"
+   (logged, so the admin can follow up). If either says no, both go back into
+   the pool.
 
 The admin (`/admin/login` -> `/admin`) sees each neighborhood's progress, every
 resident's status, each round's counts and API usage, and a **Behind the scenes**

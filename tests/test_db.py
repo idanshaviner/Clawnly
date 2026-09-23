@@ -207,7 +207,7 @@ def _invitation(nb, residents):
     member_ids = ["r" + str(r["id"]) for r in residents]
     details = {"conversation_id": 1, "invite": {"activity": "dinner", "when": "Sun", "where": "here"},
                "pitches": {member_ids[0]: "pitch one"}}
-    match_id = db.create_invitation(run_id, 0, member_ids, "a headline", 9, details)
+    match_id = db.create_invitation(run_id, member_ids, "a headline", 9, details)
     db.create_pending_acceptances(match_id, [r["id"] for r in residents])
     return run_id, match_id
 
@@ -220,8 +220,8 @@ def test_create_invitation_round_trips_details():
     _, match_id = _invitation(nb, [r1, r2])
     match = db.get_match(match_id)
     assert match["member_ids"] == ["r" + str(r1["id"]), "r" + str(r2["id"])]
-    assert match["reason"] == "a headline"
-    assert match["scores"] == {"depth": 9}
+    assert match["headline"] == "a headline"
+    assert match["depth"] == 9
     assert match["details"]["invite"]["activity"] == "dinner"
     assert {a["status"] for a in db.list_match_acceptances(match_id)} == {"pending"}
 

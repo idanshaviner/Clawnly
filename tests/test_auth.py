@@ -466,7 +466,7 @@ def test_api_my_match_reflects_pending_state():
     resident, token = _consented_resident_session()
     other = db.get_or_create_resident(resident["neighborhood_id"], "other@example.com", "magic_link")
     run_id = db.create_run(resident["neighborhood_id"])
-    match_id = db.create_invitation(run_id, 0, ["r" + str(resident["id"]), "r" + str(other["id"])], "headline", 9, {"invite": {}, "pitches": {}})
+    match_id = db.create_invitation(run_id, ["r" + str(resident["id"]), "r" + str(other["id"])], "headline", 9, {"invite": {}, "pitches": {}})
     db.create_pending_acceptances(match_id, [resident["id"], other["id"]])
     client.cookies.set(auth.SESSION_COOKIE_NAME, token)
     try:
@@ -492,7 +492,7 @@ def test_api_my_match_respond_rejects_a_non_member_match_id():
     other_nb = db.get_or_create_neighborhood("fremont", "Fremont", 100)
     other = db.get_or_create_resident(other_nb["id"], "other@example.com", "magic_link")
     run_id = db.create_run(other_nb["id"])
-    match_id = db.create_invitation(run_id, 0, ["r" + str(other["id"])], "headline", 9, {"invite": {}, "pitches": {}})
+    match_id = db.create_invitation(run_id, ["r" + str(other["id"])], "headline", 9, {"invite": {}, "pitches": {}})
     db.create_pending_acceptances(match_id, [other["id"]])
     client.cookies.set(auth.SESSION_COOKIE_NAME, token)
     try:
@@ -508,13 +508,39 @@ def test_api_my_match_respond_accept_round_trip():
     resident, token = _consented_resident_session()
     other = db.get_or_create_resident(resident["neighborhood_id"], "other@example.com", "magic_link")
     run_id = db.create_run(resident["neighborhood_id"])
-    match_id = db.create_invitation(run_id, 0, ["r" + str(resident["id"]), "r" + str(other["id"])], "headline", 9, {"invite": {}, "pitches": {}})
+    match_id = db.create_invitation(run_id, ["r" + str(resident["id"]), "r" + str(other["id"])], "headline", 9, {"invite": {}, "pitches": {}})
     db.create_pending_acceptances(match_id, [resident["id"], other["id"]])
     client.cookies.set(auth.SESSION_COOKIE_NAME, token)
     try:
         r = client.post("/api/my-match/respond", json={"match_id": match_id, "response": "accept"})
         assert r.status_code == 200
         assert r.json()["state"] == "waiting"
+    finally:
+        client.cookies.clear()
+
+
+def test_api_my_match_meetup_records_the_answer_after_the_reveal():
+    reset_state()
+    resident, token = _consented_resident_session()
+    other = db.get_or_create_resident(resident["neighborhood_id"], "other@example.com", "magic_link")
+    run_id = db.create_run(resident["neighborhood_id"])
+    match_id = db.create_invitation(run_id, ["r" + str(resident["id"]), "r" + str(other["id"])], "headline", 9,
+                                    {"invite": {"activity": "tea", "when": "Sunday", "where": "here"}, "pitches": {}})
+    db.create_pending_acceptances(match_id, [resident["id"], other["id"]])
+    assert client.post("/api/my-match/meetup", json={"match_id": match_id, "answer": "coming"}).status_code == 401
+    client.cookies.set(auth.SESSION_COOKIE_NAME, token)
+    try:
+        # before both say yes there's nothing to answer
+        r = client.post("/api/my-match/meetup", json={"match_id": match_id, "answer": "coming"})
+        assert r.status_code == 400
+        db.respond_to_acceptance(match_id, resident["id"], "accepted")
+        db.respond_to_acceptance(match_id, other["id"], "accepted")
+        db.mark_match_sealed(match_id)
+        assert client.post("/api/my-match/meetup", json={"match_id": "x", "answer": "coming"}).status_code == 400
+        r = client.post("/api/my-match/meetup", json={"match_id": match_id, "answer": "different_time"})
+        assert r.status_code == 200 and r.json() == {"ok": True, "answer": "different_time"}
+        texts = [e["text"] for e in db.list_neighborhood_events(resident["neighborhood_id"])]
+        assert any("needs a different time for invitation #" + str(match_id) in t for t in texts)
     finally:
         client.cookies.clear()
 

@@ -7,8 +7,12 @@ everyone invited says yes, the invitation is "sealed": first names, the hub's
 headline and the proposed meetup are revealed. A "no" dissolves it for
 everyone, and db.list_eligible_residents puts them back in the pool.
 
+After the reveal, each person answers the proposed meetup ("I'll be there"
+or "need a different time"); that answer goes to the activity log so the
+admin can follow up.
+
 Pure DB/routing logic, no AI calls -- app.py's routes are thin wrappers
-around get_state/respond.
+around get_state/respond/meetup_reply.
 """
 
 import db
@@ -75,7 +79,7 @@ def _sealed_payload(resident, match):
                 names.append(_first_name(member))
         i += 1
     return {
-        "state": "sealed", "match_id": match["id"], "reason": match["reason"],
+        "state": "sealed", "match_id": match["id"], "headline": match["headline"],
         "pitch": _pitch_for(resident, match), "other_first_names": names,
         "meetup": match["details"].get("invite"),
     }
@@ -102,7 +106,7 @@ def get_state(resident):
     if row["status"] == "pending":
         # the pitch only -- the hub's headline names both people, so it waits for the seal
         acceptances = db.list_match_acceptances(match["id"])
-        return {"state": "pending", "match_id": match["id"], "reason": _pitch_for(resident, match),
+        return {"state": "pending", "match_id": match["id"], "pitch": _pitch_for(resident, match),
                 "group_size": len(acceptances)}
 
     acceptances = db.list_match_acceptances(match["id"])
@@ -152,3 +156,31 @@ def respond(resident, match_id, response):
         _seal_if_ready(match, acceptances, resident["neighborhood_id"])
 
     return get_state(resident), None
+
+
+MEETUP_ANSWERS = ("coming", "different_time")
+
+
+def meetup_reply(resident, match_id, answer):
+    # the caller's answer to a revealed invitation's proposed meetup. Like
+    # respond(), membership is checked against the caller's own session.
+    if answer not in MEETUP_ANSWERS:
+        return None, "answer must be 'coming' or 'different_time'"
+    if db.get_acceptance(match_id, resident["id"]) is None:
+        return None, "You're not a member of that match."
+    match = db.get_match(match_id)
+    if match is None or match["sealed_at"] is None:
+        return None, "This invitation hasn't been revealed yet."
+    text = _first_name(resident) + " will be there for invitation #" + str(match_id) + _meetup_note(match) + "."
+    if answer == "different_time":
+        text = (_first_name(resident) + " needs a different time for invitation #" + str(match_id)
+                + _meetup_note(match) + ". Follow up with them.")
+    db.log_event(match["run_id"], "human", "human", text, None, resident["neighborhood_id"])
+    return {"ok": True, "answer": answer}, None
+
+
+def _meetup_note(match):
+    meetup = match["details"].get("invite")
+    if not meetup:
+        return ""
+    return " (" + str(meetup.get("activity", "")) + ", " + str(meetup.get("when", "")) + ")"

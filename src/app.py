@@ -343,6 +343,21 @@ async def api_my_match_respond(body: dict, request: Request):
     return state
 
 
+@app.post("/api/my-match/meetup")
+async def api_my_match_meetup(body: dict, request: Request):
+    resident, error_response = _require_consented_resident(request)
+    if error_response is not None:
+        return error_response
+    try:
+        match_id = int(body.get("match_id"))
+    except (TypeError, ValueError):
+        return JSONResponse(status_code=400, content={"error": "match_id is required."})
+    result, error = my_match.meetup_reply(resident, match_id, body.get("answer"))
+    if error is not None:
+        return JSONResponse(status_code=400, content={"error": error})
+    return result
+
+
 # ============================================================================
 # Real-user pilot: admin dashboard (Stage 6). Neighborhood progress, resident
 # status, recent batch runs + usage, and a manual "trigger batch now"

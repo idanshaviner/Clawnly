@@ -1,10 +1,9 @@
 """Agent-to-agent conversation: two Claws talk privately, each one
 representing one real person.
 
-A Claw here is not an invented persona (claw.py's simulated mode). It is the
-person's representative, and it knows ONLY that person's dossier -- the text
-their own AI wrote about them (dossier.py). About the other person it knows
-only what the other Claw says. It speaks ABOUT its person ("Noa tends to..."),
+A Claw is not an invented persona. It is the person's representative, and
+it knows ONLY that person's dossier -- the text their own AI wrote about them
+(dossier.py). About the other person it knows only what the other Claw says. It speaks ABOUT its person ("Noa tends to..."),
 never AS them, and when the dossier doesn't cover something it must say "I
 don't know, ask them in person" instead of inventing.
 

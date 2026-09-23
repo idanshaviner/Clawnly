@@ -11,7 +11,7 @@ Tables:
   magic_link_tokens -- single-use, hashed, expiring email login tokens
   oauth_states      -- single-use, expiring Google OAuth CSRF state tokens
 
-  runs              -- one row per hub round (mode, neighborhood, API-call usage)
+  runs              -- one row per hub round (neighborhood, API-call usage)
   events            -- the behind-the-scenes log: every hub thought and decision,
                        every agent message, every code check, every human action
                        (signup, join, yes/no, reveal, admin actions)
@@ -19,13 +19,14 @@ Tables:
                        prompt, the raw reply, tokens, time taken, any error
   agent_conversations -- one private Claw-to-Claw conversation + the hub's verdict
   matches           -- one invitation the hub sent (member ids, the hub's
-                       headline, and details: pitches, the proposed meetup, the
-                       conversation it came from) + sealed_at / dissolved_at
+                       headline and depth, and details: pitches, the proposed
+                       meetup, the conversation it came from) + sealed_at /
+                       dissolved_at
   match_acceptances -- one row per invited resident (the mutual yes/no gate)
 
 Older databases may still hold tables from before the agent-to-agent pivot
 (users, interviews, negotiations, meetups, feedback, onboarding_messages) and
-old profile columns on residents; nothing reads them any more.
+old columns on residents, runs and matches; nothing reads them any more.
 """
 
 import datetime
@@ -68,11 +69,13 @@ def _ensure_column(conn, table, column, coltype):
 def init_db():
     conn = _get_conn()
     conn.execute("""CREATE TABLE IF NOT EXISTS runs (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, mode TEXT, created_at TEXT
+        id INTEGER PRIMARY KEY AUTOINCREMENT, neighborhood_id INTEGER, usage TEXT,
+        created_at TEXT
     )""")
     conn.execute("""CREATE TABLE IF NOT EXISTS matches (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, run_id INTEGER, group_index INTEGER,
-        member_ids TEXT, reason TEXT, scores TEXT, why_not TEXT, created_at TEXT
+        id INTEGER PRIMARY KEY AUTOINCREMENT, run_id INTEGER, member_ids TEXT,
+        headline TEXT, depth INTEGER, details TEXT, created_at TEXT,
+        sealed_at TEXT, dissolved_at TEXT
     )""")
 
     # ----- real-user pilot: auth + onboarding -----
@@ -83,11 +86,9 @@ def init_db():
     )""")
     conn.execute("""CREATE TABLE IF NOT EXISTS residents (
         id INTEGER PRIMARY KEY AUTOINCREMENT, neighborhood_id INTEGER, email TEXT,
-        auth_method TEXT, consent_agreed_at TEXT,
-        name TEXT, age INTEGER, gender TEXT, hobbies TEXT, personality TEXT,
-        occupation TEXT, availability TEXT, location TEXT, bio TEXT,
-        preferred_group_size TEXT, slots_status TEXT, profile_complete_at TEXT,
-        created_at TEXT,
+        auth_method TEXT, consent_agreed_at TEXT, name TEXT,
+        dossier_source TEXT, dossier_text TEXT, card TEXT, dossier_previews INTEGER,
+        profile_complete_at TEXT, created_at TEXT,
         UNIQUE(neighborhood_id, email)
     )""")
     conn.execute("""CREATE TABLE IF NOT EXISTS sessions (
@@ -124,24 +125,20 @@ def init_db():
         why TEXT, turns TEXT, verdict TEXT, invited INTEGER, created_at TEXT
     )""")
 
-    # runs predates neighborhoods; add the column rather than recreate the table.
+    # a database made before the agent-to-agent pivot has these tables with
+    # older columns; add what the product reads now (a no-op on a fresh one).
+    # the old columns stay behind, unread.
     _ensure_column(conn, "runs", "neighborhood_id", "INTEGER")
-    # sealed_at is set once every invited resident has said yes; dissolved_at
-    # once anyone says no.
+    _ensure_column(conn, "runs", "usage", "TEXT")
+    _ensure_column(conn, "matches", "headline", "TEXT")
+    _ensure_column(conn, "matches", "depth", "INTEGER")
+    _ensure_column(conn, "matches", "details", "TEXT")
     _ensure_column(conn, "matches", "sealed_at", "TEXT")
     _ensure_column(conn, "matches", "dissolved_at", "TEXT")
-    # per-round API call tally (ai_log.LoggedClient), JSON {"total":N,"by_model":{}}.
-    _ensure_column(conn, "runs", "usage", "TEXT")
-    # bring-your-agent signup (replaces the onboarding chat): what the
-    # resident's own AI wrote about them, where it came from, the card the
-    # hub builds from it, and how many previews they've used (each costs a call).
     _ensure_column(conn, "residents", "dossier_source", "TEXT")
     _ensure_column(conn, "residents", "dossier_text", "TEXT")
     _ensure_column(conn, "residents", "card", "TEXT")
     _ensure_column(conn, "residents", "dossier_previews", "INTEGER")
-    # an invitation's pitches, proposed meetup and source conversation (JSON)
-    _ensure_column(conn, "matches", "details", "TEXT")
-    # so a neighborhood's whole story (signups, rounds, answers) reads as one feed
     _ensure_column(conn, "events", "neighborhood_id", "INTEGER")
 
     conn.commit()
@@ -154,8 +151,8 @@ def create_run(neighborhood_id=None):
     # (e.g. the orchestrator CLI on the sample people).
     conn = _get_conn()
     cur = conn.execute(
-        "INSERT INTO runs (mode, created_at, neighborhood_id) VALUES (?, ?, ?)",
-        ("agents", _now(), neighborhood_id),
+        "INSERT INTO runs (neighborhood_id, created_at) VALUES (?, ?)",
+        (neighborhood_id, _now()),
     )
     conn.commit()
     return cur.lastrowid
@@ -169,21 +166,20 @@ def get_run(run_id):
     usage = None
     if row["usage"] is not None:
         usage = json.loads(row["usage"])
-    return {"id": row["id"], "mode": row["mode"], "neighborhood_id": row["neighborhood_id"],
+    return {"id": row["id"], "neighborhood_id": row["neighborhood_id"],
             "created_at": row["created_at"], "usage": usage}
 
 
 # ----- invitations (stored as matches) -------------------------------------------
 
-def create_invitation(run_id, index, member_ids, headline, depth, details):
+def create_invitation(run_id, member_ids, headline, depth, details):
     # one hub invitation. member_ids are "r"-prefixed resident ids; details is
     # {"conversation_id", "invite": {activity, when, where}, "pitches": {member_id: text}}.
     conn = _get_conn()
     cur = conn.execute(
-        "INSERT INTO matches (run_id, group_index, member_ids, reason, scores, why_not, created_at, details) "
-        "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-        (run_id, index, json.dumps(member_ids), headline, json.dumps({"depth": depth}),
-         json.dumps([]), _now(), json.dumps(details)),
+        "INSERT INTO matches (run_id, member_ids, headline, depth, details, created_at) "
+        "VALUES (?, ?, ?, ?, ?, ?)",
+        (run_id, json.dumps(member_ids), headline, depth, json.dumps(details), _now()),
     )
     conn.commit()
     return cur.lastrowid
@@ -194,9 +190,8 @@ def _row_to_match(row):
     if row["details"] is not None:
         details = json.loads(row["details"])
     return {
-        "id": row["id"], "run_id": row["run_id"], "group_index": row["group_index"],
-        "member_ids": json.loads(row["member_ids"]), "reason": row["reason"],
-        "scores": json.loads(row["scores"]), "details": details,
+        "id": row["id"], "run_id": row["run_id"], "member_ids": json.loads(row["member_ids"]),
+        "headline": row["headline"], "depth": row["depth"], "details": details,
         "created_at": row["created_at"], "sealed_at": row["sealed_at"],
         "dissolved_at": row["dissolved_at"],
     }
@@ -243,7 +238,7 @@ def list_runs_for_neighborhood(neighborhood_id, limit=10):
         if row["usage"] is not None:
             usage = json.loads(row["usage"])
         out.append({
-            "id": row["id"], "mode": row["mode"], "created_at": row["created_at"],
+            "id": row["id"], "created_at": row["created_at"],
             "conversation_count": conversation_count, "invitation_count": invitation_count,
             "failed_count": failed_count, "usage": usage,
         })
@@ -398,8 +393,7 @@ def get_resident(resident_id):
 
 def get_or_create_resident(neighborhood_id, email, auth_method):
     # a login always resolves to exactly one resident row per (neighborhood, email);
-    # a brand-new resident starts with every profile field empty -- the
-    # onboarding conversation fills them in over time (Milestone stage 3).
+    # a brand-new resident has nothing else until they bring their agent.
     conn = _get_conn()
     row = conn.execute(
         "SELECT * FROM residents WHERE neighborhood_id = ? AND email = ?",
@@ -408,11 +402,8 @@ def get_or_create_resident(neighborhood_id, email, auth_method):
     if row is not None:
         return _row_to_resident(row)
     conn.execute(
-        "INSERT INTO residents (neighborhood_id, email, auth_method, consent_agreed_at, "
-        "name, age, gender, hobbies, personality, occupation, availability, location, bio, "
-        "preferred_group_size, slots_status, profile_complete_at, created_at) "
-        "VALUES (?, ?, ?, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, ?, NULL, ?)",
-        (neighborhood_id, email, auth_method, json.dumps({}), _now()),
+        "INSERT INTO residents (neighborhood_id, email, auth_method, created_at) VALUES (?, ?, ?, ?)",
+        (neighborhood_id, email, auth_method, _now()),
     )
     conn.commit()
     row = conn.execute(

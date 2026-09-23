@@ -258,7 +258,8 @@ async def judge(a, b, turns, client, record, ref=None):
                  + b["name"] + ": free " + _card_field(b, "free") + "; area " + _card_field(b, "area"))
     message = await client.messages.create(
         model=config.MODEL_HUB_VERDICT,
-        max_tokens=1500,
+        # thinking is always on for the premium model and counts toward this cap
+        max_tokens=16000,
         system=_verdict_system(a, b),
         messages=[{"role": "user", "content": "Logistics from their cards:\n" + logistics + "\n\nTRANSCRIPT:\n" + transcript}],
         output_config={"effort": config.MATCH_EFFORT},

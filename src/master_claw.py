@@ -316,13 +316,13 @@ class MasterClaw:
         return candidates
 
     async def _call_match(self, system, payload):
-        # one matching call. note: the match model (Opus 4.8) accepts neither
-        # `temperature` nor assistant-message prefill (both 400 on that family), so
-        # the prompt asks for JSON only and we parse it out. Consistency comes from
-        # the structured output + the code-level validator, not a temperature knob.
+        # one matching call. note: the match model (Opus 5.5) accepts neither
+        # `temperature` nor assistant-message prefill (both 400), so the prompt
+        # asks for JSON only and we parse it out. Its thinking is always on and
+        # counts toward max_tokens -- a tight cap truncates the JSON mid-answer.
         message = await self.client.messages.create(
             model=config.MODEL_MATCH,
-            max_tokens=2000,
+            max_tokens=16000,
             system=system,
             messages=[{"role": "user", "content": payload}],
             output_config={"effort": config.MATCH_EFFORT},

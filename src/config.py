@@ -21,7 +21,7 @@ MODEL_REASONING = "claude-sonnet-4-6"  # needs real judgment/quality but isn't t
                                         # single highest-stakes call: free-form chat,
                                         # negotiation, popup/venue suggestions, persona
                                         # generation, explaining a decision
-MODEL_PREMIUM = "claude-opus-4-8"      # the reasoning-critical call: forming the
+MODEL_PREMIUM = "claude-opus-5-5"      # the reasoning-critical call: forming the
                                         # actual group. Match quality is the whole
                                         # product's bet, so it gets the strongest model
 
@@ -52,14 +52,16 @@ MODEL_HUB_VERDICT = MODEL_PREMIUM    # the hub deciding who gets an invitation
 
 
 # temperatures for the Sonnet calls: vivid personas, lively popups.
-# (the match model is Opus 4.8, which does NOT accept `temperature` -- it returns
-#  a 400 -- so the match call omits it; see master_claw._call_match.)
+# (the premium model -- Opus 5.5 -- does NOT accept `temperature` (400), and its
+#  thinking is always on and counts toward max_tokens, so its calls omit
+#  temperature and leave generous max_tokens; see master_claw._call_match and
+#  orchestrator.judge.)
 TEMP_PERSONA = 0.8
 TEMP_POPUP = 0.7
 
-# effort for the Opus match call (speed/cost lever). "medium" is much faster and
-# cheaper than the default "high" and is plenty for choosing a group from 12
-# short profiles. Bump to "high" if you want maximum matching rigor.
+# effort for the Opus calls -- the match and the hub verdict (speed/cost lever).
+# "medium" is also Opus 5.5's own default; set explicitly so a model change
+# never silently moves it. Bump to "high" for maximum rigor.
 MATCH_EFFORT = "medium"
 
 # the quality bar for SHIPPING a group. The matcher scores each group it forms

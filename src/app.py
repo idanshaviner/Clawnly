@@ -1,103 +1,75 @@
-"""Clawnly web app -- run the matchmaker, chat with the people, edit them, and
-ask the Master Claw why it did what it did.
+"""Clawnly web app -- the real pilot: invite link -> login -> consent ->
+bring your agent -> agents talk (the hub) -> a yes/no invitation, plus the
+admin dashboard with every round's behind-the-scenes record.
 
-A small FastAPI backend that reuses the existing engine. All state (the cast,
-past runs/matches, feedback) is persisted in a small SQLite file via db.py
-(Milestone 1) instead of an in-memory dict, so it survives a server restart.
-The pipeline and chat run in either:
-  - demo mode : free + offline (scripted AI via DemoClient) -- the default
-  - live mode : real Claude (needs ANTHROPIC_API_KEY)
+All state lives in a small SQLite file via db.py. AI calls always use the
+server's own key (config.get_client()) -- real residents, real data.
 
 Run:  .venv/bin/python src/app.py   (or double-click Clawnly.command)
 """
 
-import asyncio
+import contextlib
 import html
-import json
 import os
+import re
 
 from fastapi import FastAPI, Request
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse, StreamingResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
 
+import admin
 import auth
+import batch
+import bring_agent
 import config
 import db
-from claw import Claw
-from demo import DemoClient
-from explain import explain_decision, context_summary
-from main import run_pipeline
-import admin
-import batch
 import my_match
-import onboarding
-import usage
-from persona_gen import generate_users, nudge_user, build_demo_cast, clamp_count, clamp_theme, DEFAULT_THEME, DEFAULT_COUNT, MAX_GEN_COUNT
-from users import USERS, HOBBY_CATEGORIES, AVAILABILITY_WINDOWS
+import nightly
 
-app = FastAPI(title="Clawnly")
+
+@contextlib.asynccontextmanager
+async def lifespan(app):
+    # the nightly rounds live as long as the server does
+    nightly.start()
+    yield
+
+
+app = FastAPI(title="Clawnly", lifespan=lifespan)
 
 db.init_db()
-db.seed_default_users_if_empty(USERS)
 
 
-def _flag(name):
-    return os.environ.get(name, "").strip().lower() in ("1", "true", "yes", "on")
+@app.middleware("http")
+async def security_headers(request: Request, call_next):
+    response = await call_next(request)
+    # no page may be framed by another site (a hidden yes/no button would be clickjackable)
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Content-Security-Policy"] = "frame-ancestors 'none'"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    # sign-in tokens ride in URLs; never hand them to another site in a Referer
+    response.headers["Referrer-Policy"] = "no-referrer"
+    return response
 
 
-# DEMO-ONLY mode: when set (e.g. on a public cloud deploy), the server ignores any
-# request to use Live mode and runs everything as the free offline demo -- so a
-# public URL can never spend real API money. Env: CLAWNLY_DEMO_ONLY=1.
-DEMO_ONLY = _flag("CLAWNLY_DEMO_ONLY")
-
-# BRING-YOUR-OWN-KEY mode: Live is allowed, but ONLY with a key the visitor
-# supplies on each request. The server never has a key of its own and never
-# stores a visitor's key, so real runs are billed to whoever brought the key --
-# not to the app owner. Env: CLAWNLY_BYOK=1. (DEMO_ONLY wins if both are set.)
-BYOK = _flag("CLAWNLY_BYOK") and not DEMO_ONLY
-
-
-def _effective_mode(mode):
-    # force demo when the deploy is locked to demo-only.
-    if DEMO_ONLY:
-        return "demo"
-    return mode
+def _public_url(request, route_name):
+    # links that leave the site (the emailed sign-in link, Google's redirect)
+    # use the configured public address, never the request's Host header -- an
+    # attacker-controlled Host would otherwise point a victim's sign-in link at
+    # the attacker's server. Without CLAWNLY_BASE_URL (local dev) the request's
+    # own address is used.
+    base = config.resolve_env("CLAWNLY_BASE_URL")
+    if base:
+        return base.rstrip("/") + app.url_path_for(route_name)
+    return str(request.url_for(route_name))
 
 
-# short-lived, single-use tokens that let the EventSource stream (a GET that
-# can't carry a header) fetch a browser-supplied key without ever putting the key
-# in a URL. token -> (key, expiry). In-memory only; nothing is persisted.
-_SESSIONS = {}
-_SESSION_TTL = 120.0   # seconds
-
-
-def _new_session(key):
-    import secrets
-    import time
-    token = secrets.token_urlsafe(24)
-    _SESSIONS[token] = (key, time.time() + _SESSION_TTL)
-    return token
-
-
-def _pop_session_key(token):
-    # single-use: consume the token and prune anything expired.
-    import time
-    now = time.time()
-    tokens = list(_SESSIONS.keys())
-    i = 0
-    while i < len(tokens):
-        t = tokens[i]
-        entry = _SESSIONS.get(t)
-        if entry is not None and entry[1] < now:
-            _SESSIONS.pop(t, None)
-        i += 1
-    entry = _SESSIONS.pop(token or "", None)
-    if entry is None:
+def _invited_neighborhood(slug, code):
+    # public input only ever resolves to an EXISTING neighborhood, with its secret code
+    if slug is None or len(str(slug).strip()) == 0:
         return None
-    return entry[0]
+    return db.neighborhood_for_invite(str(slug).strip(), str(code or "").strip())
 
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
-_INDEX = os.path.join(_HERE, "web", "index.html")
 _JOIN = os.path.join(_HERE, "web", "join.html")
 _CONSENT = os.path.join(_HERE, "web", "consent.html")
 _ONBOARDING = os.path.join(_HERE, "web", "onboarding.html")
@@ -107,350 +79,21 @@ _ADMIN_LOGIN = os.path.join(_HERE, "web", "admin-login.html")
 _PRIVACY = os.path.join(_HERE, "web", "privacy.html")
 
 
-def _users_signature(users):
-    # changes whenever any user is edited -> invalidates the interview cache
-    # and "forgets" the last run for master-chat (both are signature-scoped).
-    return json.dumps(users, sort_keys=True)
-
-
-def _request_key(request):
-    # the visitor's own key, sent per-request in a header (BYOK mode).
-    if request is None:
-        return None
-    return request.headers.get("x-anthropic-key")
-
-
-def _client_for(mode, key=None):
-    # demo -> scripted offline client; live -> the real client. In BYOK mode the
-    # live client is built from the caller's own key; otherwise it's None (the
-    # engine builds the server's own client).
-    if mode == "demo":
-        return DemoClient()
-    if BYOK:
-        return config.client_from_key(key)
-    return None
-
-
-def _counting_client(mode, key=None):
-    # a real/demo client wrapped so the run reports its call usage.
-    if mode == "demo":
-        inner = DemoClient()
-    elif BYOK:
-        inner = config.client_from_key(key)   # visitor's own key; billed to them
-    else:
-        inner = config.get_client()           # server's key (raises if none; caught upstream)
-    return usage.CountingClient(inner)
-
-
 @app.get("/")
 async def index():
-    return FileResponse(_INDEX)
-
-
-@app.get("/api/config")
-async def api_config():
-    # lets the front-end adapt: hide Live on a demo-only deploy, or ask for the
-    # visitor's own key in bring-your-own-key mode.
-    return {
-        "demo_only": DEMO_ONLY,
-        "byok": BYOK,
-        "default_theme": DEFAULT_THEME,
-        "default_count": DEFAULT_COUNT,
-        "max_count": MAX_GEN_COUNT,
-    }
-
-
-@app.post("/api/session")
-async def api_session(body: dict):
-    # BYOK only: exchange a browser-held key for a short-lived, single-use token
-    # the EventSource stream can present (so the key never rides in a URL).
-    if not BYOK:
-        return JSONResponse(status_code=400, content={"error": "not applicable"})
-    key = (body.get("key") or "").strip()
-    if len(key) < 8:
-        return JSONResponse(status_code=400, content={"error": "Enter your Anthropic API key first."})
-    return {"token": _new_session(key)}
-
-
-@app.get("/api/users")
-async def api_users():
-    # the editable cast, plus the vocab the edit form needs.
-    return {
-        "users": db.list_users(),
-        "availability_windows": AVAILABILITY_WINDOWS,
-        "hobby_categories": HOBBY_CATEGORIES,
-    }
-
-
-def _validate_changes(changes):
-    # reject edits that would create an impossible/invalid profile. Returns an
-    # error message, or None if the changes are fine.
-    if "personality" in changes and changes["personality"] not in ["introverted", "extroverted", "mixed"]:
-        return "personality must be introverted, extroverted, or mixed"
-    if "occupation" in changes and changes["occupation"] not in ["student", "working professional", "freelancer"]:
-        return "occupation must be student, working professional, or freelancer"
-    if "availability" in changes:
-        avail = changes["availability"]
-        if not isinstance(avail, list) or len(avail) == 0:
-            return "pick at least one availability window"
-        i = 0
-        while i < len(avail):
-            if avail[i] not in AVAILABILITY_WINDOWS:
-                return "unknown availability window: " + str(avail[i])
-            i += 1
-    if "hobbies" in changes:
-        if not isinstance(changes["hobbies"], list) or len(changes["hobbies"]) == 0:
-            return "add at least one hobby"
-    if "preferred_group_size" in changes:
-        size = changes["preferred_group_size"]
-        if size != "no preference":
-            ok = isinstance(size, list) and len(size) == 2
-            if not ok:
-                return 'group size must be "no preference" or two numbers like 2,3'
-            low = size[0]
-            high = size[1]
-            if not (isinstance(low, int) and isinstance(high, int) and 2 <= low <= high <= 8):
-                return "group size range must be between 2 and 8 (min <= max)"
-    return None
-
-
-@app.post("/api/users/{uid}")
-async def api_edit_user(uid: str, changes: dict):
-    # update editable traits on one user (no AI -- direct edit).
-    user = db.get_user(uid)
-    if user is None:
-        return JSONResponse(status_code=404, content={"error": "no such user"})
-    problem = _validate_changes(changes)
-    if problem is not None:
-        return JSONResponse(status_code=400, content={"error": problem})
-    return db.update_user(uid, changes)
-
-
-@app.post("/api/users/{uid}/nudge")
-async def api_nudge_user(uid: str, body: dict, request: Request):
-    # AI-assisted edit: "make them more X" rewrites the profile (live mode only).
-    user = db.get_user(uid)
-    if user is None:
-        return JSONResponse(status_code=404, content={"error": "no such user"})
-    if DEMO_ONLY:
-        return JSONResponse(status_code=403,
-                            content={"error": "AI editing is disabled in this public demo. Edit the fields directly."})
-    if body.get("mode", "demo") == "demo":
-        return JSONResponse(status_code=400,
-                            content={"error": "AI editing needs Live mode -- or edit the fields directly."})
-    instruction = (body.get("instruction") or "").strip()
-    if len(instruction) == 0:
-        return JSONResponse(status_code=400, content={"error": "Say how to change them, e.g. 'make her more outgoing'."})
-    try:
-        changes = await nudge_user(user, instruction,
-                                   client=_client_for(body.get("mode"), _request_key(request)))
-    except Exception as error:
-        return JSONResponse(status_code=500, content={"error": str(error)})
-    problem = _validate_changes(changes)
-    if problem is not None:
-        return JSONResponse(status_code=400, content={"error": "AI produced an invalid change: " + problem})
-    return db.update_user(uid, changes)
-
-
-@app.post("/api/reset")
-async def api_reset():
-    # restore the original 12 people and forget all edits. Past runs/matches
-    # and feedback history are untouched (same as before Milestone 1).
-    db.replace_users(USERS)
-    return {"users": db.list_users()}
-
-
-@app.get("/api/feedback")
-async def api_get_feedback():
-    return {"feedback": db.list_feedback()}
-
-
-@app.post("/api/feedback")
-async def api_add_feedback(body: dict):
-    # record a thumbs-up/down on a group so future matches can learn from it.
-    rating = body.get("rating")
-    if rating not in ["up", "down"]:
-        return JSONResponse(status_code=400, content={"error": "rating must be 'up' or 'down'"})
-    entry = {
-        "members": body.get("members", []),
-        "rating": rating,
-        "note": (body.get("note") or "").strip(),
-    }
-    db.add_feedback(entry)
-    return {"feedback": db.list_feedback()}
-
-
-@app.post("/api/feedback/clear")
-async def api_clear_feedback():
-    db.clear_feedback()
-    return {"feedback": []}
-
-
-def _persist_key(key):
-    # set it for this running server, and save it to .env so it survives a restart.
-    os.environ["ANTHROPIC_API_KEY"] = key
-    root = os.path.dirname(_HERE)
-    try:
-        with open(os.path.join(root, ".env"), "w") as handle:
-            handle.write("ANTHROPIC_API_KEY=" + key + "\n")
-    except Exception:
-        pass
-
-
-@app.get("/api/key-status")
-async def api_key_status():
-    # whether a usable key is configured (never returns the key itself).
-    return {"configured": config.resolve_api_key() is not None}
-
-
-@app.post("/api/key")
-async def api_set_key(body: dict):
-    if DEMO_ONLY:
-        return JSONResponse(status_code=403,
-                            content={"error": "Key entry is disabled in this public demo."})
-    key = (body.get("key") or "").strip()
-    if len(key) < 8:
-        return JSONResponse(status_code=400, content={"error": "That doesn't look like an API key."})
-    _persist_key(key)
-    return {"configured": True}
-
-
-def _persist_run(mode, signature, result, reused):
-    # admin-console runs are never neighborhood-scoped (neighborhood_id=None);
-    # the actual save sequence lives in db.persist_run_result, shared with
-    # batch.py's real-pilot batch runs so it's written in exactly one place.
-    db.persist_run_result(mode, signature, result)
-    result["interviews_reused"] = reused
-
-
-@app.post("/api/run")
-async def api_run(request: Request, mode: str = "demo"):
-    # run the full pipeline on the (possibly edited) cast; persist the result.
-    # Reuse cached interviews when the cast + mode are unchanged (skips one call per person).
-    mode = _effective_mode(mode)
-    key = _request_key(request)
-    try:
-        users = db.list_users()
-        signature = _users_signature(users)
-        cached = db.find_cached_interviews(signature, mode)
-        result = await run_pipeline(users, client=_counting_client(mode, key),
-                                    verbose=False, interviews=cached, feedback=db.list_feedback())
-        _persist_run(mode, signature, result, cached is not None)
-        return result
-    except Exception as error:
-        return JSONResponse(status_code=500, content={"error": str(error)})
-
-
-@app.get("/api/run-stream")
-async def api_run_stream(mode: str = "demo", session: str = None):
-    # same run, but streamed live (Server-Sent Events): each stage and each
-    # negotiation step is pushed as it happens, so the UI fills in progressively.
-    # In BYOK mode the visitor's key arrives as a one-time session token (a header
-    # can't ride on an EventSource GET).
-    mode = _effective_mode(mode)
-    key = None
-    if BYOK and mode == "live":
-        key = _pop_session_key(session)
-    queue = asyncio.Queue()
-
-    def on_stage(stage, data):
-        queue.put_nowait({"stage": stage, "data": data})
-
-    async def run():
-        try:
-            users = db.list_users()
-            signature = _users_signature(users)
-            cached = db.find_cached_interviews(signature, mode)
-            result = await run_pipeline(users, client=_counting_client(mode, key),
-                                        verbose=False, interviews=cached, on_stage=on_stage,
-                                        feedback=db.list_feedback())
-            _persist_run(mode, signature, result, cached is not None)
-        except Exception as error:
-            queue.put_nowait({"stage": "error", "data": str(error)})
-        finally:
-            queue.put_nowait(None)   # sentinel: stream complete
-
-    task = asyncio.create_task(run())
-
-    async def events():
-        while True:
-            item = await queue.get()
-            if item is None:
-                break
-            yield "data: " + json.dumps(item) + "\n\n"
-        await task
-
-    return StreamingResponse(events(), media_type="text/event-stream")
-
-
-@app.post("/api/generate-cast")
-async def api_generate_cast(request: Request, body: dict):
-    # re-roll the cast. Live uses real AI; Demo (and DEMO_ONLY deploys) builds a
-    # schema-valid cast locally so a 100-person Black Diamond run is playable
-    # without Anthropic. Callers pass count (default 12, max 100) and theme.
-    if body is None:
-        body = {}
-    count = clamp_count(body.get("count"))
-    theme = clamp_theme(body.get("theme"))
-    mode = _effective_mode(body.get("mode", "demo"))
-    try:
-        if mode == "demo":
-            users = build_demo_cast(count=count, theme=theme)
-        else:
-            users = await generate_users(count=count, theme=theme,
-                                         client=_client_for(mode, _request_key(request)))
-    except Exception as error:
-        return JSONResponse(status_code=500, content={"error": str(error)})
-    # generation fans out one call per person; if too many failed (e.g. rate limits)
-    # we get a short cast back. Don't wipe the current cast with a broken one.
-    if len(users) < 3:
-        return JSONResponse(status_code=502, content={
-            "error": "Couldn't invent a full cast (the AI returned {} usable people). "
-                     "Your current cast is unchanged -- try again in a moment.".format(len(users))})
-    db.replace_users(users)
-    warning = None
-    if len(users) < count:
-        warning = "Only {} of {} people came back this time (some AI calls failed).".format(len(users), count)
-    return {"users": db.list_users(), "warning": warning, "count": len(users), "theme": theme}
-
-
-@app.post("/api/chat")
-async def api_chat(body: dict, request: Request):
-    # talk to one persona, in character. history = [{role, content}, ...].
-    user = db.get_user(body.get("user_id"))
-    if user is None:
-        return JSONResponse(status_code=404, content={"error": "no such user"})
-    claw = Claw(user, client=_client_for(_effective_mode(body.get("mode", "demo")), _request_key(request)))
-    try:
-        reply = await claw.chat(body.get("message", ""), body.get("history", []))
-        return {"reply": reply}
-    except Exception as error:
-        return JSONResponse(status_code=500, content={"error": str(error)})
-
-
-@app.post("/api/master-chat")
-async def api_master_chat(body: dict, request: Request):
-    # ask the Master Claw why it decided what it did (about the last run for
-    # the CURRENT cast -- editing or resetting people "forgets" the last run,
-    # same as before Milestone 1).
-    signature = _users_signature(db.list_users())
-    run_id = db.latest_run_id_for_signature(signature)
-    if run_id is None:
-        return {"reply": "Run the matchmaker first, then I can explain what I did and why."}
-    run_result = db.load_run_result(run_id)
-    mode = _effective_mode(body.get("mode", "demo"))
-    if mode == "demo":
-        # free, offline: a grounded summary built from the actual run (no AI).
-        return {"reply": "In demo mode I can't chat freely, but here's the record of what I did:\n\n"
-                + context_summary(run_result)}
-    try:
-        # client is None for the server's own key, or the visitor's key in BYOK.
-        reply = await explain_decision(body.get("message", ""), run_result,
-                                       body.get("history", []),
-                                       client=_client_for("live", _request_key(request)))
-        return {"reply": reply}
-    except Exception as error:
-        return JSONResponse(status_code=500, content={"error": str(error)})
+    # residents always arrive through their neighborhood's invite link
+    # (/join/<slug>); the bare root just points the way.
+    return HTMLResponse(
+        "<html><head><meta name='viewport' content='width=device-width, initial-scale=1'>"
+        "<title>Clawnly</title></head>"
+        "<body style='font-family:-apple-system,sans-serif;max-width:480px;margin:60px auto;padding:0 20px;line-height:1.5'>"
+        "<h2>Clawnly</h2>"
+        "<p>Your agent meets your neighbors' agents first. You only say yes or no.</p>"
+        "<p>Joining? Use the invite link your neighborhood shared with you.</p>"
+        "<p><a href='/my-match'>Check my invitation</a> &middot; <a href='/admin/login'>Admin</a> "
+        "&middot; <a href='/privacy'>Privacy</a></p>"
+        "</body></html>"
+    )
 
 
 # ============================================================================
@@ -460,8 +103,8 @@ async def api_master_chat(body: dict, request: Request):
 # ============================================================================
 
 def _login_success_html(result):
-    # admins have no onboarding/consent flow yet (admin dashboard is a later
-    # stage) -- this just proves the login mechanics work for them.
+    # a login with neither a neighborhood nor admin rights has nowhere to go
+    # yet -- confirm the sign-in worked and stop there.
     return (
         "<html><body style='font-family:sans-serif;max-width:480px;margin:60px auto'>"
         "<h2>You're logged in</h2>"
@@ -517,14 +160,16 @@ async def api_consent(request: Request):
 
 
 @app.get("/auth/google/login")
-async def google_login(request: Request, neighborhood: str = None):
+async def google_login(request: Request, neighborhood: str = None, code: str = None):
     if not auth.google_configured():
         return JSONResponse(status_code=503, content={"error": "Google login is not configured yet."})
     neighborhood_id = None
     if neighborhood is not None and len(neighborhood.strip()) > 0:
-        nb = db.get_or_create_neighborhood(neighborhood.strip(), neighborhood.strip(), config.MATCH_BATCH_THRESHOLD)
+        nb = _invited_neighborhood(neighborhood, code)
+        if nb is None:
+            return JSONResponse(status_code=400, content={"error": "This invite link isn't valid. Ask for a fresh one."})
         neighborhood_id = nb["id"]
-    redirect_uri = str(request.url_for("google_callback"))
+    redirect_uri = _public_url(request, "google_callback")
     try:
         url = auth.google_authorize_url(redirect_uri, neighborhood_id)
     except ValueError as error:
@@ -536,7 +181,7 @@ async def google_login(request: Request, neighborhood: str = None):
 async def google_callback(request: Request, code: str = None, state: str = None):
     if code is None:
         return JSONResponse(status_code=400, content={"error": "Missing authorization code."})
-    redirect_uri = str(request.url_for("google_callback"))
+    redirect_uri = _public_url(request, "google_callback")
     try:
         result = await auth.google_login_callback(code, state, redirect_uri)
     except ValueError as error:
@@ -554,14 +199,19 @@ async def api_magic_link_request(request: Request, body: dict):
     neighborhood = body.get("neighborhood")
     neighborhood_id = None
     if neighborhood is not None and len(str(neighborhood).strip()) > 0:
-        slug = str(neighborhood).strip()
-        nb = db.get_or_create_neighborhood(slug, slug, config.MATCH_BATCH_THRESHOLD)
+        nb = _invited_neighborhood(neighborhood, body.get("code"))
+        if nb is None:
+            return JSONResponse(status_code=400, content={"error": "This invite link isn't valid. Ask for a fresh one."})
         neighborhood_id = nb["id"]
     elif not auth.is_admin(email):
-        return JSONResponse(status_code=400,
-                            content={"error": "This login link is missing a neighborhood invite code."})
-    verify_base_url = str(request.url_for("magic_link_verify"))
-    await auth.request_magic_link(email, neighborhood_id, verify_base_url)
+        # nothing to sign in to, but answer like a sent link -- a different
+        # answer would tell anyone which addresses are admins
+        return {"sent": True}
+    sent = await auth.request_magic_link(email, neighborhood_id, _public_url(request, "magic_link_verify"))
+    if not sent and neighborhood_id is not None:
+        db.log_event(None, "system", "check", "Held back a sign-in link: too many requested for one address "
+                     "in 15 minutes.", None, neighborhood_id)
+    # the same answer either way, so the form never reveals anything about an address
     return {"sent": True}
 
 
@@ -602,25 +252,24 @@ async def api_me(request: Request):
 
 
 # ============================================================================
-# Real-user pilot: onboarding (the open-ended chat that fills in a profile).
-# Private, authenticated, real-data routes -- always live (see onboarding.py's
-# module docstring for why demo/BYOK don't apply here).
+# Real-user pilot: bring your agent (the signup). The resident pastes what
+# their own AI wrote about them; see bring_agent.py. /onboarding serves it.
 # ============================================================================
 
 def _require_consented_resident(request):
-    # the auth/consent gate both onboarding API routes need. Returns
+    # the auth/consent gate every resident API route needs. Returns
     # (resident, None) on success, or (None, an error JSONResponse) otherwise.
     session = auth.current_session(request)
     if session is None:
         return None, JSONResponse(status_code=401, content={"error": "not logged in"})
     resident_id = session.get("resident_id")
     if resident_id is None:
-        return None, JSONResponse(status_code=400, content={"error": "Only residents onboard."})
+        return None, JSONResponse(status_code=400, content={"error": "Only residents can do this."})
     resident = db.get_resident(resident_id)
     if resident is None:
         return None, JSONResponse(status_code=404, content={"error": "resident not found"})
     if resident["consent_agreed_at"] is None:
-        return None, JSONResponse(status_code=403, content={"error": "Consent is required before onboarding."})
+        return None, JSONResponse(status_code=403, content={"error": "Consent is required first."})
     return resident, None
 
 
@@ -629,28 +278,44 @@ async def onboarding_page():
     return FileResponse(_ONBOARDING)
 
 
-@app.get("/api/onboarding/history")
-async def api_onboarding_history(request: Request):
+@app.get("/api/agent")
+async def api_agent_status(request: Request):
     resident, error_response = _require_consented_resident(request)
     if error_response is not None:
         return error_response
-    messages = db.get_onboarding_messages(resident["id"])
-    return {"messages": messages, "slots_status": resident["slots_status"],
-            "complete": resident["profile_complete_at"] is not None}
+    return bring_agent.status(resident)
 
 
-@app.post("/api/onboarding/message")
-async def api_onboarding_message(body: dict, request: Request):
+@app.post("/api/agent/preview")
+async def api_agent_preview(body: dict, request: Request):
     resident, error_response = _require_consented_resident(request)
     if error_response is not None:
         return error_response
-    message = (body.get("message") or "").strip()
-    if len(message) == 0:
-        return JSONResponse(status_code=400, content={"error": "Message can't be empty."})
     try:
-        return await onboarding.take_turn(resident, message)
+        state, error = await bring_agent.preview(resident, body.get("name"), body.get("source"), body.get("text"))
     except Exception as error:
-        return JSONResponse(status_code=500, content={"error": str(error)})
+        # the details are in the AI call log (ai_log); the person gets a plain message
+        print("[agent preview] resident {} failed: {}".format(resident["id"], error))
+        return JSONResponse(status_code=500, content={"error": "Couldn't read that just now. Try again in a minute."})
+    if error is not None:
+        return JSONResponse(status_code=400, content={"error": error})
+    return state
+
+
+@app.post("/api/agent/confirm")
+async def api_agent_confirm(request: Request):
+    resident, error_response = _require_consented_resident(request)
+    if error_response is not None:
+        return error_response
+    already_in = resident["profile_complete_at"] is not None
+    state, error = bring_agent.confirm(resident)
+    if error is not None:
+        return JSONResponse(status_code=400, content={"error": error})
+    if not already_in:
+        # this join may be the one that fills the neighborhood -- let the hub
+        # check, without making the resident wait on a whole round
+        batch.schedule_check(resident["neighborhood_id"])
+    return state
 
 
 # ============================================================================
@@ -688,12 +353,26 @@ async def api_my_match_respond(body: dict, request: Request):
     return state
 
 
+@app.post("/api/my-match/meetup")
+async def api_my_match_meetup(body: dict, request: Request):
+    resident, error_response = _require_consented_resident(request)
+    if error_response is not None:
+        return error_response
+    try:
+        match_id = int(body.get("match_id"))
+    except (TypeError, ValueError):
+        return JSONResponse(status_code=400, content={"error": "match_id is required."})
+    result, error = my_match.meetup_reply(resident, match_id, body.get("answer"))
+    if error is not None:
+        return JSONResponse(status_code=400, content={"error": error})
+    return result
+
+
 # ============================================================================
-# Real-user pilot: admin dashboard (Stage 6). Neighborhood progress, resident
-# status, recent batch runs + usage, and a manual "trigger batch now"
-# override -- read-only aggregation of data earlier stages already persist
-# (see admin.py's module docstring). Plain/functional styling -- an internal
-# tool, not resident-facing.
+# Admin dashboard: create a neighborhood (and its secret invite link), see
+# progress, resident status, rounds + usage, the activity feed and every AI
+# call, and run a round now. Read-only aggregation lives in admin.py. Plain
+# styling -- an internal tool, not resident-facing.
 # ============================================================================
 
 def _require_admin(request):
@@ -729,6 +408,37 @@ async def api_admin_neighborhoods(request: Request):
     return {"neighborhoods": admin.list_neighborhood_progress()}
 
 
+_SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9-]{1,39}$")
+
+
+def _invite_link(request, neighborhood):
+    base = config.resolve_env("CLAWNLY_BASE_URL")
+    if not base:
+        base = str(request.base_url)
+    return base.rstrip("/") + "/join/" + neighborhood["slug"] + "?code=" + neighborhood["invite_code"]
+
+
+@app.post("/api/admin/neighborhoods")
+async def api_admin_create_neighborhood(body: dict, request: Request):
+    # the only way a neighborhood comes into existence: an admin creates it and
+    # gets back its secret invite link
+    session, error_response = _require_admin(request)
+    if error_response is not None:
+        return error_response
+    slug = str(body.get("slug") or "").strip().lower()
+    name = str(body.get("name") or "").strip()[:60]
+    if not _SLUG_RE.match(slug):
+        return JSONResponse(status_code=400, content={"error": "Use 2-40 lowercase letters, digits or hyphens for the link name."})
+    if len(name) == 0:
+        name = slug
+    existed = db.get_neighborhood_by_slug(slug) is not None
+    neighborhood = db.get_or_create_neighborhood(slug, name, config.MATCH_BATCH_THRESHOLD)
+    if not existed:
+        db.log_event(None, "human", "human", "Admin " + str(session.get("email")) + " created the neighborhood.",
+                     None, neighborhood["id"])
+    return {"neighborhood": admin.neighborhood_progress(neighborhood), "invite_link": _invite_link(request, neighborhood)}
+
+
 @app.get("/api/admin/neighborhoods/{neighborhood_id}")
 async def api_admin_neighborhood_detail(neighborhood_id: int, request: Request):
     session, error_response = _require_admin(request)
@@ -737,10 +447,13 @@ async def api_admin_neighborhood_detail(neighborhood_id: int, request: Request):
     neighborhood = db.get_neighborhood(neighborhood_id)
     if neighborhood is None:
         return JSONResponse(status_code=404, content={"error": "no such neighborhood"})
+    neighborhood = db.ensure_invite_code(neighborhood_id)
     return {
+        "invite_link": _invite_link(request, neighborhood),
         "neighborhood": admin.neighborhood_progress(neighborhood),
         "residents": admin.resident_summaries(neighborhood_id),
         "runs": admin.recent_run_summaries(neighborhood_id),
+        "activity": admin.neighborhood_activity(neighborhood_id),
     }
 
 
@@ -750,12 +463,24 @@ async def api_admin_trigger(neighborhood_id: int, request: Request):
     if error_response is not None:
         return error_response
     try:
-        run_id, error = await batch.force_trigger_batch(neighborhood_id)
+        run_id, error = await batch.force_trigger_batch(neighborhood_id, by=session.get("email"))
     except Exception as error:
         return JSONResponse(status_code=500, content={"error": str(error)})
     if error is not None:
         return JSONResponse(status_code=400, content={"error": error})
     return {"run_id": run_id}
+
+
+@app.get("/api/admin/runs/{run_id}")
+async def api_admin_run(run_id: int, request: Request):
+    # one hub round behind the scenes: every event and every agent conversation
+    session, error_response = _require_admin(request)
+    if error_response is not None:
+        return error_response
+    detail = admin.run_detail(run_id)
+    if detail is None:
+        return JSONResponse(status_code=404, content={"error": "no such round"})
+    return detail
 
 
 if __name__ == "__main__":

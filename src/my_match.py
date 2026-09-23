@@ -1,25 +1,25 @@
-"""Match acceptance -- the mutual reveal gate (PILOT_PLAN.md addendum,
-2026-09-01). Before a resident sees who else is in their formed group, they
-see only the match's reason + group size and accept/decline. Once every
-member has accepted, the match is "sealed": full first-name reveal, plus the
-meetup card (negotiation/popup already ran, unmodified, as part of batch.py's
-pipeline run -- see its module docstring for why that happens eagerly rather
-than lazily on seal). A decline dissolves the match for everyone; releasing
-its members back into the eligible pool is handled entirely by
-db.list_eligible_residents (a dissolved match's rows just stop excluding
-them) -- nothing else to do here.
+"""The mutual yes/no gate for hub invitations (batch.py stores each one as a
+matches row + one match_acceptances row per invited resident).
 
-Pure DB/routing logic, no AI calls of its own -- app.py's routes stay thin
-wrappers around get_state/respond, same shape as onboarding.py's take_turn.
+Before anyone knows who the other person is, a resident sees only the pitch
+the hub wrote to them (name-blinded by batch.py) and answers yes or no. Once
+everyone invited says yes, the invitation is "sealed": first names, the hub's
+headline and the proposed meetup are revealed. A "no" dissolves it for
+everyone, and db.list_eligible_residents puts them back in the pool.
+
+After the reveal, each person answers the proposed meetup ("I'll be there"
+or "need a different time"); that answer goes to the activity log so the
+admin can follow up.
+
+Pure DB/routing logic, no AI calls -- app.py's routes are thin wrappers
+around get_state/respond/meetup_reply.
 """
 
 import db
 
 
 def _resident_id_from_member(member_id):
-    # batch.py always prefixes a resident-sourced member "r" + resident id
-    # (e.g. "r17"); a real batch's groups are drawn entirely from residents,
-    # so every member id here is expected to have that shape.
+    # batch.py always stores invited members as "r" + resident id (e.g. "r17").
     return int(member_id[1:])
 
 
@@ -51,14 +51,23 @@ def _all_accepted(acceptances):
     return True
 
 
-def _seal_if_ready(match_id, acceptances):
-    if _all_accepted(acceptances):
-        db.mark_match_sealed(match_id)
-        return True
-    return False
+def _seal_if_ready(match, acceptances, neighborhood_id):
+    if not _all_accepted(acceptances):
+        return False
+    if match["sealed_at"] is None:
+        db.mark_match_sealed(match["id"])
+        db.log_event(match["run_id"], "system", "system", "Invitation #" + str(match["id"])
+                     + " sealed: everyone said yes. First names and the meetup are revealed.",
+                     None, neighborhood_id)
+    return True
 
 
-def _sealed_payload(resident, match, acceptances):
+def _pitch_for(resident, match):
+    pitches = match["details"].get("pitches", {})
+    return pitches.get("r" + str(resident["id"]), "")
+
+
+def _sealed_payload(resident, match):
     names = []
     ids = _member_resident_ids(match)
     i = 0
@@ -69,21 +78,11 @@ def _sealed_payload(resident, match, acceptances):
             if member is not None:
                 names.append(_first_name(member))
         i += 1
-
-    negotiation = db.get_negotiation(match["id"])
-    meetup = db.get_meetup(match["id"])
-    payload = {
-        "state": "sealed", "match_id": match["id"], "reason": match["reason"],
-        "other_first_names": names, "meetup": meetup, "note": None,
+    return {
+        "state": "sealed", "match_id": match["id"], "headline": match["headline"],
+        "pitch": _pitch_for(resident, match), "other_first_names": names,
+        "meetup": match["details"].get("invite"),
     }
-    if negotiation is not None and not negotiation["agreed"]:
-        # the group matched, but never settled on a plan everyone loved
-        # (main.py's own "no meetup without full agreement" rule) -- there's
-        # no meetup row to show, just an honest status.
-        payload["meetup"] = None
-        payload["note"] = ("The group is a good match, but you're all still working out a plan "
-                            "everyone's excited about. Check back soon.")
-    return payload
 
 
 def get_state(resident):
@@ -105,16 +104,17 @@ def get_state(resident):
         return {"state": "dissolved"}
 
     if row["status"] == "pending":
+        # the pitch only -- the hub's headline names both people, so it waits for the seal
         acceptances = db.list_match_acceptances(match["id"])
-        return {"state": "pending", "match_id": match["id"], "reason": match["reason"],
+        return {"state": "pending", "match_id": match["id"], "pitch": _pitch_for(resident, match),
                 "group_size": len(acceptances)}
 
     acceptances = db.list_match_acceptances(match["id"])
-    sealed = match["sealed_at"] is not None or _seal_if_ready(match["id"], acceptances)
+    sealed = match["sealed_at"] is not None or _seal_if_ready(match, acceptances, resident["neighborhood_id"])
     if not sealed:
         return {"state": "waiting", "match_id": match["id"], "group_size": len(acceptances)}
 
-    return _sealed_payload(resident, match, acceptances)
+    return _sealed_payload(resident, match)
 
 
 def respond(resident, match_id, response):
@@ -139,11 +139,48 @@ def respond(resident, match_id, response):
     # this call didn't actually change anything (the resident already
     # answered), don't act on `response` as though it just happened.
     changed = db.respond_to_acceptance(match_id, resident["id"], status)
+    if changed:
+        word = "YES"
+        if status == "declined":
+            word = "NO"
+        db.log_event(match["run_id"], "human", "human", _first_name(resident) + " said " + word
+                     + " to invitation #" + str(match_id) + ".", None, resident["neighborhood_id"])
 
     if changed and status == "declined":
         db.mark_match_dissolved(match_id)
+        db.log_event(match["run_id"], "system", "system", "Invitation #" + str(match_id)
+                     + " dissolved. Nobody's name was revealed; everyone in it is back in the pool.",
+                     None, resident["neighborhood_id"])
     elif changed:
         acceptances = db.list_match_acceptances(match_id)
-        _seal_if_ready(match_id, acceptances)
+        _seal_if_ready(match, acceptances, resident["neighborhood_id"])
 
     return get_state(resident), None
+
+
+MEETUP_ANSWERS = ("coming", "different_time")
+
+
+def meetup_reply(resident, match_id, answer):
+    # the caller's answer to a revealed invitation's proposed meetup. Like
+    # respond(), membership is checked against the caller's own session.
+    if answer not in MEETUP_ANSWERS:
+        return None, "answer must be 'coming' or 'different_time'"
+    if db.get_acceptance(match_id, resident["id"]) is None:
+        return None, "You're not a member of that match."
+    match = db.get_match(match_id)
+    if match is None or match["sealed_at"] is None:
+        return None, "This invitation hasn't been revealed yet."
+    text = _first_name(resident) + " will be there for invitation #" + str(match_id) + _meetup_note(match) + "."
+    if answer == "different_time":
+        text = (_first_name(resident) + " needs a different time for invitation #" + str(match_id)
+                + _meetup_note(match) + ". Follow up with them.")
+    db.log_event(match["run_id"], "human", "human", text, None, resident["neighborhood_id"])
+    return {"ok": True, "answer": answer}, None
+
+
+def _meetup_note(match):
+    meetup = match["details"].get("invite")
+    if not meetup:
+        return ""
+    return " (" + str(meetup.get("activity", "")) + ", " + str(meetup.get("when", "")) + ")"

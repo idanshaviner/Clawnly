@@ -100,7 +100,9 @@ def _resolve_role_and_resident(email, neighborhood_id, auth_method):
             return ("admin", None)
         raise ValueError("This login link is missing a neighborhood invite code.")
     resident = db.get_or_create_resident(neighborhood_id, email, auth_method)
-    role = "admin" if admin else "resident"
+    role = "resident"
+    if admin:
+        role = "admin"
     return (role, resident["id"])
 
 
@@ -148,6 +150,10 @@ async def google_login_callback(code, state, redirect_uri):
     email = info.get("email")
     if not email:
         raise ValueError("Google did not return an email address.")
+    # an unverified address could be anyone's -- including an admin's -- so it never signs in
+    if info.get("email_verified") is not True:
+        raise ValueError("Google says this email address isn't verified. Verify it with Google, or use the email link.")
+    email = email.strip().lower()
     role, resident_id = _resolve_role_and_resident(email, consumed["neighborhood_id"], "google")
     token = start_session(email, role, resident_id, consumed["neighborhood_id"])
     return {"token": token, "email": email, "role": role, "resident_id": resident_id,
@@ -155,10 +161,6 @@ async def google_login_callback(code, state, redirect_uri):
 
 
 # ----- email magic link -----------------------------------------------------
-
-def magic_link_configured():
-    return config.resolve_env("RESEND_API_KEY") is not None
-
 
 async def _send_magic_link_email(email, link_url):
     api_key = config.resolve_env("RESEND_API_KEY")
@@ -176,11 +178,21 @@ async def _send_magic_link_email(email, link_url):
         response.raise_for_status()
 
 
+# at most this many sign-in links per email address per MAGIC_LINK_TTL_SECONDS --
+# stops anyone from flooding an inbox (or burning the email quota) through the form
+MAX_MAGIC_LINKS_PER_WINDOW = 3
+
+
 async def request_magic_link(email, neighborhood_id, verify_base_url):
+    # returns False (and sends nothing) when this address hit the throttle. The
+    # caller answers the same either way, so the form never reveals who's who.
+    if db.count_recent_magic_links(email, MAGIC_LINK_TTL_SECONDS) >= MAX_MAGIC_LINKS_PER_WINDOW:
+        return False
     raw_token = secrets.token_urlsafe(32)
     db.create_magic_link_token(_hash_token(raw_token), email, neighborhood_id, MAGIC_LINK_TTL_SECONDS)
     link_url = verify_base_url + "?token=" + raw_token
     await _send_magic_link_email(email, link_url)
+    return True
 
 
 def verify_magic_link(raw_token):

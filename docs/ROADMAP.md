@@ -10,6 +10,38 @@ phase gates this technical roadmap maps onto.
 
 ---
 
+## Current state (2026-09-23) -- READ FIRST
+
+The product is now **agent-to-agent** (after Eitan's feedback; see
+`docs/WALKTHROUGH.md` sections 6-8). People bring what their own AI knows about
+them; each person's Claw talks privately with other Claws; a hub picks pairs,
+judges each conversation, and invites only deep fits; humans only say yes or no.
+Every step is logged. Day-by-day plan and status: **`docs/THIS_WEEK.md`**.
+
+- **Built:** `dossier.py` (import prompt + card), `bring_agent.py` (signup),
+  `agent_talk.py` (the Claw), `orchestrator.py` (the hub, with code-enforced
+  gates), `batch.py` (neighborhood rounds -> name-blind yes/no invitations),
+  `my_match.py` (the reveal), `admin.py` + `/admin` (progress, rounds, and a
+  per-round "behind the scenes" view). 138 tests passing, all offline.
+- **Removed** (preserved on the `pre-agent-pivot` branch): the group matcher
+  (`master_claw.py`), negotiation, meetup popups, the onboarding chat, the demo
+  console (`web/index.html`, the "Black Diamond" 100-person demo), `persona_gen`,
+  `eval`, `explain`, and the demo/dry-run scripts.
+- **Next:** hit-rate tile on `/admin`; deploy to Render; the first real cohort;
+  automatic repeat rounds (today only the first round is automatic -- later ones
+  are the admin's "Run a hub round now"); groups built from strong pairs.
+- **Prototype:** `lounge/` -- the Clawnly Lounge, a shareable claude.ai Artifact.
+
+## History (before the pivot)
+
+Everything below describes milestones and stages built on the old architecture.
+File names and flows it mentions (`master_claw.py`, `run_pipeline`, the
+onboarding chat, the demo console) no longer exist on `main`; read it as the
+record of how the project got here.
+
+---
+
+
 ## Milestone 1 -- Real persistence
 **Status: DONE.**
 Replaced the in-memory `STATE` dict + flat `cast.json`/`feedback.json` files

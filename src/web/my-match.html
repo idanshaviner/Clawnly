@@ -62,20 +62,22 @@
 
   <div class="card" id="not-yet-batched" style="display:none">
     <h1>Still getting to know your neighbors</h1>
-    <p class="sub">Once enough neighbors finish their conversation, matching runs automatically --
+    <p class="sub">Once enough neighbors have brought their agents, matching runs automatically --
       we'll show your match right here.</p>
   </div>
 
   <div class="card" id="no-match" style="display:none">
-    <h1>No group this round</h1>
-    <p class="sub">Matching already ran and didn't find a strong enough group for you this time.
-      You're still in the pool for a future round.</p>
+    <h1>No invitation this round</h1>
+    <p class="sub">Your agent talked with other agents, and the hub didn't find a connection strong
+      enough to invite you yet. That's on purpose: it would rather wait than waste your evening.
+      You're still in the pool for the next round.</p>
   </div>
 
   <div class="card" id="pending" style="display:none">
     <span class="pill" id="pending-size"></span>
-    <h1>You have a match</h1>
-    <p class="sub">A reason. Yes or no. You won't see who else is in the group unless everyone says yes.</p>
+    <h1>Your agent found someone</h1>
+    <p class="sub">Your agent had a private conversation with another neighbor's agent, and the hub thinks
+      you two should meet. Yes or no? You'll only see who it is if you both say yes.</p>
     <div class="reason" id="pending-reason"></div>
     <div class="row">
       <button id="accept-btn">Yes, I'm in</button>
@@ -87,12 +89,11 @@
   <div class="card" id="waiting" style="display:none">
     <span class="pill" id="waiting-size"></span>
     <h1>You said yes</h1>
-    <p class="sub">Waiting on the rest of the group. We'll show everyone's names here the moment
-      the last person says yes too.</p>
+    <p class="sub">Waiting on the other person. We'll show their name here the moment they say yes too.</p>
   </div>
 
   <div class="card" id="sealed" style="display:none">
-    <h1>You're all in!</h1>
+    <h1>You both said yes!</h1>
     <div class="reason" id="sealed-reason"></div>
     <p class="sub">Meet:</p>
     <div class="names" id="sealed-names"></div>
@@ -102,7 +103,7 @@
       <p class="field"><b>Activity:</b> <span id="meetup-activity"></span></p>
       <p class="field"><b>Where:</b> <span id="meetup-location"></span></p>
       <p class="field"><b>When:</b> <span id="meetup-time"></span></p>
-      <p class="field"><b>Why:</b> <span id="meetup-reason"></span></p>
+      <p class="field"><b>Why you two:</b> <span id="meetup-reason"></span></p>
       <div class="row">
         <button id="there-btn">I'll be there</button>
         <button id="different-time-btn" class="secondary">Need a different time</button>
@@ -115,20 +116,25 @@
 
   <div class="card" id="dissolved" style="display:none">
     <h1>This one didn't come together</h1>
-    <p class="sub">Not everyone in the group was ready to meet -- you're still in the pool for the
-      next round, no need to do anything else.</p>
+    <p class="sub">One of you wasn't ready to meet. You're back in the pool for the next round,
+      no need to do anything else.</p>
   </div>
 </div>
 <script>
-function esc(s){ return (s==null?"":String(s)).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
-
 var STATES = ["loading", "loggedout", "not-yet-batched", "no-match", "pending", "waiting", "sealed", "dissolved"];
 function show(id){
-  STATES.forEach(function(other){ document.getElementById(other).style.display = (other === id) ? "block" : "none"; });
+  var i = 0;
+  while (i < STATES.length) {
+    var display = "none";
+    if (STATES[i] === id) { display = "block"; }
+    document.getElementById(STATES[i]).style.display = display;
+    i++;
+  }
 }
 
 function sizeLabel(n){
-  return n + (n === 1 ? " neighbor" : " neighbors");
+  if (n === 1) { return "1 neighbor"; }
+  return n + " neighbors";
 }
 
 function renderState(data){
@@ -139,7 +145,7 @@ function renderState(data){
 
   if (state === "pending") {
     document.getElementById("pending-size").textContent = sizeLabel(data.group_size);
-    document.getElementById("pending-reason").textContent = data.reason;
+    document.getElementById("pending-reason").textContent = data.pitch;
     document.getElementById("accept-btn").dataset.matchId = data.match_id;
     document.getElementById("decline-btn").dataset.matchId = data.match_id;
     show("pending");
@@ -153,16 +159,18 @@ function renderState(data){
   }
 
   if (state === "sealed") {
-    document.getElementById("sealed-reason").textContent = data.reason;
+    document.getElementById("sealed-reason").textContent = "";
     document.getElementById("sealed-names").textContent = data.other_first_names.join(", ");
     var meetupBlock = document.getElementById("meetup-block");
     var noteEl = document.getElementById("no-meetup-note");
     if (data.meetup) {
-      document.getElementById("meetup-event").textContent = data.meetup.event_name;
+      document.getElementById("there-btn").dataset.matchId = data.match_id;
+      document.getElementById("different-time-btn").dataset.matchId = data.match_id;
+      document.getElementById("meetup-event").textContent = data.headline;
       document.getElementById("meetup-activity").textContent = data.meetup.activity;
-      document.getElementById("meetup-location").textContent = data.meetup.location;
-      document.getElementById("meetup-time").textContent = data.meetup.time;
-      document.getElementById("meetup-reason").textContent = data.meetup.reason;
+      document.getElementById("meetup-location").textContent = data.meetup.where;
+      document.getElementById("meetup-time").textContent = data.meetup.when;
+      document.getElementById("meetup-reason").textContent = data.pitch;
       meetupBlock.style.display = "block";
       noteEl.style.display = "none";
     } else {
@@ -221,16 +229,36 @@ document.getElementById("accept-btn").addEventListener("click", function(){
 document.getElementById("decline-btn").addEventListener("click", function(){
   respond(this.dataset.matchId, "decline", this);
 });
+// the answer is recorded (the admin sees it in the activity feed) before we say "noted"
+function answerMeetup(btn, answer, thanks){
+  var ack = document.getElementById("ack");
+  document.getElementById("there-btn").disabled = true;
+  document.getElementById("different-time-btn").disabled = true;
+  fetch("/api/my-match/meetup", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ match_id: Number(btn.dataset.matchId), answer: answer }),
+  }).then(function(r){
+    if (r.ok) {
+      ack.textContent = thanks;
+    } else {
+      ack.textContent = "That didn't go through. Try again.";
+      document.getElementById("there-btn").disabled = false;
+      document.getElementById("different-time-btn").disabled = false;
+    }
+    ack.style.display = "block";
+  }).catch(function(){
+    ack.textContent = "That didn't go through. Try again.";
+    ack.style.display = "block";
+    document.getElementById("there-btn").disabled = false;
+    document.getElementById("different-time-btn").disabled = false;
+  });
+}
 document.getElementById("there-btn").addEventListener("click", function(){
-  var ack = document.getElementById("ack");
-  ack.textContent = "Thanks -- see you there!";
-  ack.style.display = "block";
+  answerMeetup(this, "coming", "Thanks -- see you there!");
 });
-// lightweight note-to-admin for this first pass -- not live re-negotiation.
 document.getElementById("different-time-btn").addEventListener("click", function(){
-  var ack = document.getElementById("ack");
-  ack.textContent = "Thanks -- noted. We'll follow up about timing.";
-  ack.style.display = "block";
+  answerMeetup(this, "different_time", "Thanks -- noted. We'll follow up about timing.");
 });
 
 fetch("/api/me").then(function(r){

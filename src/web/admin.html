@@ -29,8 +29,8 @@
   th, td { text-align:left; padding:7px 8px; border-bottom:1px solid var(--line); }
   th { color:var(--muted); font-weight:600; text-transform:uppercase; font-size:11px; letter-spacing:.4px; }
   .pill { display:inline-block; border-radius:999px; padding:2px 10px; font-size:12px; font-weight:600; }
-  .pill-onboarding { background:#f1efe9; color:var(--muted); }
-  .pill-complete_unmatched { background:var(--accent-soft); color:var(--accent); }
+  .pill-joining { background:#f1efe9; color:var(--muted); }
+  .pill-in_pool { background:var(--accent-soft); color:var(--accent); }
   .pill-match_pending { background:#fdf1dc; color:var(--amber); }
   .pill-match_waiting { background:#fdf1dc; color:var(--amber); }
   .pill-sealed { background:#e6f6ee; color:var(--green); }
@@ -45,12 +45,29 @@
   .ok { color:var(--green); font-size:13.5px; margin-top:8px; }
   .muted { color:var(--muted); }
   .errline { font-size:12.5px; color:var(--red); margin-top:2px; }
+  .conv { border:1px solid var(--line); border-radius:12px; padding:12px 14px; margin-top:10px; }
+  .conv-head { font-weight:700; }
+  .turn { font-size:13.5px; margin-top:8px; white-space:pre-wrap; }
+  .turn b { color:var(--accent); }
+  .verdict { font-size:13px; background:#f1efe9; border-radius:8px; padding:8px 10px; margin-top:10px; white-space:pre-wrap; }
+  .log { font:12.5px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace; background:#f1efe9; border-radius:10px;
+    padding:8px 12px; max-height:520px; overflow:auto; }
+  .logline { padding:3px 0; border-bottom:1px solid var(--line); white-space:pre-wrap; overflow-wrap:anywhere; }
+  .logline:last-child { border-bottom:0; }
+  .who-hub { font-weight:700; } .who-agent { color:var(--accent); } .who-code { color:var(--amber); }
+  .who-human { color:var(--green); font-weight:600; }
+  details.call { border:1px solid var(--line); border-radius:10px; padding:8px 12px; margin-top:8px; }
+  details.call summary { cursor:pointer; font-size:13.5px; }
+  details.call .err { margin:6px 0 0; }
+  .callpart { font-size:11px; text-transform:uppercase; letter-spacing:.5px; color:var(--muted); margin-top:10px; }
+  pre.calltext { white-space:pre-wrap; overflow-wrap:anywhere; background:#f1efe9; border-radius:8px; padding:8px 10px;
+    font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace; max-height:360px; overflow:auto; margin:4px 0 0; }
 </style>
 </head>
 <body>
 <div class="wrap">
   <h1>Clawnly Admin</h1>
-  <p class="tagline">Neighborhood progress, resident status, and batch runs.</p>
+  <p class="tagline">Neighborhood progress, resident status, and every hub round behind the scenes.</p>
 
   <div id="not-authorized" class="card" style="display:none">
     <p>You need to be logged in as an admin to see this page.</p>
@@ -58,6 +75,14 @@
   </div>
 
   <div id="list-view" style="display:none">
+    <div class="card">
+      <div class="nb-name">New neighborhood</div>
+      <p class="muted" style="margin:4px 0 10px">Only you can create one. It comes with a secret invite link; nobody can join without it.</p>
+      <input id="new-slug" placeholder="link name, e.g. ten-trails" style="font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:10px">
+      <input id="new-name" placeholder="display name, e.g. Ten Trails" style="font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:10px">
+      <button class="primary" id="create-btn">Create</button>
+      <div id="create-status"></div>
+    </div>
     <div class="grid" id="nb-grid"></div>
   </div>
 
@@ -69,8 +94,12 @@
       <div class="bar-track"><div class="bar-fill" id="detail-bar"></div></div>
       <div class="bar-label" id="detail-progress-label"></div>
       <div class="status-triggered" id="detail-triggered" style="display:none"></div>
+      <div style="margin-top:12px;font-size:13.5px">
+        <b>Secret invite link</b> (share it only with people you're inviting):
+        <div id="detail-invite" style="font-family:ui-monospace,Menlo,monospace;overflow-wrap:anywhere;margin-top:4px"></div>
+      </div>
       <div style="margin-top:12px">
-        <button class="primary" id="trigger-btn">Trigger batch now</button>
+        <button class="primary" id="trigger-btn">Run a hub round now</button>
         <span id="trigger-status"></span>
       </div>
     </div>
@@ -78,36 +107,105 @@
     <div class="card section">
       <h2>Residents</h2>
       <table>
-        <thead><tr><th>Email</th><th>Name</th><th>Consent</th><th>Complete</th><th>Status</th></tr></thead>
+        <thead><tr><th>Email</th><th>Name</th><th>Consent</th><th>Agent from</th><th>Status</th></tr></thead>
         <tbody id="residents-body"></tbody>
       </table>
     </div>
 
     <div class="card section">
-      <h2>Recent runs</h2>
+      <h2>Recent hub rounds</h2>
       <table>
-        <thead><tr><th>#</th><th>When</th><th>Mode</th><th>Groups</th><th>Unmatched</th><th>API calls</th></tr></thead>
+        <thead><tr><th>#</th><th>When</th><th>Conversations</th><th>Invitations</th><th>Failed</th><th>API calls</th><th></th></tr></thead>
         <tbody id="runs-body"></tbody>
       </table>
+    </div>
+
+    <div class="card section">
+      <h2>Activity</h2>
+      <p class="muted">Everything that happened in this neighborhood, oldest first: signups, rounds, invitations, every yes and no.</p>
+      <div class="log" id="activity-log"></div>
+    </div>
+
+    <div class="card section">
+      <h2>AI calls outside rounds (signup cards)</h2>
+      <div id="signup-calls"></div>
+    </div>
+  </div>
+
+  <div id="run-view" style="display:none">
+    <p class="back" id="run-back-link">&larr; Back to the neighborhood</p>
+    <div class="card section">
+      <h2 id="run-title">Behind the scenes</h2>
+      <p class="muted" id="run-meta"></p>
+    </div>
+    <div class="card section">
+      <h2>Agent conversations</h2>
+      <div id="run-conversations"></div>
+    </div>
+    <div class="card section">
+      <h2>Activity log</h2>
+      <div class="log" id="run-log"></div>
+    </div>
+    <div class="card section">
+      <h2>Every AI call, verbatim</h2>
+      <div id="run-calls"></div>
     </div>
   </div>
 </div>
 <script>
-function esc(s){ return (s==null?"":String(s)).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+function esc(s){
+  var str = "";
+  if (s !== null && s !== undefined) { str = String(s); }
+  return str.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
 
 function show(id){
-  ["not-authorized", "list-view", "detail-view"].forEach(function(other){
-    document.getElementById(other).style.display = (other === id) ? "block" : "none";
-  });
+  var views = ["not-authorized", "list-view", "detail-view", "run-view"];
+  var i = 0;
+  while (i < views.length) {
+    var display = "none";
+    if (views[i] === id) { display = "block"; }
+    document.getElementById(views[i]).style.display = display;
+    i++;
+  }
 }
 
 function statusLabel(s){
   var labels = {
-    onboarding: "Onboarding", complete_unmatched: "Complete, unmatched",
-    match_pending: "Match pending", match_waiting: "Waiting on group",
+    joining: "Joining", in_pool: "Agent in, no invitation",
+    match_pending: "Invited, not answered", match_waiting: "Said yes, waiting",
     sealed: "Sealed", dissolved: "Dissolved",
   };
   return labels[s] || s;
+}
+
+function percentJoined(nb){
+  if (nb.batch_threshold <= 0) { return 0; }
+  return Math.min(100, Math.round(100 * nb.complete_count / nb.batch_threshold));
+}
+
+function textEl(tag, cls, text){
+  var el = document.createElement(tag);
+  if (cls) { el.className = cls; }
+  el.textContent = text;
+  return el;
+}
+
+// ----- neighborhoods list -----
+
+function neighborhoodCard(nb){
+  var div = document.createElement("div");
+  div.className = "card nb-card";
+  var html =
+    '<div class="nb-name">' + esc(nb.name) + '</div>' +
+    '<div class="nb-slug">' + esc(nb.slug) + '</div>' +
+    '<div class="bar-track"><div class="bar-fill" style="width:' + percentJoined(nb) + '%"></div></div>' +
+    '<div class="bar-label">' + nb.complete_count + ' / ' + nb.batch_threshold + ' joined (' +
+      nb.resident_count + ' registered)</div>';
+  if (nb.batch_triggered_at) { html += '<div class="status-triggered">First round has run</div>'; }
+  div.innerHTML = html;
+  div.addEventListener("click", function(){ loadDetail(nb.id); });
+  return div;
 }
 
 function loadList(){
@@ -118,22 +216,61 @@ function loadList(){
     if (data == null) { return; }
     var grid = document.getElementById("nb-grid");
     grid.innerHTML = "";
-    data.neighborhoods.forEach(function(nb){
-      var pct = nb.batch_threshold > 0 ? Math.min(100, Math.round(100 * nb.complete_count / nb.batch_threshold)) : 0;
-      var div = document.createElement("div");
-      div.className = "card nb-card";
-      div.innerHTML =
-        '<div class="nb-name">' + esc(nb.name) + '</div>' +
-        '<div class="nb-slug">' + esc(nb.slug) + '</div>' +
-        '<div class="bar-track"><div class="bar-fill" style="width:' + pct + '%"></div></div>' +
-        '<div class="bar-label">' + nb.complete_count + ' / ' + nb.batch_threshold + ' complete (' +
-          nb.resident_count + ' registered)</div>' +
-        (nb.batch_triggered_at ? '<div class="status-triggered">Batch triggered</div>' : '');
-      div.addEventListener("click", function(){ loadDetail(nb.id); });
-      grid.appendChild(div);
-    });
+    var i = 0;
+    while (i < data.neighborhoods.length) {
+      grid.appendChild(neighborhoodCard(data.neighborhoods[i]));
+      i++;
+    }
     show("list-view");
   }).catch(function(){ show("not-authorized"); });
+}
+
+document.getElementById("create-btn").addEventListener("click", function(){
+  var status = document.getElementById("create-status");
+  status.className = "";
+  status.textContent = "Creating...";
+  fetch("/api/admin/neighborhoods", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ slug: document.getElementById("new-slug").value, name: document.getElementById("new-name").value }),
+  }).then(function(r){ return r.json().then(function(d){ return { ok: r.ok, data: d }; }); })
+    .then(function(res){
+      if (!res.ok) { status.className = "err"; status.textContent = res.data.error || "Something went wrong."; return; }
+      loadDetail(res.data.neighborhood.id);
+    })
+    .catch(function(){ status.className = "err"; status.textContent = "Something went wrong. Try again."; });
+});
+
+// ----- one neighborhood -----
+
+function residentRow(r){
+  var consented = "no";
+  if (r.consent_agreed_at) { consented = "yes"; }
+  var agent = "-";
+  if (r.profile_complete_at) { agent = r.source || "yes"; }
+  var tr = document.createElement("tr");
+  tr.innerHTML =
+    "<td>" + esc(r.email) + "</td>" +
+    "<td>" + esc(r.name || "-") + "</td>" +
+    "<td>" + consented + "</td>" +
+    "<td>" + esc(agent) + "</td>" +
+    '<td><span class="pill pill-' + esc(r.status) + '">' + esc(statusLabel(r.status)) + "</span></td>";
+  return tr;
+}
+
+function runRow(run, neighborhoodId){
+  var apiCalls = "-";
+  if (run.usage) { apiCalls = run.usage.total; }
+  var tr = document.createElement("tr");
+  tr.innerHTML =
+    "<td>" + Number(run.id) + "</td>" +
+    "<td>" + esc(run.created_at) + "</td>" +
+    "<td>" + Number(run.conversation_count) + "</td>" +
+    "<td>" + Number(run.invitation_count) + "</td>" +
+    "<td>" + Number(run.failed_count) + "</td>" +
+    "<td>" + esc(apiCalls) + "</td>" +
+    "<td><button>Behind the scenes</button></td>";
+  tr.querySelector("button").addEventListener("click", function(){ loadRun(run.id, neighborhoodId); });
+  return tr;
 }
 
 function loadDetail(id){
@@ -142,58 +279,39 @@ function loadDetail(id){
     return r.json();
   }).then(function(data){
     if (data == null) { return; }
+    document.getElementById("detail-invite").textContent = data.invite_link;
     var nb = data.neighborhood;
     document.getElementById("detail-name").textContent = nb.name;
     document.getElementById("detail-slug").textContent = nb.slug;
-    var pct = nb.batch_threshold > 0 ? Math.min(100, Math.round(100 * nb.complete_count / nb.batch_threshold)) : 0;
-    document.getElementById("detail-bar").style.width = pct + "%";
+    document.getElementById("detail-bar").style.width = percentJoined(nb) + "%";
     document.getElementById("detail-progress-label").textContent =
-      nb.complete_count + " / " + nb.batch_threshold + " complete (" + nb.resident_count + " registered)";
+      nb.complete_count + " / " + nb.batch_threshold + " joined (" + nb.resident_count + " registered)";
     var triggered = document.getElementById("detail-triggered");
     if (nb.batch_triggered_at) {
       triggered.style.display = "block";
-      triggered.textContent = "Batch triggered at " + nb.batch_triggered_at;
+      triggered.textContent = "First round ran at " + nb.batch_triggered_at;
     } else {
       triggered.style.display = "none";
     }
 
     var rbody = document.getElementById("residents-body");
     rbody.innerHTML = "";
-    data.residents.forEach(function(r){
-      var tr = document.createElement("tr");
-      tr.innerHTML =
-        "<td>" + esc(r.email) + "</td>" +
-        "<td>" + esc(r.name || "-") + "</td>" +
-        "<td>" + (r.consent_agreed_at ? "yes" : "no") + "</td>" +
-        "<td>" + (r.profile_complete_at ? "yes" : "no") + "</td>" +
-        '<td><span class="pill pill-' + esc(r.status) + '">' + esc(statusLabel(r.status)) + "</span></td>";
-      rbody.appendChild(tr);
-    });
+    var i = 0;
+    while (i < data.residents.length) {
+      rbody.appendChild(residentRow(data.residents[i]));
+      i++;
+    }
 
     var runsBody = document.getElementById("runs-body");
     runsBody.innerHTML = "";
-    data.runs.forEach(function(run){
-      var apiCalls = run.usage ? run.usage.total : "-";
-      var tr = document.createElement("tr");
-      tr.innerHTML =
-        "<td>" + run.id + "</td>" +
-        "<td>" + esc(run.created_at) + "</td>" +
-        "<td>" + esc(run.mode) + "</td>" +
-        "<td>" + run.group_count + "</td>" +
-        "<td>" + run.unmatched_count + "</td>" +
-        "<td>" + apiCalls + "</td>";
-      runsBody.appendChild(tr);
-      if (run.interview_errors && run.interview_errors.length > 0) {
-        var errRow = document.createElement("tr");
-        var errCell = document.createElement("td");
-        errCell.colSpan = 6;
-        errCell.className = "errline";
-        errCell.textContent = run.interview_errors.length + " interview failure(s): " +
-          run.interview_errors.map(function(e){ return e.id; }).join(", ");
-        errRow.appendChild(errCell);
-        runsBody.appendChild(errRow);
-      }
-    });
+    i = 0;
+    while (i < data.runs.length) {
+      runsBody.appendChild(runRow(data.runs[i], id));
+      i++;
+    }
+
+    renderEvents(document.getElementById("activity-log"), data.activity.events);
+    renderCalls(document.getElementById("signup-calls"), data.activity.signup_ai_calls);
 
     var triggerBtn = document.getElementById("trigger-btn");
     var triggerStatus = document.getElementById("trigger-status");
@@ -209,7 +327,7 @@ function loadDetail(id){
           triggerBtn.disabled = false;
           if (res.ok) {
             triggerStatus.className = "ok";
-            triggerStatus.textContent = "Run #" + res.data.run_id + " complete.";
+            triggerStatus.textContent = "Round #" + res.data.run_id + " complete.";
             loadDetail(id);
           } else {
             triggerStatus.className = "err";
@@ -228,6 +346,121 @@ function loadDetail(id){
 }
 
 document.getElementById("back-link").addEventListener("click", loadList);
+
+// ----- the logs -----
+
+function renderEvents(box, events){
+  box.textContent = "";
+  if (events.length === 0) { box.appendChild(textEl("div", "muted", "Nothing logged yet.")); return; }
+  var i = 0;
+  while (i < events.length) {
+    var e = events[i];
+    var line = document.createElement("div");
+    line.className = "logline";
+    line.appendChild(textEl("span", "who-" + e.actor, (e.created_at || "").slice(5, 19).replace("T", " ") + "  " + e.actor + " / " + e.kind + "  "));
+    line.appendChild(document.createTextNode(e.text));
+    box.appendChild(line);
+    i++;
+  }
+}
+
+function callDetails(c){
+  var d = document.createElement("details");
+  d.className = "call";
+  var tokens = "";
+  if (c.input_tokens !== null && c.output_tokens !== null) { tokens = " -- " + c.input_tokens + " in / " + c.output_tokens + " out tokens"; }
+  var head = "#" + c.id + "  " + c.purpose + "  " + c.model + "  " + c.ms + " ms" + tokens;
+  if (c.error) { head += "  FAILED"; }
+  d.appendChild(textEl("summary", "", head));
+  if (c.error) { d.appendChild(textEl("p", "err", c.error)); }
+  d.appendChild(textEl("div", "callpart", "System prompt"));
+  d.appendChild(textEl("pre", "calltext", c.system));
+  var i = 0;
+  while (i < c.messages.length) {
+    var m = c.messages[i];
+    var content = m.content;
+    if (typeof content !== "string") { content = JSON.stringify(content); }
+    d.appendChild(textEl("div", "callpart", "Message (" + m.role + ")"));
+    d.appendChild(textEl("pre", "calltext", content));
+    i++;
+  }
+  var reply = c.reply;
+  if (reply === null) { reply = "(no reply)"; }
+  d.appendChild(textEl("div", "callpart", "Reply"));
+  d.appendChild(textEl("pre", "calltext", reply));
+  return d;
+}
+
+function renderCalls(box, calls){
+  box.textContent = "";
+  if (calls.length === 0) { box.appendChild(textEl("p", "muted", "No AI calls.")); return; }
+  var i = 0;
+  while (i < calls.length) {
+    box.appendChild(callDetails(calls[i]));
+    i++;
+  }
+}
+
+// ----- one round, behind the scenes -----
+
+function verdictSummary(v){
+  if (!v) { return "No verdict (the conversation failed partway)."; }
+  var outcome = "not invited";
+  if (v.invited) { outcome = "INVITED"; }
+  var summary = "Hub verdict: depth " + v.depth + "/10 -- " + outcome + "\n" +
+    v.headline + "\n\nReasoning: " + v.thoughts;
+  if (v.gate && v.gate.length > 0) { summary += "\n\nCode gate: " + v.gate.join("; "); }
+  if (v.dropped && v.dropped.length > 0) { summary += "\nQuotes discarded (not in the chat): " + v.dropped.join(" | "); }
+  return summary;
+}
+
+function conversationCard(c, names){
+  function nameOf(pid){ return names[pid] || pid; }
+  var card = document.createElement("div");
+  card.className = "conv";
+  card.appendChild(textEl("div", "conv-head", nameOf(c.a) + "'s agent + " + nameOf(c.b) + "'s agent"));
+  if (c.why) { card.appendChild(textEl("div", "muted", "Why the hub paired them: " + c.why)); }
+  var i = 0;
+  while (i < c.turns.length) {
+    var t = c.turns[i];
+    var line = document.createElement("div");
+    line.className = "turn";
+    line.appendChild(textEl("b", "", nameOf(t.by) + "'s agent: "));
+    line.appendChild(document.createTextNode(t.text));
+    card.appendChild(line);
+    i++;
+  }
+  card.appendChild(textEl("div", "verdict", verdictSummary(c.verdict)));
+  return card;
+}
+
+function loadRun(runId, neighborhoodId){
+  document.getElementById("run-back-link").onclick = function(){ loadDetail(neighborhoodId); };
+  fetch("/api/admin/runs/" + runId).then(function(r){
+    if (r.status === 401 || r.status === 403) { show("not-authorized"); return null; }
+    return r.json();
+  }).then(function(data){
+    if (data == null) { return; }
+    document.getElementById("run-title").textContent = "Behind the scenes -- round #" + data.run.id;
+    var calls = "-";
+    if (data.run.usage) { calls = data.run.usage.total; }
+    document.getElementById("run-meta").textContent = data.run.created_at + " -- " + calls + " API calls";
+
+    var box = document.getElementById("run-conversations");
+    box.textContent = "";
+    if (data.conversations.length === 0) { box.appendChild(textEl("p", "muted", "The hub didn't pair anyone this round.")); }
+    var i = 0;
+    while (i < data.conversations.length) {
+      box.appendChild(conversationCard(data.conversations[i], data.names));
+      i++;
+    }
+
+    renderEvents(document.getElementById("run-log"), data.events);
+    renderCalls(document.getElementById("run-calls"), data.ai_calls);
+    show("run-view");
+    window.scrollTo(0, 0);
+  }).catch(function(){ show("not-authorized"); });
+}
 
 fetch("/api/me").then(function(r){
   if (!r.ok) { show("not-authorized"); return null; }

@@ -1,13 +1,12 @@
-"""Tests for my_match.py -- the mutual reveal gate (PILOT_PLAN.md addendum,
-2026-09-01 -- reshaped stage 5)."""
+"""Tests for my_match.py -- the mutual yes/no gate for hub invitations."""
 
 import db
 import my_match
-from users import USERS
+from conftest import make_joined_resident, reset_db
 
 
 def reset():
-    db.reset_all(USERS)
+    reset_db()
 
 
 def make_neighborhood(threshold=3):
@@ -15,29 +14,21 @@ def make_neighborhood(threshold=3):
 
 
 def make_resident(nb, email, name):
-    resident = db.get_or_create_resident(nb["id"], email, "google")
-    db.update_resident_profile(resident["id"], {"name": name})
-    return db.mark_profile_complete(resident["id"])
+    return make_joined_resident(nb, email, name)
 
 
-def make_match(nb, residents, agreed=True, with_meetup=True):
+def make_match(nb, residents):
+    # an invitation as batch.py stores it: name-blinded pitch per member
     member_ids = ["r" + str(r["id"]) for r in residents]
-    run_id = db.create_run("live", "sig-" + str(nb["id"]), nb["id"])
-    match_id = db.save_match(run_id, 0, {
-        "group": member_ids, "reason": "Shared weekend hikes and quiet evenings.",
-        "scores": {}, "why_not": [],
-    })
+    pitches = {}
+    for member_id in member_ids:
+        pitches[member_id] = "You both want a steady weekly table. " + member_id
+    run_id = db.create_run(nb["id"])
+    details = {"conversation_id": 1,
+               "invite": {"activity": "a short hike", "when": "Saturday morning", "where": "Ten Trails trailhead"},
+               "pitches": pitches}
+    match_id = db.create_invitation(run_id, member_ids, "Alex and Bao both want a steady table", 9, details)
     db.create_pending_acceptances(match_id, [r["id"] for r in residents])
-    db.save_negotiation(match_id, {
-        "activity": "a short hike", "agreed": agreed, "concern": "", "rounds": 1, "transcript": [],
-    })
-    if with_meetup and agreed:
-        db.save_meetup(match_id, {
-            "options": [], "event_name": "Trailhead Meetup", "activity": "a short hike",
-            "location": "Ten Trails trailhead", "time": "Saturday morning",
-            "reason": "Everyone's free and into the outdoors.",
-            "matched_users": [r["name"] for r in residents],
-        })
     return match_id
 
 
@@ -62,7 +53,7 @@ def test_no_match_once_batched_but_never_grouped():
 
 # ----- get_state: pending -----------------------------------------------------
 
-def test_pending_shows_only_reason_and_group_size():
+def test_pending_shows_only_the_callers_own_pitch():
     reset()
     nb = make_neighborhood()
     alex = make_resident(nb, "a@example.com", "Alex")
@@ -73,8 +64,9 @@ def test_pending_shows_only_reason_and_group_size():
     state = my_match.get_state(alex)
     assert state["state"] == "pending"
     assert state["group_size"] == 3
-    assert "Shared weekend hikes" in state["reason"]
+    assert state["pitch"] == "You both want a steady weekly table. r" + str(alex["id"])
     assert "other_first_names" not in state
+    # the hub's headline names people, so it stays hidden until everyone says yes
     assert "Bao" not in str(state)
 
 
@@ -108,7 +100,9 @@ def test_everyone_accepting_seals_the_match_with_full_reveal():
     assert error is None
     assert state["state"] == "sealed"
     assert state["other_first_names"] == ["Alex"]   # first name only
-    assert state["meetup"]["event_name"] == "Trailhead Meetup"
+    assert state["meetup"] == {"activity": "a short hike", "when": "Saturday morning", "where": "Ten Trails trailhead"}
+    assert state["headline"] == "Alex and Bao both want a steady table"
+    assert state["pitch"].endswith("r" + str(bao["id"]))
 
     # alex's own view is sealed too, revealing Bao's first name (not "Bao Lin").
     alex_state = my_match.get_state(alex)
@@ -116,21 +110,6 @@ def test_everyone_accepting_seals_the_match_with_full_reveal():
     assert alex_state["other_first_names"] == ["Bao"]
 
     assert db.get_match(match_id)["sealed_at"] is not None
-
-
-def test_sealed_without_agreement_has_no_meetup_but_a_note():
-    reset()
-    nb = make_neighborhood()
-    alex = make_resident(nb, "a@example.com", "Alex")
-    bao = make_resident(nb, "b@example.com", "Bao")
-    match_id = make_match(nb, [alex, bao], agreed=False, with_meetup=False)
-
-    my_match.respond(alex, match_id, "accept")
-    state, error = my_match.respond(bao, match_id, "accept")
-    assert error is None
-    assert state["state"] == "sealed"
-    assert state["meetup"] is None
-    assert state["note"] is not None
 
 
 def test_decline_dissolves_the_match_for_everyone():
@@ -232,3 +211,84 @@ def test_respond_a_second_time_does_not_flip_the_first_answer():
     my_match.respond(alex, match_id, "decline")   # too late -- already accepted
     assert db.get_acceptance(match_id, alex["id"])["status"] == "accepted"
     assert db.get_match(match_id)["dissolved_at"] is None
+
+
+# ----- logs ----------------------------------------------------------------------
+
+def test_every_answer_and_the_reveal_are_logged():
+    reset()
+    nb = make_neighborhood()
+    alex = make_resident(nb, "a@example.com", "Alex")
+    bao = make_resident(nb, "b@example.com", "Bao")
+    match_id = make_match(nb, [alex, bao])
+    my_match.respond(alex, match_id, "accept")
+    my_match.respond(bao, match_id, "accept")
+    texts = [e["text"] for e in db.list_neighborhood_events(nb["id"])]
+    assert texts == [
+        "Alex said YES to invitation #" + str(match_id) + ".",
+        "Bao said YES to invitation #" + str(match_id) + ".",
+        "Invitation #" + str(match_id) + " sealed: everyone said yes. First names and the meetup are revealed.",
+    ]
+    # the events belong to the round that made the invitation
+    run_id = db.get_match(match_id)["run_id"]
+    assert len(db.list_events(run_id)) == 3
+
+
+def test_a_no_and_the_dissolve_are_logged_and_a_repeat_answer_is_not():
+    reset()
+    nb = make_neighborhood()
+    alex = make_resident(nb, "a@example.com", "Alex")
+    bao = make_resident(nb, "b@example.com", "Bao")
+    match_id = make_match(nb, [alex, bao])
+    my_match.respond(alex, match_id, "decline")
+    my_match.respond(alex, match_id, "accept")        # too late, changes nothing, logs nothing
+    texts = [e["text"] for e in db.list_neighborhood_events(nb["id"])]
+    assert texts == [
+        "Alex said NO to invitation #" + str(match_id) + ".",
+        "Invitation #" + str(match_id) + " dissolved. Nobody's name was revealed; everyone in it is back in the pool.",
+    ]
+
+
+# ----- the meetup answer after the reveal ----------------------------------------------
+
+def test_meetup_answers_are_logged_for_the_admin():
+    reset()
+    nb = make_neighborhood()
+    alex = make_resident(nb, "a@example.com", "Alex")
+    bao = make_resident(nb, "b@example.com", "Bao")
+    match_id = make_match(nb, [alex, bao])
+    my_match.respond(alex, match_id, "accept")
+    my_match.respond(bao, match_id, "accept")
+
+    result, error = my_match.meetup_reply(alex, match_id, "coming")
+    assert error is None and result["answer"] == "coming"
+    result, error = my_match.meetup_reply(bao, match_id, "different_time")
+    assert error is None
+
+    texts = [e["text"] for e in db.list_neighborhood_events(nb["id"])]
+    assert "Alex will be there for invitation #" + str(match_id) + " (a short hike, Saturday morning)." in texts
+    assert ("Bao needs a different time for invitation #" + str(match_id)
+            + " (a short hike, Saturday morning). Follow up with them.") in texts
+
+
+def test_meetup_answer_needs_a_revealed_invitation_the_caller_is_in():
+    reset()
+    nb = make_neighborhood()
+    alex = make_resident(nb, "a@example.com", "Alex")
+    bao = make_resident(nb, "b@example.com", "Bao")
+    cam = make_resident(nb, "c@example.com", "Cam")
+    match_id = make_match(nb, [alex, bao])
+
+    # not revealed yet: nobody has said yes
+    result, error = my_match.meetup_reply(alex, match_id, "coming")
+    assert result is None and "hasn't been revealed" in error
+
+    my_match.respond(alex, match_id, "accept")
+    my_match.respond(bao, match_id, "accept")
+    result, error = my_match.meetup_reply(cam, match_id, "coming")
+    assert result is None and "not a member" in error
+    result, error = my_match.meetup_reply(alex, match_id, "maybe")
+    assert result is None and "answer must be" in error
+
+    texts = [e["text"] for e in db.list_neighborhood_events(nb["id"])]
+    assert not any("will be there" in t or "different time" in t for t in texts)

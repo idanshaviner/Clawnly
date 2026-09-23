@@ -1,35 +1,39 @@
-"""Persistent storage for Clawnly (Milestone 1: give the app a real memory).
+"""Persistent storage for Clawnly: one small SQLite file, plain sqlite3.
 
-A small SQLite file replaces the old in-memory STATE dict + flat cast.json /
-feedback.json files in app.py. This module is pure storage plumbing -- it does
-not know anything about matching, negotiation, or interviewing; it just saves
-and loads the plain dicts those modules already produce, so nothing about how
-the pipeline works had to change.
+Pure storage plumbing -- it knows nothing about how agents talk or how the hub
+decides; it saves and loads the plain dicts those modules produce.
 
 Tables:
-  users             -- the editable demo/admin cast (replaces cast.json)
-  runs              -- one row per pipeline run (mode, which cast, when); real-
-                       pilot runs also carry a neighborhood_id
-  interviews        -- each Claw's answers for a run
-  matches           -- each group a run formed (group + reason + scores + why_not)
-  negotiations      -- the agreed activity + transcript for a match
-  meetups           -- the finalized meetup card for a match
-  feedback          -- thumbs up/down + note (replaces feedback.json)
-
-  -- real-user pilot (auth + onboarding) --
-  neighborhoods     -- one invite-link cohort (slug, batch threshold, trigger state)
-  residents         -- a real person's account + progressively-filled profile
-  onboarding_messages -- a resident's persisted chat with their own Claw
-  sessions          -- durable login sessions (replaces the in-memory _SESSIONS dict)
+  neighborhoods     -- one invite-link cohort (slug, secret invite code, batch
+                       threshold, first-round and last-nightly-round state)
+  residents         -- a real person's account + the dossier they brought
+                       (what their own AI wrote about them) + its card
+  sessions          -- durable login sessions
   magic_link_tokens -- single-use, hashed, expiring email login tokens
   oauth_states      -- single-use, expiring Google OAuth CSRF state tokens
-  match_acceptances -- one row per resident member of a formed match (mutual
-                       reveal gate); matches also gains sealed_at/dissolved_at
+
+  runs              -- one row per hub round (neighborhood, API-call usage)
+  events            -- the behind-the-scenes log: every hub thought and decision,
+                       every agent message, every code check, every human action
+                       (signup, join, yes/no, reveal, admin actions)
+  ai_calls          -- every call to Claude, verbatim: purpose, model, the exact
+                       prompt, the raw reply, tokens, time taken, any error
+  agent_conversations -- one private Claw-to-Claw conversation + the hub's verdict
+  matches           -- one invitation the hub sent (member ids, the hub's
+                       headline and depth, and details: pitches, the proposed
+                       meetup, the conversation it came from) + sealed_at /
+                       dissolved_at
+  match_acceptances -- one row per invited resident (the mutual yes/no gate)
+
+Older databases may still hold tables from before the agent-to-agent pivot
+(users, interviews, negotiations, meetups, feedback, onboarding_messages) and
+old columns on residents, runs and matches; nothing reads them any more.
 """
 
 import datetime
 import json
 import os
+import secrets
 import sqlite3
 
 
@@ -37,11 +41,6 @@ _HERE = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.environ.get("CLAWNLY_DB_PATH") or os.path.join(os.path.dirname(_HERE), "clawnly.db")
 
 _CONN = None
-
-EDITABLE_USER_FIELDS = ["name", "age", "gender", "hobbies", "personality",
-                         "occupation", "availability", "location", "bio",
-                         "preferred_group_size"]
-
 
 def _get_conn():
     global _CONN
@@ -70,55 +69,28 @@ def _ensure_column(conn, table, column, coltype):
 
 def init_db():
     conn = _get_conn()
-    conn.execute("""CREATE TABLE IF NOT EXISTS users (
-        id TEXT PRIMARY KEY, name TEXT, age INTEGER, gender TEXT, hobbies TEXT,
-        personality TEXT, occupation TEXT, availability TEXT, location TEXT,
-        bio TEXT, preferred_group_size TEXT, position INTEGER
-    )""")
     conn.execute("""CREATE TABLE IF NOT EXISTS runs (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, mode TEXT, users_signature TEXT,
-        unmatched_ids TEXT, created_at TEXT
-    )""")
-    conn.execute("""CREATE TABLE IF NOT EXISTS interviews (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, run_id INTEGER, user_id TEXT,
-        profile TEXT, q1 TEXT, q2 TEXT, error TEXT
+        id INTEGER PRIMARY KEY AUTOINCREMENT, neighborhood_id INTEGER, usage TEXT,
+        created_at TEXT
     )""")
     conn.execute("""CREATE TABLE IF NOT EXISTS matches (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, run_id INTEGER, group_index INTEGER,
-        member_ids TEXT, reason TEXT, scores TEXT, why_not TEXT, created_at TEXT
-    )""")
-    conn.execute("""CREATE TABLE IF NOT EXISTS negotiations (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, match_id INTEGER, activity TEXT,
-        agreed INTEGER, concern TEXT, rounds INTEGER, transcript TEXT
-    )""")
-    conn.execute("""CREATE TABLE IF NOT EXISTS meetups (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, match_id INTEGER, options TEXT,
-        event_name TEXT, activity TEXT, location TEXT, time TEXT, reason TEXT,
-        matched_users TEXT
-    )""")
-    conn.execute("""CREATE TABLE IF NOT EXISTS feedback (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, match_id INTEGER, members TEXT,
-        rating TEXT, note TEXT, created_at TEXT
+        id INTEGER PRIMARY KEY AUTOINCREMENT, run_id INTEGER, member_ids TEXT,
+        headline TEXT, depth INTEGER, details TEXT, created_at TEXT,
+        sealed_at TEXT, dissolved_at TEXT
     )""")
 
     # ----- real-user pilot: auth + onboarding -----
     conn.execute("""CREATE TABLE IF NOT EXISTS neighborhoods (
         id INTEGER PRIMARY KEY AUTOINCREMENT, slug TEXT UNIQUE, name TEXT,
         invite_code TEXT, batch_threshold INTEGER, batch_triggered_at TEXT,
-        created_at TEXT
+        nightly_round_on TEXT, created_at TEXT
     )""")
     conn.execute("""CREATE TABLE IF NOT EXISTS residents (
         id INTEGER PRIMARY KEY AUTOINCREMENT, neighborhood_id INTEGER, email TEXT,
-        auth_method TEXT, consent_agreed_at TEXT,
-        name TEXT, age INTEGER, gender TEXT, hobbies TEXT, personality TEXT,
-        occupation TEXT, availability TEXT, location TEXT, bio TEXT,
-        preferred_group_size TEXT, slots_status TEXT, profile_complete_at TEXT,
-        created_at TEXT,
+        auth_method TEXT, consent_agreed_at TEXT, name TEXT,
+        dossier_source TEXT, dossier_text TEXT, card TEXT, dossier_previews INTEGER,
+        profile_complete_at TEXT, created_at TEXT,
         UNIQUE(neighborhood_id, email)
-    )""")
-    conn.execute("""CREATE TABLE IF NOT EXISTS onboarding_messages (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, resident_id INTEGER, role TEXT,
-        content TEXT, created_at TEXT
     )""")
     conn.execute("""CREATE TABLE IF NOT EXISTS sessions (
         id TEXT PRIMARY KEY, email TEXT, role TEXT, resident_id INTEGER,
@@ -138,195 +110,90 @@ def init_db():
         UNIQUE(match_id, resident_id)
     )""")
 
-    # runs predates neighborhoods; add the column rather than recreate the table.
+    # ----- agent-to-agent orchestration -----
+    conn.execute("""CREATE TABLE IF NOT EXISTS events (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, run_id INTEGER, actor TEXT, kind TEXT,
+        text TEXT, ref TEXT, created_at TEXT
+    )""")
+    conn.execute("""CREATE TABLE IF NOT EXISTS ai_calls (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, run_id INTEGER, neighborhood_id INTEGER,
+        resident_id INTEGER, purpose TEXT, model TEXT, system TEXT, messages TEXT,
+        reply TEXT, input_tokens INTEGER, output_tokens INTEGER, ms INTEGER, error TEXT,
+        created_at TEXT
+    )""")
+    conn.execute("""CREATE TABLE IF NOT EXISTS agent_conversations (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, run_id INTEGER, a_id TEXT, b_id TEXT,
+        why TEXT, turns TEXT, verdict TEXT, invited INTEGER, created_at TEXT
+    )""")
+
+    # a database made before the agent-to-agent pivot has these tables with
+    # older columns; add what the product reads now (a no-op on a fresh one).
+    # the old columns stay behind, unread.
     _ensure_column(conn, "runs", "neighborhood_id", "INTEGER")
-    # matches predates the mutual-reveal gate (Stage 5): sealed_at is set once
-    # every resident member has accepted; dissolved_at once anyone declines.
-    # Group-level lifecycle state lives here rather than being inferred solely
-    # from match_acceptances rows, so it survives even a match with zero
-    # resident members (an all-demo-cast admin-console group).
+    _ensure_column(conn, "runs", "usage", "TEXT")
+    _ensure_column(conn, "matches", "headline", "TEXT")
+    _ensure_column(conn, "matches", "depth", "INTEGER")
+    _ensure_column(conn, "matches", "details", "TEXT")
     _ensure_column(conn, "matches", "sealed_at", "TEXT")
     _ensure_column(conn, "matches", "dissolved_at", "TEXT")
-    # per-run API call tally (Stage 6 admin usage visibility) -- reuses the
-    # existing CountingClient call-count pattern, JSON {"total":N,"by_model":{}}.
-    _ensure_column(conn, "runs", "usage", "TEXT")
+    _ensure_column(conn, "residents", "dossier_source", "TEXT")
+    _ensure_column(conn, "residents", "dossier_text", "TEXT")
+    _ensure_column(conn, "residents", "card", "TEXT")
+    _ensure_column(conn, "residents", "dossier_previews", "INTEGER")
+    _ensure_column(conn, "events", "neighborhood_id", "INTEGER")
+    _ensure_column(conn, "neighborhoods", "nightly_round_on", "TEXT")
 
     conn.commit()
 
 
-# ----- users -----------------------------------------------------------------
+# ----- runs ----------------------------------------------------------------------
 
-def _user_to_row(user, position):
-    return (
-        user["id"], user["name"], user["age"], user["gender"],
-        json.dumps(user["hobbies"]), user["personality"], user["occupation"],
-        json.dumps(user["availability"]), user["location"], user["bio"],
-        json.dumps(user["preferred_group_size"]), position,
-    )
-
-
-def _row_to_user(row):
-    return {
-        "id": row["id"], "name": row["name"], "age": row["age"], "gender": row["gender"],
-        "hobbies": json.loads(row["hobbies"]), "personality": row["personality"],
-        "occupation": row["occupation"], "availability": json.loads(row["availability"]),
-        "location": row["location"], "bio": row["bio"],
-        "preferred_group_size": json.loads(row["preferred_group_size"]),
-    }
-
-
-def list_users():
-    conn = _get_conn()
-    rows = conn.execute("SELECT * FROM users ORDER BY position").fetchall()
-    users = []
-    i = 0
-    while i < len(rows):
-        users.append(_row_to_user(rows[i]))
-        i += 1
-    return users
-
-
-def get_user(uid):
-    conn = _get_conn()
-    row = conn.execute("SELECT * FROM users WHERE id = ?", (uid,)).fetchone()
-    if row is None:
-        return None
-    return _row_to_user(row)
-
-
-def replace_users(users):
-    # swap the whole cast in one go (used by reset-to-defaults and by a fresh
-    # AI-generated cast). Does not touch run/match/feedback history.
-    conn = _get_conn()
-    conn.execute("DELETE FROM users")
-    i = 0
-    while i < len(users):
-        conn.execute(
-            "INSERT INTO users (id, name, age, gender, hobbies, personality, occupation, "
-            "availability, location, bio, preferred_group_size, position) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            _user_to_row(users[i], i),
-        )
-        i += 1
-    conn.commit()
-
-
-def seed_default_users_if_empty(default_users):
-    conn = _get_conn()
-    count = conn.execute("SELECT COUNT(*) FROM users").fetchone()[0]
-    if count == 0:
-        replace_users(default_users)
-
-
-def update_user(uid, changes):
-    # apply only whitelisted, already-validated fields; persist immediately;
-    # return the merged user dict for the API response.
-    user = get_user(uid)
-    if user is None:
-        return None
-    conn = _get_conn()
-    keys = list(changes.keys())
-    i = 0
-    while i < len(keys):
-        key = keys[i]
-        if key in EDITABLE_USER_FIELDS:
-            user[key] = changes[key]
-            value = changes[key]
-            if key in ("hobbies", "availability", "preferred_group_size"):
-                value = json.dumps(value)
-            # safe: `key` is checked against the EDITABLE_USER_FIELDS whitelist
-            # above, never taken from the raw request, so this cannot inject SQL.
-            conn.execute("UPDATE users SET " + key + " = ? WHERE id = ?", (value, uid))
-        i += 1
-    conn.commit()
-    return user
-
-
-# ----- runs + interviews -------------------------------------------------------
-
-def create_run(mode, users_signature, neighborhood_id=None):
-    # neighborhood_id is None for an admin-console demo/live run on the fixed
-    # cast, and set for a real-pilot batch run (Stage 4) -- lets the two kinds
-    # of run share one table without a parallel history table.
+def create_run(neighborhood_id=None):
+    # one hub round. neighborhood_id is None for a round run outside the pilot
+    # (e.g. the orchestrator CLI on the sample people).
     conn = _get_conn()
     cur = conn.execute(
-        "INSERT INTO runs (mode, users_signature, unmatched_ids, created_at, neighborhood_id) "
-        "VALUES (?, ?, ?, ?, ?)",
-        (mode, users_signature, json.dumps([]), _now(), neighborhood_id),
+        "INSERT INTO runs (neighborhood_id, created_at) VALUES (?, ?)",
+        (neighborhood_id, _now()),
     )
     conn.commit()
     return cur.lastrowid
 
 
-def finish_run(run_id, unmatched_ids):
+def get_run(run_id):
     conn = _get_conn()
-    conn.execute("UPDATE runs SET unmatched_ids = ? WHERE id = ?", (json.dumps(unmatched_ids), run_id))
-    conn.commit()
-
-
-def save_interviews(run_id, interviews):
-    conn = _get_conn()
-    ids = list(interviews.keys())
-    i = 0
-    while i < len(ids):
-        uid = ids[i]
-        record = interviews[uid]
-        conn.execute(
-            "INSERT INTO interviews (run_id, user_id, profile, q1, q2, error) VALUES (?, ?, ?, ?, ?, ?)",
-            (run_id, uid, json.dumps(record.get("profile")), record.get("q1"),
-             record.get("q2"), record.get("error")),
-        )
-        i += 1
-    conn.commit()
-
-
-def load_interviews(run_id):
-    conn = _get_conn()
-    rows = conn.execute("SELECT * FROM interviews WHERE run_id = ?", (run_id,)).fetchall()
-    interviews = {}
-    i = 0
-    while i < len(rows):
-        row = rows[i]
-        record = {"profile": json.loads(row["profile"]), "q1": row["q1"], "q2": row["q2"]}
-        if row["error"] is not None:
-            record["error"] = row["error"]
-        interviews[row["user_id"]] = record
-        i += 1
-    return interviews
-
-
-def find_cached_interviews(users_signature, mode):
-    # the most recent run with an identical cast + mode -> reuse its interviews
-    # (skips re-asking the interview questions when nothing changed).
-    conn = _get_conn()
-    row = conn.execute(
-        "SELECT id FROM runs WHERE users_signature = ? AND mode = ? ORDER BY id DESC LIMIT 1",
-        (users_signature, mode),
-    ).fetchone()
+    row = conn.execute("SELECT * FROM runs WHERE id = ?", (run_id,)).fetchone()
     if row is None:
         return None
-    return load_interviews(row["id"])
+    usage = None
+    if row["usage"] is not None:
+        usage = json.loads(row["usage"])
+    return {"id": row["id"], "neighborhood_id": row["neighborhood_id"],
+            "created_at": row["created_at"], "usage": usage}
 
 
-# ----- matches, negotiations, meetups ------------------------------------------
+# ----- invitations (stored as matches) -------------------------------------------
 
-def save_match(run_id, group_index, match):
+def create_invitation(run_id, member_ids, headline, depth, details):
+    # one hub invitation. member_ids are "r"-prefixed resident ids; details is
+    # {"conversation_id", "invite": {activity, when, where}, "pitches": {member_id: text}}.
     conn = _get_conn()
     cur = conn.execute(
-        "INSERT INTO matches (run_id, group_index, member_ids, reason, scores, why_not, created_at) "
-        "VALUES (?, ?, ?, ?, ?, ?, ?)",
-        (run_id, group_index, json.dumps(match.get("group", [])), match.get("reason", ""),
-         json.dumps(match.get("scores", {})), json.dumps(match.get("why_not", [])), _now()),
+        "INSERT INTO matches (run_id, member_ids, headline, depth, details, created_at) "
+        "VALUES (?, ?, ?, ?, ?, ?)",
+        (run_id, json.dumps(member_ids), headline, depth, json.dumps(details), _now()),
     )
     conn.commit()
     return cur.lastrowid
 
 
 def _row_to_match(row):
+    details = {}
+    if row["details"] is not None:
+        details = json.loads(row["details"])
     return {
-        "id": row["id"], "run_id": row["run_id"], "group_index": row["group_index"],
-        "member_ids": json.loads(row["member_ids"]), "reason": row["reason"],
-        "scores": json.loads(row["scores"]), "why_not": json.loads(row["why_not"]),
+        "id": row["id"], "run_id": row["run_id"], "member_ids": json.loads(row["member_ids"]),
+        "headline": row["headline"], "depth": row["depth"], "details": details,
         "created_at": row["created_at"], "sealed_at": row["sealed_at"],
         "dissolved_at": row["dissolved_at"],
     }
@@ -340,108 +207,16 @@ def get_match(match_id):
     return _row_to_match(row)
 
 
-def get_negotiation(match_id):
-    # single-negotiation lookup (load_run_result reconstructs a whole run's
-    # worth at once; my_match.py only ever needs one match's).
-    conn = _get_conn()
-    row = conn.execute("SELECT * FROM negotiations WHERE match_id = ?", (match_id,)).fetchone()
-    if row is None:
-        return None
-    return {"activity": row["activity"], "agreed": bool(row["agreed"]), "concern": row["concern"],
-            "rounds": row["rounds"], "transcript": json.loads(row["transcript"])}
-
-
-def get_meetup(match_id):
-    conn = _get_conn()
-    row = conn.execute("SELECT * FROM meetups WHERE match_id = ?", (match_id,)).fetchone()
-    if row is None:
-        return None
-    return {"options": json.loads(row["options"]), "event_name": row["event_name"],
-            "activity": row["activity"], "location": row["location"], "time": row["time"],
-            "reason": row["reason"], "matched_users": json.loads(row["matched_users"])}
-
-
-def save_negotiation(match_id, plan):
-    conn = _get_conn()
-    conn.execute(
-        "INSERT INTO negotiations (match_id, activity, agreed, concern, rounds, transcript) "
-        "VALUES (?, ?, ?, ?, ?, ?)",
-        (match_id, plan.get("activity", ""), 1 if plan.get("agreed") else 0,
-         plan.get("concern", ""), plan.get("rounds", 0), json.dumps(plan.get("transcript", []))),
-    )
-    conn.commit()
-
-
-def save_meetup(match_id, popup):
-    conn = _get_conn()
-    conn.execute(
-        "INSERT INTO meetups (match_id, options, event_name, activity, location, time, reason, matched_users) "
-        "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-        (match_id, json.dumps(popup.get("options", [])), popup.get("event_name", ""),
-         popup.get("activity", ""), popup.get("location", ""), popup.get("time", ""),
-         popup.get("reason", ""), json.dumps(popup.get("matched_users", []))),
-    )
-    conn.commit()
-
-
-def _resident_member_ids(member_ids):
-    # batch.py always prefixes a resident-sourced member "r" + resident id
-    # (e.g. "r17") specifically so it can never collide with the demo cast's
-    # "u01"-style ids -- pick those out and recover the real resident id.
-    out = []
-    i = 0
-    while i < len(member_ids):
-        mid = member_ids[i]
-        if isinstance(mid, str) and mid.startswith("r") and mid[1:].isdigit():
-            out.append(int(mid[1:]))
-        i += 1
-    return out
-
-
-def persist_run_result(mode, signature, result, neighborhood_id=None):
-    # save a completed pipeline run (interviews, every group formed, each
-    # group's negotiation + meetup) so it survives a restart. Shared by
-    # app.py's admin-console runs (neighborhood_id=None) and batch.py's
-    # real-pilot batch runs (Stage 4), so this persistence sequence only
-    # lives in one place. Every resident member of a formed group also gets a
-    # pending match_acceptances row here (Stage 5's mutual reveal gate) -- a
-    # no-op for an admin-console run, since none of its member ids start
-    # with "r".
-    run_id = create_run(mode, signature, neighborhood_id)
-    save_interviews(run_id, result["interviews"])
-    groups = result["groups"]
-    gi = 0
-    while gi < len(groups):
-        entry = groups[gi]
-        match_id = save_match(run_id, gi, entry["match"])
-        if entry.get("negotiation") is not None:
-            save_negotiation(match_id, entry["negotiation"])
-        if entry.get("popup") is not None:
-            save_meetup(match_id, entry["popup"])
-        resident_ids = _resident_member_ids(entry["match"].get("group", []))
-        if len(resident_ids) > 0:
-            create_pending_acceptances(match_id, resident_ids)
-        gi += 1
-    finish_run(run_id, result["unmatched"])
-    if result.get("usage") is not None:
-        set_run_usage(run_id, result["usage"])
-    return run_id
-
-
 def set_run_usage(run_id, usage):
-    # per-run API call tally (Stage 6 admin dashboard) -- only ever set when
-    # the pipeline ran with a CountingClient (see usage.py), so most
-    # admin-console demo runs simply never call this.
+    # per-round API call tally from ai_log.LoggedClient
     conn = _get_conn()
     conn.execute("UPDATE runs SET usage = ? WHERE id = ?", (json.dumps(usage), run_id))
     conn.commit()
 
 
 def list_runs_for_neighborhood(neighborhood_id, limit=10):
-    # newest-first summary of past batch runs for the admin dashboard --
-    # group/unmatched counts + the call-usage tally, without reconstructing
-    # every interview/match/negotiation/meetup row (load_run_result does that
-    # for the one run at a time admin.py actually inspects in detail).
+    # newest-first summary of past hub rounds for the admin dashboard --
+    # conversation / invitation / failure counts + the call-usage tally.
     conn = _get_conn()
     rows = conn.execute(
         "SELECT * FROM runs WHERE neighborhood_id = ? ORDER BY id DESC LIMIT ?",
@@ -451,104 +226,26 @@ def list_runs_for_neighborhood(neighborhood_id, limit=10):
     i = 0
     while i < len(rows):
         row = rows[i]
-        group_count = conn.execute(
+        invitation_count = conn.execute(
             "SELECT COUNT(*) FROM matches WHERE run_id = ?", (row["id"],)
+        ).fetchone()[0]
+        conversation_count = conn.execute(
+            "SELECT COUNT(*) FROM agent_conversations WHERE run_id = ?", (row["id"],)
+        ).fetchone()[0]
+        # a conversation that never got a verdict failed partway
+        failed_count = conn.execute(
+            "SELECT COUNT(*) FROM agent_conversations WHERE run_id = ? AND verdict IS NULL", (row["id"],)
         ).fetchone()[0]
         usage = None
         if row["usage"] is not None:
             usage = json.loads(row["usage"])
         out.append({
-            "id": row["id"], "mode": row["mode"], "created_at": row["created_at"],
-            "group_count": group_count,
-            "unmatched_count": len(json.loads(row["unmatched_ids"])),
-            "usage": usage,
+            "id": row["id"], "created_at": row["created_at"],
+            "conversation_count": conversation_count, "invitation_count": invitation_count,
+            "failed_count": failed_count, "usage": usage,
         })
         i += 1
     return out
-
-
-def load_run_result(run_id):
-    # reconstruct the exact shape run_pipeline() returns, so explain.py and the
-    # /api/master-chat route work unchanged whether the run just happened or the
-    # server restarted since.
-    conn = _get_conn()
-    run_row = conn.execute("SELECT * FROM runs WHERE id = ?", (run_id,)).fetchone()
-    if run_row is None:
-        return None
-    interviews = load_interviews(run_id)
-    match_rows = conn.execute(
-        "SELECT * FROM matches WHERE run_id = ? ORDER BY group_index", (run_id,)
-    ).fetchall()
-    groups = []
-    i = 0
-    while i < len(match_rows):
-        mrow = match_rows[i]
-        match = {"group": json.loads(mrow["member_ids"]), "reason": mrow["reason"],
-                 "scores": json.loads(mrow["scores"]), "why_not": json.loads(mrow["why_not"])}
-
-        neg_row = conn.execute("SELECT * FROM negotiations WHERE match_id = ?", (mrow["id"],)).fetchone()
-        negotiation = None
-        if neg_row is not None:
-            negotiation = {"activity": neg_row["activity"], "final_activity": neg_row["activity"],
-                            "agreed": bool(neg_row["agreed"]), "concern": neg_row["concern"],
-                            "rounds": neg_row["rounds"], "transcript": json.loads(neg_row["transcript"])}
-
-        pop_row = conn.execute("SELECT * FROM meetups WHERE match_id = ?", (mrow["id"],)).fetchone()
-        popup = None
-        if pop_row is not None:
-            popup = {"options": json.loads(pop_row["options"]), "event_name": pop_row["event_name"],
-                     "activity": pop_row["activity"], "location": pop_row["location"],
-                     "time": pop_row["time"], "reason": pop_row["reason"],
-                     "matched_users": json.loads(pop_row["matched_users"])}
-
-        groups.append({"match": match, "negotiation": negotiation, "popup": popup})
-        i += 1
-
-    unmatched = json.loads(run_row["unmatched_ids"])
-    return {"interviews": interviews, "groups": groups, "unmatched": unmatched}
-
-
-def latest_run_id_for_signature(users_signature):
-    # scoped to the CURRENT cast, so editing/resetting the people naturally
-    # "forgets" the last run the same way the old in-memory STATE did.
-    conn = _get_conn()
-    row = conn.execute(
-        "SELECT id FROM runs WHERE users_signature = ? ORDER BY id DESC LIMIT 1",
-        (users_signature,),
-    ).fetchone()
-    if row is None:
-        return None
-    return row["id"]
-
-
-# ----- feedback ----------------------------------------------------------------
-
-def add_feedback(entry):
-    conn = _get_conn()
-    conn.execute(
-        "INSERT INTO feedback (match_id, members, rating, note, created_at) VALUES (?, ?, ?, ?, ?)",
-        (entry.get("match_id"), json.dumps(entry.get("members", [])), entry.get("rating"),
-         entry.get("note", ""), _now()),
-    )
-    conn.commit()
-
-
-def list_feedback():
-    conn = _get_conn()
-    rows = conn.execute("SELECT * FROM feedback ORDER BY id").fetchall()
-    out = []
-    i = 0
-    while i < len(rows):
-        row = rows[i]
-        out.append({"members": json.loads(row["members"]), "rating": row["rating"], "note": row["note"]})
-        i += 1
-    return out
-
-
-def clear_feedback():
-    conn = _get_conn()
-    conn.execute("DELETE FROM feedback")
-    conn.commit()
 
 
 # ----- real-user pilot: neighborhoods -------------------------------------------
@@ -577,22 +274,59 @@ def get_neighborhood_by_slug(slug):
     return _row_to_neighborhood(row)
 
 
+def _new_invite_code():
+    return secrets.token_urlsafe(9)
+
+
 def get_or_create_neighborhood(slug, name, batch_threshold):
-    # self-provisioning: the first visit to an invite link creates the
-    # neighborhood row. batch_threshold is SNAPSHOTTED here, so a later change
-    # to config.MATCH_BATCH_THRESHOLD never retroactively moves the goalposts
-    # on a cohort that's already filling up.
+    # ADMIN-side only (the admin dashboard, tests, ops): never called with
+    # public input -- a stranger must not be able to create a neighborhood.
+    # A new neighborhood gets a secret invite code. batch_threshold is
+    # SNAPSHOTTED here, so a later change to config.MATCH_BATCH_THRESHOLD never
+    # moves the goalposts on a cohort that's already filling up.
     existing = get_neighborhood_by_slug(slug)
     if existing is not None:
-        return existing
+        return ensure_invite_code(existing["id"])
     conn = _get_conn()
     conn.execute(
         "INSERT INTO neighborhoods (slug, name, invite_code, batch_threshold, batch_triggered_at, created_at) "
         "VALUES (?, ?, ?, ?, NULL, ?)",
-        (slug, name, slug, batch_threshold, _now()),
+        (slug, name, _new_invite_code(), batch_threshold, _now()),
     )
     conn.commit()
     return get_neighborhood_by_slug(slug)
+
+
+def ensure_invite_code(neighborhood_id):
+    # older neighborhoods stored their own slug as the "code" (public, so no
+    # code at all): give them a real secret one.
+    neighborhood = get_neighborhood(neighborhood_id)
+    if neighborhood is None:
+        return None
+    code = neighborhood["invite_code"]
+    if not code or code == neighborhood["slug"]:
+        conn = _get_conn()
+        conn.execute("UPDATE neighborhoods SET invite_code = ? WHERE id = ?", (_new_invite_code(), neighborhood_id))
+        conn.commit()
+        neighborhood = get_neighborhood(neighborhood_id)
+    return neighborhood
+
+
+def neighborhood_for_invite(slug, code):
+    # the ONLY way public input resolves to a neighborhood: it must exist and
+    # the invite code must match (constant-time compare). A legacy slug-as-code
+    # is never accepted.
+    if not isinstance(slug, str) or not isinstance(code, str) or len(code) == 0:
+        return None
+    neighborhood = get_neighborhood_by_slug(slug)
+    if neighborhood is None:
+        return None
+    stored = neighborhood["invite_code"]
+    if not stored or stored == neighborhood["slug"]:
+        return None
+    if not secrets.compare_digest(stored.encode("utf-8"), code.encode("utf-8")):
+        return None
+    return neighborhood
 
 
 def list_neighborhoods():
@@ -607,14 +341,10 @@ def list_neighborhoods():
 
 
 def mark_batch_triggered(neighborhood_id):
-    # the admin dashboard's manual "trigger batch now" override (Stage 6) --
-    # unlike try_trigger_batch's compare-and-swap (the automatic, one-shot,
-    # concurrency-safe guard on a resident completion crossing the
-    # threshold), this is a deliberate, single, authenticated admin action
-    # that's allowed to fire again even after an earlier automatic or manual
-    # trigger -- e.g. to re-match residents a decline released back into the
-    # pool, since nothing else currently re-triggers for them (see
-    # ROADMAP.md's Stage 5 caveat).
+    # the admin's "run a round now" -- unlike try_trigger_batch's
+    # compare-and-swap (the automatic, one-shot guard when joins cross the
+    # threshold), an admin may run it again and again: it is the only way
+    # people who joined late, or were released by a "no", get another round.
     conn = _get_conn()
     conn.execute("UPDATE neighborhoods SET batch_triggered_at = ? WHERE id = ?", (_now(), neighborhood_id))
     conn.commit()
@@ -633,29 +363,34 @@ def try_trigger_batch(neighborhood_id):
     return cur.rowcount == 1
 
 
+def claim_nightly_round(neighborhood_id, night):
+    # compare-and-swap on the night's date ("2026-09-24"): true for exactly one
+    # caller per neighborhood per night, so a restart mid-hour can't run it twice.
+    conn = _get_conn()
+    cur = conn.execute(
+        "UPDATE neighborhoods SET nightly_round_on = ? WHERE id = ? "
+        "AND (nightly_round_on IS NULL OR nightly_round_on != ?)",
+        (night, neighborhood_id, night),
+    )
+    conn.commit()
+    return cur.rowcount == 1
+
+
 # ----- real-user pilot: residents -----------------------------------------------
 
 def _row_to_resident(row):
-    hobbies = None
-    if row["hobbies"] is not None:
-        hobbies = json.loads(row["hobbies"])
-    availability = None
-    if row["availability"] is not None:
-        availability = json.loads(row["availability"])
-    size = None
-    if row["preferred_group_size"] is not None:
-        size = json.loads(row["preferred_group_size"])
-    slots = {}
-    if row["slots_status"] is not None:
-        slots = json.loads(row["slots_status"])
+    card = None
+    if row["card"] is not None:
+        card = json.loads(row["card"])
+    previews = row["dossier_previews"]
+    if previews is None:
+        previews = 0
     return {
         "id": row["id"], "neighborhood_id": row["neighborhood_id"], "email": row["email"],
         "auth_method": row["auth_method"], "consent_agreed_at": row["consent_agreed_at"],
-        "name": row["name"], "age": row["age"], "gender": row["gender"], "hobbies": hobbies,
-        "personality": row["personality"], "occupation": row["occupation"],
-        "availability": availability, "location": row["location"], "bio": row["bio"],
-        "preferred_group_size": size, "slots_status": slots,
-        "profile_complete_at": row["profile_complete_at"], "created_at": row["created_at"],
+        "name": row["name"], "profile_complete_at": row["profile_complete_at"], "created_at": row["created_at"],
+        "dossier_source": row["dossier_source"], "dossier_text": row["dossier_text"],
+        "card": card, "dossier_previews": previews,
     }
 
 
@@ -669,8 +404,7 @@ def get_resident(resident_id):
 
 def get_or_create_resident(neighborhood_id, email, auth_method):
     # a login always resolves to exactly one resident row per (neighborhood, email);
-    # a brand-new resident starts with every profile field empty -- the
-    # onboarding conversation fills them in over time (Milestone stage 3).
+    # a brand-new resident has nothing else until they bring their agent.
     conn = _get_conn()
     row = conn.execute(
         "SELECT * FROM residents WHERE neighborhood_id = ? AND email = ?",
@@ -679,11 +413,8 @@ def get_or_create_resident(neighborhood_id, email, auth_method):
     if row is not None:
         return _row_to_resident(row)
     conn.execute(
-        "INSERT INTO residents (neighborhood_id, email, auth_method, consent_agreed_at, "
-        "name, age, gender, hobbies, personality, occupation, availability, location, bio, "
-        "preferred_group_size, slots_status, profile_complete_at, created_at) "
-        "VALUES (?, ?, ?, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, ?, NULL, ?)",
-        (neighborhood_id, email, auth_method, json.dumps({}), _now()),
+        "INSERT INTO residents (neighborhood_id, email, auth_method, created_at) VALUES (?, ?, ?, ?)",
+        (neighborhood_id, email, auth_method, _now()),
     )
     conn.commit()
     row = conn.execute(
@@ -705,36 +436,6 @@ def record_consent(resident_id):
     return get_resident(resident_id)
 
 
-# fields onboarding is allowed to fill in over the course of a conversation --
-# the same profile columns EDITABLE_USER_FIELDS already whitelists for the
-# demo cast, plus slots_status (which tracks the five gating slots, not a
-# profile fact itself).
-RESIDENT_PROFILE_FIELDS = EDITABLE_USER_FIELDS + ["slots_status"]
-_RESIDENT_JSON_FIELDS = ("hobbies", "availability", "preferred_group_size", "slots_status")
-
-
-def update_resident_profile(resident_id, fields):
-    # partial update -- onboarding fills fields in gradually, one turn's worth
-    # of extraction at a time, so only whitelisted keys actually present in
-    # `fields` are touched (same whitelist-then-string-build pattern as
-    # update_user).
-    conn = _get_conn()
-    keys = list(fields.keys())
-    i = 0
-    while i < len(keys):
-        key = keys[i]
-        if key in RESIDENT_PROFILE_FIELDS:
-            value = fields[key]
-            if key in _RESIDENT_JSON_FIELDS:
-                value = json.dumps(value)
-            # safe: `key` is checked against RESIDENT_PROFILE_FIELDS above,
-            # never taken directly from the raw request, so this cannot inject SQL.
-            conn.execute("UPDATE residents SET " + key + " = ? WHERE id = ?", (value, resident_id))
-        i += 1
-    conn.commit()
-    return get_resident(resident_id)
-
-
 def list_residents(neighborhood_id):
     # EVERY resident in this cohort, complete or not -- the admin dashboard's
     # full roster (list_complete_residents/list_eligible_residents stay
@@ -752,13 +453,13 @@ def list_residents(neighborhood_id):
 
 
 def list_complete_residents(neighborhood_id):
-    # every resident in this cohort whose onboarding has crossed the five-slot
-    # completeness bar -- the pool batch.py counts against batch_threshold and
-    # maps into run_pipeline profiles.
+    # every resident in this cohort who has joined with their agent: signed up
+    # AND brought a dossier (a leftover profile from the old onboarding chat
+    # has no dossier, so its agent would have nothing to say -- never counted).
     conn = _get_conn()
     rows = conn.execute(
         "SELECT * FROM residents WHERE neighborhood_id = ? AND profile_complete_at IS NOT NULL "
-        "ORDER BY id",
+        "AND dossier_text IS NOT NULL AND card IS NOT NULL ORDER BY id",
         (neighborhood_id,),
     ).fetchall()
     out = []
@@ -770,13 +471,10 @@ def list_complete_residents(neighborhood_id):
 
 
 def list_eligible_residents(neighborhood_id):
-    # profile-complete AND not currently tied to a LIVE (non-dissolved) match
-    # -- either never matched yet, or their last match was dissolved by a
-    # decline and they've been released back into the pool without redoing
-    # onboarding. A pending/waiting/sealed match's members stay excluded
-    # (their match's dissolved_at stays NULL), so nobody is ever double-
-    # booked into two matches at once. Builds on list_complete_residents
-    # rather than duplicating its row-building.
+    # joined AND not currently tied to a LIVE (non-dissolved) invitation --
+    # either never invited yet, or their last invitation was dissolved by a
+    # "no" and they're back in the pool. A pending/waiting/sealed invitation's
+    # members stay excluded, so nobody is ever holding two invitations at once.
     complete = list_complete_residents(neighborhood_id)
     conn = _get_conn()
     rows = conn.execute(
@@ -797,6 +495,34 @@ def list_eligible_residents(neighborhood_id):
     return out
 
 
+def claim_preview(resident_id, max_previews):
+    # atomically take one of the resident's paid previews BEFORE the AI call, so
+    # parallel requests can't slip past the cap. True when a preview was claimed.
+    conn = _get_conn()
+    cur = conn.execute(
+        "UPDATE residents SET dossier_previews = COALESCE(dossier_previews, 0) + 1 "
+        "WHERE id = ? AND profile_complete_at IS NULL AND COALESCE(dossier_previews, 0) < ?",
+        (resident_id, max_previews),
+    )
+    conn.commit()
+    return cur.rowcount == 1
+
+
+def save_dossier_draft(resident_id, name, source, text, card):
+    # the latest "build my agent's card" preview -- stored server-side so the
+    # confirm step joins exactly what was previewed, never a card the browser
+    # sent back. Only allowed before joining (profile_complete_at IS NULL).
+    # (the preview itself is counted by claim_preview, before the AI call.)
+    conn = _get_conn()
+    conn.execute(
+        "UPDATE residents SET name = ?, dossier_source = ?, dossier_text = ?, card = ? "
+        "WHERE id = ? AND profile_complete_at IS NULL",
+        (name, source, text, json.dumps(card), resident_id),
+    )
+    conn.commit()
+    return get_resident(resident_id)
+
+
 def mark_profile_complete(resident_id):
     # idempotent -- same first-write-wins guard as record_consent.
     conn = _get_conn()
@@ -806,32 +532,6 @@ def mark_profile_complete(resident_id):
     )
     conn.commit()
     return get_resident(resident_id)
-
-
-# ----- real-user pilot: onboarding messages --------------------------------------
-
-def save_onboarding_message(resident_id, role, content):
-    conn = _get_conn()
-    conn.execute(
-        "INSERT INTO onboarding_messages (resident_id, role, content, created_at) VALUES (?, ?, ?, ?)",
-        (resident_id, role, content, _now()),
-    )
-    conn.commit()
-
-
-def get_onboarding_messages(resident_id):
-    # ordered transcript, shaped exactly like the history list Claw.chat expects.
-    conn = _get_conn()
-    rows = conn.execute(
-        "SELECT role, content FROM onboarding_messages WHERE resident_id = ? ORDER BY id ASC",
-        (resident_id,),
-    ).fetchall()
-    messages = []
-    i = 0
-    while i < len(rows):
-        messages.append({"role": rows[i]["role"], "content": rows[i]["content"]})
-        i += 1
-    return messages
 
 
 # ----- real-user pilot: sessions ------------------------------------------------
@@ -870,6 +570,16 @@ def delete_session(token):
 
 
 # ----- real-user pilot: magic links ---------------------------------------------
+
+def count_recent_magic_links(email, seconds):
+    # how many sign-in links this email was sent recently (the throttle)
+    conn = _get_conn()
+    since = (datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(seconds=seconds)).isoformat()
+    row = conn.execute(
+        "SELECT COUNT(*) FROM magic_link_tokens WHERE email = ? AND created_at > ?", (email, since)
+    ).fetchone()
+    return row[0]
+
 
 def create_magic_link_token(token_hash, email, neighborhood_id, ttl_seconds):
     # only the HASH is stored -- the raw token (which is what's actually emailed)
@@ -1010,18 +720,164 @@ def mark_match_dissolved(match_id):
     conn.commit()
 
 
+# ----- agent-to-agent orchestration: events + conversations ------------------------
+
+def log_event(run_id, actor, kind, text, ref=None, neighborhood_id=None):
+    # one line of the behind-the-scenes log. actor is who acted (hub / agent /
+    # code / human / system); kind is what it was (thought / decision / message /
+    # check / human / system). ref points at the conversation it belongs to.
+    # run_id is None for things that happen outside a hub round (a signup, a yes/no).
+    conn = _get_conn()
+    conn.execute(
+        "INSERT INTO events (run_id, actor, kind, text, ref, created_at, neighborhood_id) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?)",
+        (run_id, actor, kind, text, ref, _now(), neighborhood_id),
+    )
+    conn.commit()
+
+
+def _row_to_event(row):
+    return {"id": row["id"], "run_id": row["run_id"], "neighborhood_id": row["neighborhood_id"],
+            "actor": row["actor"], "kind": row["kind"], "text": row["text"], "ref": row["ref"],
+            "created_at": row["created_at"]}
+
+
+def list_events(run_id):
+    conn = _get_conn()
+    rows = conn.execute("SELECT * FROM events WHERE run_id = ? ORDER BY id", (run_id,)).fetchall()
+    out = []
+    i = 0
+    while i < len(rows):
+        out.append(_row_to_event(rows[i]))
+        i += 1
+    return out
+
+
+def list_neighborhood_events(neighborhood_id, limit=500):
+    # the neighborhood's whole story, oldest first: the most recent `limit` events
+    conn = _get_conn()
+    rows = conn.execute(
+        "SELECT * FROM (SELECT * FROM events WHERE neighborhood_id = ? ORDER BY id DESC LIMIT ?) ORDER BY id",
+        (neighborhood_id, limit),
+    ).fetchall()
+    out = []
+    i = 0
+    while i < len(rows):
+        out.append(_row_to_event(rows[i]))
+        i += 1
+    return out
+
+
+def log_ai_call(run_id, neighborhood_id, resident_id, purpose, model, system, messages, reply,
+                input_tokens, output_tokens, ms, error):
+    conn = _get_conn()
+    conn.execute(
+        "INSERT INTO ai_calls (run_id, neighborhood_id, resident_id, purpose, model, system, messages, "
+        "reply, input_tokens, output_tokens, ms, error, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (run_id, neighborhood_id, resident_id, purpose, model, system, json.dumps(messages), reply,
+         input_tokens, output_tokens, ms, error, _now()),
+    )
+    conn.commit()
+
+
+def _row_to_ai_call(row):
+    return {"id": row["id"], "run_id": row["run_id"], "neighborhood_id": row["neighborhood_id"],
+            "resident_id": row["resident_id"], "purpose": row["purpose"], "model": row["model"],
+            "system": row["system"], "messages": json.loads(row["messages"]), "reply": row["reply"],
+            "input_tokens": row["input_tokens"], "output_tokens": row["output_tokens"],
+            "ms": row["ms"], "error": row["error"], "created_at": row["created_at"]}
+
+
+def list_ai_calls(run_id):
+    # every Claude call a hub round made, in order
+    conn = _get_conn()
+    rows = conn.execute("SELECT * FROM ai_calls WHERE run_id = ? ORDER BY id", (run_id,)).fetchall()
+    out = []
+    i = 0
+    while i < len(rows):
+        out.append(_row_to_ai_call(rows[i]))
+        i += 1
+    return out
+
+
+def list_signup_ai_calls(neighborhood_id, limit=100):
+    # Claude calls made outside a round (building people's cards at signup), newest last
+    conn = _get_conn()
+    rows = conn.execute(
+        "SELECT * FROM (SELECT * FROM ai_calls WHERE neighborhood_id = ? AND run_id IS NULL "
+        "ORDER BY id DESC LIMIT ?) ORDER BY id",
+        (neighborhood_id, limit),
+    ).fetchall()
+    out = []
+    i = 0
+    while i < len(rows):
+        out.append(_row_to_ai_call(rows[i]))
+        i += 1
+    return out
+
+
+def save_agent_conversation(run_id, a_id, b_id, why, turns):
+    conn = _get_conn()
+    cur = conn.execute(
+        "INSERT INTO agent_conversations (run_id, a_id, b_id, why, turns, verdict, invited, created_at) "
+        "VALUES (?, ?, ?, ?, ?, NULL, 0, ?)",
+        (run_id, a_id, b_id, why, json.dumps(turns), _now()),
+    )
+    conn.commit()
+    return cur.lastrowid
+
+
+def set_agent_turns(conversation_id, turns):
+    conn = _get_conn()
+    conn.execute("UPDATE agent_conversations SET turns = ? WHERE id = ?", (json.dumps(turns), conversation_id))
+    conn.commit()
+
+
+def set_agent_verdict(conversation_id, verdict, invited):
+    conn = _get_conn()
+    invited_flag = 0
+    if invited:
+        invited_flag = 1
+    conn.execute("UPDATE agent_conversations SET verdict = ?, invited = ? WHERE id = ?",
+                 (json.dumps(verdict), invited_flag, conversation_id))
+    conn.commit()
+
+
+def _row_to_agent_conversation(row):
+    verdict = None
+    if row["verdict"] is not None:
+        verdict = json.loads(row["verdict"])
+    return {"id": row["id"], "run_id": row["run_id"], "a": row["a_id"], "b": row["b_id"],
+            "why": row["why"], "turns": json.loads(row["turns"]), "verdict": verdict,
+            "invited": bool(row["invited"]), "created_at": row["created_at"]}
+
+
+def list_agent_conversations(run_id=None):
+    # every conversation of one run, or of all runs (so the hub never pairs
+    # the same two agents twice).
+    conn = _get_conn()
+    if run_id is None:
+        rows = conn.execute("SELECT * FROM agent_conversations ORDER BY id").fetchall()
+    else:
+        rows = conn.execute("SELECT * FROM agent_conversations WHERE run_id = ? ORDER BY id", (run_id,)).fetchall()
+    out = []
+    i = 0
+    while i < len(rows):
+        out.append(_row_to_agent_conversation(rows[i]))
+        i += 1
+    return out
+
+
 # ----- full reset (ops / tests) -------------------------------------------------
 
-def reset_all(default_users):
-    # wipe every table and restore the default cast -- used by tests and
-    # available for manual ops resets.
+def reset_all():
+    # wipe every table -- used by tests and available for manual ops resets.
     conn = _get_conn()
-    tables = ["runs", "interviews", "matches", "negotiations", "meetups", "feedback",
-              "neighborhoods", "residents", "onboarding_messages", "sessions",
-              "magic_link_tokens", "oauth_states", "match_acceptances"]
+    tables = ["runs", "matches", "neighborhoods", "residents", "sessions",
+              "magic_link_tokens", "oauth_states", "match_acceptances",
+              "events", "agent_conversations", "ai_calls"]
     i = 0
     while i < len(tables):
         conn.execute("DELETE FROM " + tables[i])
         i += 1
     conn.commit()
-    replace_users(default_users)

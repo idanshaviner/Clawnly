@@ -1,5 +1,9 @@
 # Clawnly — Matchmaker Prototype Spec
 
+> **Historical document (as of 2026-09-23).** Describes the original matching PoC and its demo console. The product has since moved to
+> agent-to-agent matching and this code was removed from `main`; it is preserved on the
+> `pre-agent-pivot` branch. For how things work today, read `README.md` and `docs/THIS_WEEK.md`.
+
 **Status:** v1.3 (PoC) · **Date:** 2026-06-20 · **Owner:** Idan Shaviner
 
 > **Note — built beyond this spec.** This document describes the original CLI proof-of-concept.

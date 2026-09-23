@@ -1,3 +1,10 @@
+> **Historical document (as of 2026-09-23).** The registration, consent, auth, reveal-gate and
+> admin decisions below still stand. Superseded: the multi-turn onboarding chat (residents now
+> paste a portrait written by the AI they already use -- `src/bring_agent.py`; the "no
+> ChatGPT-history import" rule is reversed, though we still never connect to that AI or read its
+> history), and the group-matching pipeline (replaced by the agent-to-agent hub,
+> `src/orchestrator.py` + `src/batch.py`). For today's plan read `docs/THIS_WEEK.md`.
+
 # Real-user neighborhood pilot: registration, onboarding, threshold-triggered matching
 
 > Copied into the repo from an approved Claude Code plan-mode session for

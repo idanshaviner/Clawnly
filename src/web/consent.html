@@ -50,8 +50,14 @@
     <div class="consent">
       By continuing you agree that:
       <ul>
-        <li>What you share is read by a Master Claw (AI) to arrange real-world meetups with other
-          neighbors -- not by a human, unless something goes wrong and we need to look into it.</li>
+        <li>You'll paste in a description of yourself written by an AI you already use (like ChatGPT
+          or Claude). You choose what to paste, and we store it.</li>
+        <li>Your Clawnly agent uses it to talk privately with other neighbors' agents, and a hub AI
+          (run on Anthropic's Claude) decides who should be invited to meet. Neighbors never see your
+          description; your first name is shown only if you both say yes to meeting.</li>
+        <li>Everything behind the scenes is logged -- the agents' conversations, the hub's reasoning,
+          every message to and from the AI, and your yes/no answers -- and the small Clawnly team can
+          read it to check things are working.</li>
         <li>This is an alpha: matching quality is experimental and unreviewed.</li>
         <li>You can delete your account and data at any time once that's available in-app.</li>
       </ul>
@@ -62,7 +68,7 @@
 
   <div class="card" id="done">
     <h1><span class="check">&#10003;</span> You're all set</h1>
-    <p class="sub">Taking you to your onboarding conversation...</p>
+    <p class="sub">Taking you to bring your agent...</p>
   </div>
 
   <div class="card" id="loggedout" style="display:none">
@@ -73,7 +79,13 @@
 <script>
 function show(id){
   var ids = ["loading", "ask", "done", "loggedout"];
-  ids.forEach(function(other){ document.getElementById(other).style.display = (other === id) ? "block" : "none"; });
+  var i = 0;
+  while (i < ids.length) {
+    var display = "none";
+    if (ids[i] === id) { display = "block"; }
+    document.getElementById(ids[i]).style.display = display;
+    i++;
+  }
 }
 
 function goToOnboarding(){

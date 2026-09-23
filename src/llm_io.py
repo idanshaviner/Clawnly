@@ -1,6 +1,6 @@
 """Helpers for reading JSON out of Anthropic responses.
 
-Shared by master_claw, popup, negotiation and persona_gen so the parsing logic
+Shared by dossier, agent_talk and orchestrator so the parsing logic
 lives in one place. The models we use reject assistant-message prefill, so every
 call asks for "JSON only" and we recover the object here with extract_json.
 """

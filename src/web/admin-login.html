@@ -56,7 +56,7 @@ document.getElementById("email-btn").addEventListener("click", function(){
     .then(function(res){
       if (res.ok) {
         status.className = "ok";
-        status.textContent = "Check your email for a sign-in link.";
+        status.textContent = "If this is an admin email, a sign-in link is on its way.";
       } else {
         status.className = "err";
         status.textContent = res.data.error || "Something went wrong.";

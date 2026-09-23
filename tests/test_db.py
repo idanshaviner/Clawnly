@@ -1,187 +1,16 @@
-"""Tests for db.py: the SQLite persistence layer (Milestone 1).
+"""Tests for db.py: the SQLite persistence layer.
 
-Pure storage tests -- no matching/negotiation logic involved, just save/load
-round trips for the plain dicts the rest of the app already produces.
+Pure storage tests -- save/load round trips for the plain dicts the rest of
+the app produces.
 """
 
 import db
-from users import USERS
+from conftest import make_joined_resident
 
 
 def reset():
-    db.reset_all(USERS)
-
-
-# ----- users -------------------------------------------------------------
-
-def test_replace_and_list_users_round_trips_every_field():
-    reset()
-    users = db.list_users()
-    assert len(users) == 12
-    maya = users[0]
-    assert maya["id"] == "u01"
-    assert maya["hobbies"] == USERS[0]["hobbies"]
-    assert maya["availability"] == USERS[0]["availability"]
-    assert maya["preferred_group_size"] == USERS[0]["preferred_group_size"]
-
-
-def test_list_users_preserves_order():
-    reset()
-    ids = [u["id"] for u in db.list_users()]
-    assert ids == [u["id"] for u in USERS]
-
-
-def test_get_user_unknown_returns_none():
-    reset()
-    assert db.get_user("nope") is None
-
-
-def test_update_user_persists_only_editable_fields():
-    reset()
-    out = db.update_user("u01", {"personality": "extroverted", "id": "u99", "hobbies": ["chess"]})
-    assert out["personality"] == "extroverted"
-    assert out["hobbies"] == ["chess"]
-    assert out["id"] == "u01"                      # id is not editable, ignored
-    stored = db.get_user("u01")
-    assert stored["personality"] == "extroverted"
-    assert stored["hobbies"] == ["chess"]
-
-
-def test_update_user_no_preference_string_round_trips():
-    reset()
-    db.update_user("u01", {"preferred_group_size": "no preference"})
-    assert db.get_user("u01")["preferred_group_size"] == "no preference"
-
-
-def test_update_unknown_user_returns_none():
-    reset()
-    assert db.update_user("nope", {"bio": "x"}) is None
-
-
-def test_seed_default_users_if_empty_is_a_noop_when_not_empty():
-    reset()
-    db.update_user("u01", {"personality": "extroverted"})
-    db.seed_default_users_if_empty(USERS)          # table isn't empty -> no reseed
-    assert db.get_user("u01")["personality"] == "extroverted"
-
-
-# ----- runs + interview cache ---------------------------------------------
-
-def _sample_interviews():
-    users = db.list_users()
-    return {users[0]["id"]: {"profile": users[0], "q1": "a", "q2": "b"}}
-
-
-def test_find_cached_interviews_misses_when_no_run_yet():
-    reset()
-    assert db.find_cached_interviews("sig-1", "demo") is None
-
-
-def test_find_cached_interviews_hits_after_a_saved_run():
-    reset()
-    run_id = db.create_run("demo", "sig-1")
-    db.save_interviews(run_id, _sample_interviews())
-    cached = db.find_cached_interviews("sig-1", "demo")
-    assert cached is not None
-    assert cached["u01"]["q1"] == "a"
-
-
-def test_find_cached_interviews_is_scoped_to_mode_and_signature():
-    reset()
-    run_id = db.create_run("demo", "sig-1")
-    db.save_interviews(run_id, _sample_interviews())
-    assert db.find_cached_interviews("sig-1", "live") is None       # different mode
-    assert db.find_cached_interviews("sig-2", "demo") is None       # different cast
-
-
-def test_find_cached_interviews_reflects_error_records():
-    reset()
-    run_id = db.create_run("demo", "sig-1")
-    db.save_interviews(run_id, {"u01": {"profile": db.get_user("u01"), "q1": None, "q2": None, "error": "boom"}})
-    cached = db.find_cached_interviews("sig-1", "demo")
-    assert cached["u01"]["error"] == "boom"
-
-
-# ----- matches / negotiations / meetups / run reconstruction --------------
-
-def _sample_match():
-    return {"group": ["u01", "u04", "u10"], "reason": "grounded reason",
-            "scores": {"personality": 4, "availability": 4, "interests": 4, "size_fit": 4},
-            "why_not": [{"id": "u08", "reason": "too big a group"}]}
-
-
-def _sample_negotiation():
-    return {"activity": "coffee", "agreed": True, "concern": "", "rounds": 1,
-            "transcript": [{"type": "propose", "round": 1, "activity": "coffee", "pitch": "hi"}]}
-
-
-def _sample_popup():
-    return {"options": [{"event_name": "Coffee", "activity": "coffee", "location": "cafe",
-                         "time": "Saturday", "reason": "grounded"}],
-            "matched_users": ["Maya", "Marcus", "Omar"], "event_name": "Coffee",
-            "activity": "coffee", "location": "cafe", "time": "Saturday", "reason": "grounded"}
-
-
-def test_load_run_result_reconstructs_the_full_shape():
-    reset()
-    run_id = db.create_run("demo", "sig-1")
-    db.save_interviews(run_id, _sample_interviews())
-    match_id = db.save_match(run_id, 0, _sample_match())
-    db.save_negotiation(match_id, _sample_negotiation())
-    db.save_meetup(match_id, _sample_popup())
-    db.finish_run(run_id, ["u12"])
-
-    result = db.load_run_result(run_id)
-    assert result["interviews"]["u01"]["q1"] == "a"
-    assert result["unmatched"] == ["u12"]
-    assert len(result["groups"]) == 1
-    group = result["groups"][0]
-    assert group["match"]["group"] == ["u01", "u04", "u10"]
-    assert group["match"]["why_not"][0]["id"] == "u08"
-    assert group["negotiation"]["agreed"] is True
-    assert group["negotiation"]["transcript"][0]["type"] == "propose"
-    assert group["popup"]["event_name"] == "Coffee"
-
-
-def test_load_run_result_handles_a_group_with_no_agreement_yet():
-    # negotiation exists but the group never agreed -> no meetup was generated.
-    reset()
-    run_id = db.create_run("demo", "sig-1")
-    match_id = db.save_match(run_id, 0, _sample_match())
-    db.save_negotiation(match_id, {"activity": "coffee", "agreed": False, "concern": "Maya isn't sold",
-                                    "rounds": 4, "transcript": []})
-    db.finish_run(run_id, [])
-    result = db.load_run_result(run_id)
-    assert result["groups"][0]["negotiation"]["agreed"] is False
-    assert result["groups"][0]["popup"] is None
-
-
-def test_load_run_result_unknown_run_returns_none():
-    reset()
-    assert db.load_run_result(999999) is None
-
-
-def test_latest_run_id_for_signature_is_scoped_and_picks_the_newest():
-    reset()
-    assert db.latest_run_id_for_signature("sig-1") is None
-    first = db.create_run("demo", "sig-1")
-    second = db.create_run("demo", "sig-1")
-    db.create_run("demo", "sig-2")               # a different cast, should not match
-    assert db.latest_run_id_for_signature("sig-1") == second
-    assert first != second
-
-
-# ----- feedback ------------------------------------------------------------
-
-def test_feedback_add_list_clear_round_trip():
-    reset()
-    assert db.list_feedback() == []
-    db.add_feedback({"members": ["Maya", "Marcus"], "rating": "up", "note": "great"})
-    fb = db.list_feedback()
-    assert len(fb) == 1
-    assert fb[0]["rating"] == "up" and fb[0]["note"] == "great"
-    db.clear_feedback()
-    assert db.list_feedback() == []
+    db.init_db()
+    db.reset_all()
 
 
 # ----- real-user pilot: neighborhoods ---------------------------------------
@@ -209,9 +38,9 @@ def test_get_or_create_resident_starts_blank_and_is_idempotent():
     reset()
     nb = db.get_or_create_neighborhood("ballard", "Ballard", 100)
     first = db.get_or_create_resident(nb["id"], "a@example.com", "google")
-    assert first["hobbies"] is None
     assert first["profile_complete_at"] is None
-    assert first["slots_status"] == {}
+    assert first["dossier_text"] is None and first["card"] is None
+    assert first["dossier_previews"] == 0
     second = db.get_or_create_resident(nb["id"], "a@example.com", "magic_link")
     assert first["id"] == second["id"]
     assert second["auth_method"] == "google"      # unchanged -- first login wins
@@ -308,70 +137,113 @@ def test_expired_oauth_state_is_rejected():
     assert db.consume_oauth_state("state-hash-2") is None
 
 
-# ----- real-user pilot: match acceptances (mutual reveal gate) --------------
+# ----- bring your agent: dossier drafts ---------------------------------------
 
-def test_persist_run_result_creates_pending_acceptances_for_resident_members():
+def test_save_dossier_draft_keeps_the_latest_text_and_card():
+    reset()
+    nb = db.get_or_create_neighborhood("ballard", "Ballard", 10)
+    resident = db.get_or_create_resident(nb["id"], "a@example.com", "google")
+    db.save_dossier_draft(resident["id"], "Noa", "ChatGPT", "the text", {"essence": "e"})
+    saved = db.save_dossier_draft(resident["id"], "Noa", "Claude", "better text", {"essence": "e2"})
+    assert saved["dossier_source"] == "Claude"
+    assert saved["dossier_text"] == "better text"
+    assert saved["card"] == {"essence": "e2"}
+
+
+def test_claim_preview_is_capped_atomically_and_stops_after_joining():
+    reset()
+    nb = db.get_or_create_neighborhood("ballard", "Ballard", 10)
+    resident = db.get_or_create_resident(nb["id"], "a@example.com", "google")
+    assert [db.claim_preview(resident["id"], 2) for _ in range(3)] == [True, True, False]
+    assert db.get_resident(resident["id"])["dossier_previews"] == 2
+    other = make_joined_resident(nb, "b@example.com", "Bao")
+    assert db.claim_preview(other["id"], 5) is False
+
+
+def test_invite_codes_are_secret_and_required():
+    reset()
+    nb = db.get_or_create_neighborhood("ballard", "Ballard", 10)
+    code = nb["invite_code"]
+    assert code and code != "ballard" and len(code) >= 12
+    assert db.neighborhood_for_invite("ballard", code)["id"] == nb["id"]
+    assert db.neighborhood_for_invite("ballard", "wrong") is None
+    assert db.neighborhood_for_invite("ballard", "") is None
+    assert db.neighborhood_for_invite("ballard", None) is None
+    assert db.neighborhood_for_invite("nowhere", code) is None
+    # a legacy neighborhood whose "code" was its own public slug is never joinable as-is...
+    conn = db._get_conn()
+    conn.execute("UPDATE neighborhoods SET invite_code = slug WHERE id = ?", (nb["id"],))
+    conn.commit()
+    assert db.neighborhood_for_invite("ballard", "ballard") is None
+    # ...until it is given a real secret code
+    fixed = db.ensure_invite_code(nb["id"])
+    assert fixed["invite_code"] != "ballard"
+    assert db.neighborhood_for_invite("ballard", fixed["invite_code"])["id"] == nb["id"]
+
+
+def test_count_recent_magic_links_counts_per_email():
+    reset()
+    db.create_magic_link_token("h1", "a@example.com", None, 900)
+    db.create_magic_link_token("h2", "a@example.com", None, 900)
+    db.create_magic_link_token("h3", "b@example.com", None, 900)
+    assert db.count_recent_magic_links("a@example.com", 900) == 2
+    assert db.count_recent_magic_links("c@example.com", 900) == 0
+
+
+def test_dossier_draft_is_locked_once_joined():
+    reset()
+    nb = db.get_or_create_neighborhood("ballard", "Ballard", 10)
+    resident = make_joined_resident(nb, "a@example.com", "Noa")
+    db.save_dossier_draft(resident["id"], "Evil", "Other", "overwrite", {"essence": "x"})
+    after = db.get_resident(resident["id"])
+    assert after["name"] == "Noa"
+    assert after["card"]["essence"] == "Noa is real"
+
+
+# ----- invitations + the mutual yes/no gate -----------------------------------
+
+def _invitation(nb, residents):
+    run_id = db.create_run(nb["id"])
+    member_ids = ["r" + str(r["id"]) for r in residents]
+    details = {"conversation_id": 1, "invite": {"activity": "dinner", "when": "Sun", "where": "here"},
+               "pitches": {member_ids[0]: "pitch one"}}
+    match_id = db.create_invitation(run_id, member_ids, "a headline", 9, details)
+    db.create_pending_acceptances(match_id, [r["id"] for r in residents])
+    return run_id, match_id
+
+
+def test_create_invitation_round_trips_details():
     reset()
     nb = db.get_or_create_neighborhood("ten-trails", "Ten Trails", 3)
-    r1 = db.get_or_create_resident(nb["id"], "a@example.com", "google")
-    r2 = db.get_or_create_resident(nb["id"], "b@example.com", "google")
-    result = {
-        "interviews": {},
-        "groups": [{"match": {"group": ["r" + str(r1["id"]), "r" + str(r2["id"])],
-                              "reason": "grounded reason", "scores": {}, "why_not": []},
-                    "negotiation": None, "popup": None}],
-        "unmatched": [],
-    }
-    run_id = db.persist_run_result("live", "sig", result, neighborhood_id=nb["id"])
-    conn = db._get_conn()
-    row = conn.execute("SELECT id FROM matches WHERE run_id = ?", (run_id,)).fetchone()
-    match_id = row["id"]
-
-    acceptances = db.list_match_acceptances(match_id)
-    assert len(acceptances) == 2
-    assert {a["resident_id"] for a in acceptances} == {r1["id"], r2["id"]}
-    assert all(a["status"] == "pending" for a in acceptances)
-
-
-def test_persist_run_result_does_not_create_acceptances_for_demo_cast_ids():
-    reset()
-    result = {
-        "interviews": {},
-        "groups": [{"match": {"group": ["u01", "u04", "u10"], "reason": "x", "scores": {}, "why_not": []},
-                    "negotiation": None, "popup": None}],
-        "unmatched": [],
-    }
-    run_id = db.persist_run_result("demo", "sig", result)
-    conn = db._get_conn()
-    row = conn.execute("SELECT id FROM matches WHERE run_id = ?", (run_id,)).fetchone()
-    assert db.list_match_acceptances(row["id"]) == []
+    r1 = make_joined_resident(nb, "a@example.com", "Noa")
+    r2 = make_joined_resident(nb, "b@example.com", "Marcus")
+    _, match_id = _invitation(nb, [r1, r2])
+    match = db.get_match(match_id)
+    assert match["member_ids"] == ["r" + str(r1["id"]), "r" + str(r2["id"])]
+    assert match["headline"] == "a headline"
+    assert match["depth"] == 9
+    assert match["details"]["invite"]["activity"] == "dinner"
+    assert {a["status"] for a in db.list_match_acceptances(match_id)} == {"pending"}
 
 
 def test_respond_to_acceptance_first_response_wins():
     reset()
     nb = db.get_or_create_neighborhood("ten-trails", "Ten Trails", 3)
-    r1 = db.get_or_create_resident(nb["id"], "a@example.com", "google")
-    match_id = db.save_match(db.create_run("live", "sig", nb["id"]), 0, _sample_match())
-    db.create_pending_acceptances(match_id, [r1["id"]])
-
-    changed = db.respond_to_acceptance(match_id, r1["id"], "accepted")
-    assert changed is True
-    assert db.get_acceptance(match_id, r1["id"])["status"] == "accepted"
-
-    # a second response can't flip an already-recorded one.
-    changed_again = db.respond_to_acceptance(match_id, r1["id"], "declined")
-    assert changed_again is False
+    r1 = make_joined_resident(nb, "a@example.com", "Noa")
+    _, match_id = _invitation(nb, [r1])
+    assert db.respond_to_acceptance(match_id, r1["id"], "accepted") is True
+    assert db.respond_to_acceptance(match_id, r1["id"], "declined") is False
     assert db.get_acceptance(match_id, r1["id"])["status"] == "accepted"
 
 
 def test_mark_match_sealed_and_dissolved_are_idempotent():
     reset()
-    match_id = db.save_match(db.create_run("live", "sig"), 0, _sample_match())
+    nb = db.get_or_create_neighborhood("ten-trails", "Ten Trails", 3)
+    _, match_id = _invitation(nb, [make_joined_resident(nb, "a@example.com", "Noa")])
     db.mark_match_sealed(match_id)
     first = db.get_match(match_id)["sealed_at"]
     db.mark_match_sealed(match_id)
     assert db.get_match(match_id)["sealed_at"] == first
-
     db.mark_match_dissolved(match_id)
     first_dissolved = db.get_match(match_id)["dissolved_at"]
     db.mark_match_dissolved(match_id)
@@ -381,76 +253,120 @@ def test_mark_match_sealed_and_dissolved_are_idempotent():
 def test_latest_match_acceptance_picks_the_most_recent():
     reset()
     nb = db.get_or_create_neighborhood("ten-trails", "Ten Trails", 3)
-    r1 = db.get_or_create_resident(nb["id"], "a@example.com", "google")
-    run_id = db.create_run("live", "sig", nb["id"])
-    match1 = db.save_match(run_id, 0, _sample_match())
-    match2 = db.save_match(run_id, 1, _sample_match())
-    db.create_pending_acceptances(match1, [r1["id"]])
-    db.create_pending_acceptances(match2, [r1["id"]])
-    latest = db.latest_match_acceptance(r1["id"])
-    assert latest["match_id"] == match2
+    r1 = make_joined_resident(nb, "a@example.com", "Noa")
+    _, first = _invitation(nb, [r1])
+    _, second = _invitation(nb, [r1])
+    assert db.latest_match_acceptance(r1["id"])["match_id"] == second
+    assert first != second
 
 
-def test_get_negotiation_and_get_meetup_single_match_lookup():
-    reset()
-    match_id = db.save_match(db.create_run("live", "sig"), 0, _sample_match())
-    assert db.get_negotiation(match_id) is None
-    assert db.get_meetup(match_id) is None
-    db.save_negotiation(match_id, _sample_negotiation())
-    db.save_meetup(match_id, _sample_popup())
-    negotiation = db.get_negotiation(match_id)
-    meetup = db.get_meetup(match_id)
-    assert negotiation["activity"] == "coffee"
-    assert negotiation["agreed"] is True
-    assert meetup["event_name"] == "Coffee"
-
-
-def test_list_eligible_residents_excludes_members_of_a_live_match():
+def test_eligible_needs_a_joined_agent_with_a_dossier():
     reset()
     nb = db.get_or_create_neighborhood("ten-trails", "Ten Trails", 3)
-    r1 = db.mark_profile_complete(db.get_or_create_resident(nb["id"], "a@example.com", "google")["id"])
-    r2 = db.mark_profile_complete(db.get_or_create_resident(nb["id"], "b@example.com", "google")["id"])
+    make_joined_resident(nb, "a@example.com", "Noa")
+    # complete from the old onboarding chat, but no dossier: never eligible
+    legacy = db.get_or_create_resident(nb["id"], "old@example.com", "google")
+    db.mark_profile_complete(legacy["id"])
+    eligible = db.list_eligible_residents(nb["id"])
+    assert [r["name"] for r in eligible] == ["Noa"]
+
+
+def test_eligible_excludes_live_invitations_and_includes_dissolved_ones():
+    reset()
+    nb = db.get_or_create_neighborhood("ten-trails", "Ten Trails", 3)
+    r1 = make_joined_resident(nb, "a@example.com", "Noa")
+    r2 = make_joined_resident(nb, "b@example.com", "Marcus")
+    assert len(db.list_eligible_residents(nb["id"])) == 2
+    _, match_id = _invitation(nb, [r1, r2])
+    assert db.list_eligible_residents(nb["id"]) == []
+    db.mark_match_dissolved(match_id)
     assert len(db.list_eligible_residents(nb["id"])) == 2
 
-    match_id = db.save_match(db.create_run("live", "sig", nb["id"]), 0, _sample_match())
-    db.create_pending_acceptances(match_id, [r1["id"], r2["id"]])
-    eligible = db.list_eligible_residents(nb["id"])
-    assert eligible == []
+
+# ----- runs, events, agent conversations ----------------------------------------
+
+def test_events_are_logged_in_order_per_run():
+    reset()
+    run_a = db.create_run()
+    run_b = db.create_run()
+    db.log_event(run_a, "hub", "thought", "first", None)
+    db.log_event(run_b, "code", "check", "other run", None)
+    db.log_event(run_a, "agent", "message", "second", "7")
+    events = db.list_events(run_a)
+    assert [(e["actor"], e["text"], e["ref"]) for e in events] == [("hub", "first", None), ("agent", "second", "7")]
 
 
-def test_list_eligible_residents_includes_members_of_a_dissolved_match():
+def test_agent_conversation_turns_and_verdict_round_trip():
+    reset()
+    run_id = db.create_run()
+    cid = db.save_agent_conversation(run_id, "r1", "r2", "why", [])
+    db.set_agent_turns(cid, [{"by": "r1", "text": "hi"}])
+    db.set_agent_verdict(cid, {"depth": 9, "invited": True}, True)
+    saved = db.list_agent_conversations(run_id)[0]
+    assert saved["turns"] == [{"by": "r1", "text": "hi"}]
+    assert saved["verdict"]["depth"] == 9 and saved["invited"] is True
+    assert len(db.list_agent_conversations()) == 1
+
+
+def test_run_summaries_count_conversations_invitations_and_failures():
     reset()
     nb = db.get_or_create_neighborhood("ten-trails", "Ten Trails", 3)
-    r1 = db.mark_profile_complete(db.get_or_create_resident(nb["id"], "a@example.com", "google")["id"])
-    match_id = db.save_match(db.create_run("live", "sig", nb["id"]), 0, _sample_match())
-    db.create_pending_acceptances(match_id, [r1["id"]])
-    assert db.list_eligible_residents(nb["id"]) == []
-
-    db.mark_match_dissolved(match_id)
-    eligible = db.list_eligible_residents(nb["id"])
-    assert len(eligible) == 1
-    assert eligible[0]["id"] == r1["id"]
+    r1 = make_joined_resident(nb, "a@example.com", "Noa")
+    r2 = make_joined_resident(nb, "b@example.com", "Marcus")
+    run_id, _ = _invitation(nb, [r1, r2])
+    done = db.save_agent_conversation(run_id, "r1", "r2", "", [])
+    db.set_agent_verdict(done, {"depth": 9}, True)
+    db.save_agent_conversation(run_id, "r1", "r3", "", [])     # never judged = failed
+    db.set_run_usage(run_id, {"total": 14, "by_model": {}})
+    summary = db.list_runs_for_neighborhood(nb["id"])[0]
+    assert summary["conversation_count"] == 2
+    assert summary["invitation_count"] == 1
+    assert summary["failed_count"] == 1
+    assert summary["usage"]["total"] == 14
+    assert db.get_run(run_id)["usage"]["total"] == 14
+    assert db.get_run(999999) is None
 
 
 # ----- full reset ------------------------------------------------------------
 
-def test_reset_all_wipes_history_and_reseeds_users():
+def test_reset_all_wipes_everything():
     reset()
-    run_id = db.create_run("demo", "sig-1")
-    db.save_match(run_id, 0, _sample_match())
-    db.add_feedback({"members": ["Maya"], "rating": "down", "note": "n"})
-    db.update_user("u01", {"personality": "extroverted"})
     nb = db.get_or_create_neighborhood("ballard", "Ballard", 100)
-    db.get_or_create_resident(nb["id"], "a@example.com", "google")
+    make_joined_resident(nb, "a@example.com", "Noa")
+    run_id = db.create_run(nb["id"])
+    db.log_event(run_id, "hub", "thought", "x")
+    db.save_agent_conversation(run_id, "r1", "r2", "", [])
     db.create_session("tok-1", "a@example.com", "resident", 1, nb["id"], 3600)
     db.create_magic_link_token("hash-1", "a@example.com", nb["id"], 900)
     db.create_oauth_state("state-hash", nb["id"], 900)
 
-    db.reset_all(USERS)
+    db.reset_all()
 
-    assert db.list_feedback() == []
-    assert db.latest_run_id_for_signature("sig-1") is None
-    assert db.get_user("u01")["personality"] == "introverted"
-    assert len(db.list_users()) == 12
     assert db.get_neighborhood_by_slug("ballard") is None
     assert db.get_session("tok-1") is None
+    assert db.list_events(run_id) == []
+    assert db.list_agent_conversations() == []
+
+
+# ----- ai_calls + neighborhood activity ---------------------------------------------------
+
+def test_ai_calls_split_into_rounds_and_signups():
+    reset()
+    db.log_ai_call(1, 9, None, "pairing", "m", "s", [], "r", 1, 2, 3, None)
+    db.log_ai_call(None, 9, 4, "card", "m", "s", [{"role": "user", "content": "x"}], "r", None, None, 3, None)
+    db.log_ai_call(None, 8, 5, "card", "m", "s", [], None, None, None, 3, "boom")
+    assert [c["purpose"] for c in db.list_ai_calls(1)] == ["pairing"]
+    signup = db.list_signup_ai_calls(9)
+    assert len(signup) == 1 and signup[0]["resident_id"] == 4
+    assert signup[0]["messages"] == [{"role": "user", "content": "x"}]
+    assert db.list_signup_ai_calls(8)[0]["error"] == "boom"
+
+
+def test_neighborhood_events_keep_the_most_recent_in_order():
+    reset()
+    i = 0
+    while i < 5:
+        db.log_event(None, "system", "system", "e" + str(i), None, 3)
+        i += 1
+    db.log_event(None, "system", "system", "elsewhere", None, 4)
+    assert [e["text"] for e in db.list_neighborhood_events(3, limit=3)] == ["e2", "e3", "e4"]

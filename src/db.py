@@ -165,6 +165,13 @@ def init_db():
     # per-run API call tally (Stage 6 admin usage visibility) -- reuses the
     # existing CountingClient call-count pattern, JSON {"total":N,"by_model":{}}.
     _ensure_column(conn, "runs", "usage", "TEXT")
+    # bring-your-agent signup (replaces the onboarding chat): what the
+    # resident's own AI wrote about them, where it came from, the card the
+    # hub builds from it, and how many previews they've used (each costs a call).
+    _ensure_column(conn, "residents", "dossier_source", "TEXT")
+    _ensure_column(conn, "residents", "dossier_text", "TEXT")
+    _ensure_column(conn, "residents", "card", "TEXT")
+    _ensure_column(conn, "residents", "dossier_previews", "INTEGER")
 
     conn.commit()
 
@@ -663,6 +670,12 @@ def _row_to_resident(row):
     slots = {}
     if row["slots_status"] is not None:
         slots = json.loads(row["slots_status"])
+    card = None
+    if row["card"] is not None:
+        card = json.loads(row["card"])
+    previews = row["dossier_previews"]
+    if previews is None:
+        previews = 0
     return {
         "id": row["id"], "neighborhood_id": row["neighborhood_id"], "email": row["email"],
         "auth_method": row["auth_method"], "consent_agreed_at": row["consent_agreed_at"],
@@ -671,6 +684,8 @@ def _row_to_resident(row):
         "availability": availability, "location": row["location"], "bio": row["bio"],
         "preferred_group_size": size, "slots_status": slots,
         "profile_complete_at": row["profile_complete_at"], "created_at": row["created_at"],
+        "dossier_source": row["dossier_source"], "dossier_text": row["dossier_text"],
+        "card": card, "dossier_previews": previews,
     }
 
 
@@ -810,6 +825,21 @@ def list_eligible_residents(neighborhood_id):
             out.append(complete[i])
         i += 1
     return out
+
+
+def save_dossier_draft(resident_id, name, source, text, card):
+    # the latest "build my agent's card" preview -- stored server-side so the
+    # confirm step joins exactly what was previewed, never a card the browser
+    # sent back. Only allowed before joining (profile_complete_at IS NULL).
+    conn = _get_conn()
+    conn.execute(
+        "UPDATE residents SET name = ?, dossier_source = ?, dossier_text = ?, card = ?, "
+        "dossier_previews = COALESCE(dossier_previews, 0) + 1 "
+        "WHERE id = ? AND profile_complete_at IS NULL",
+        (name, source, text, json.dumps(card), resident_id),
+    )
+    conn.commit()
+    return get_resident(resident_id)
 
 
 def mark_profile_complete(resident_id):

@@ -715,3 +715,71 @@ def test_full_magic_link_login_redirects_a_resident_into_the_consent_flow(monkey
         assert r4.json()["consent_agreed_at"] is not None
     finally:
         client.cookies.clear()
+
+
+# ----- routes: bring your agent (the signup that replaced the onboarding chat) -----
+
+AGENT_TEXT = "You're 31 and new in town. You miss long Friday dinners with real arguments. " * 8
+
+
+def test_agent_routes_require_login_and_consent():
+    reset_state()
+    assert client.get("/api/agent").status_code == 401
+    assert client.post("/api/agent/preview", json={}).status_code == 401
+    assert client.post("/api/agent/confirm").status_code == 401
+    nb = db.get_or_create_neighborhood("ballard", "Ballard", 100)
+    resident = db.get_or_create_resident(nb["id"], "a@example.com", "magic_link")
+    token = auth.start_session("a@example.com", "resident", resident["id"], nb["id"])
+    client.cookies.set(auth.SESSION_COOKIE_NAME, token)
+    try:
+        assert client.get("/api/agent").status_code == 403
+        assert client.post("/api/agent/preview", json={}).status_code == 403
+    finally:
+        client.cookies.clear()
+
+
+def test_agent_preview_then_confirm_over_http(monkeypatch):
+    from conftest import FakeClient, json_body
+    reset_state()
+    fake = FakeClient(card_queue=[json_body({"essence": "a warm host", "real_vs_public": {"score": 4, "note": "ok"}})])
+    monkeypatch.setattr(config, "get_client", lambda: fake)
+    resident, token = _consented_resident_session()
+    client.cookies.set(auth.SESSION_COOKIE_NAME, token)
+    try:
+        status = client.get("/api/agent").json()
+        assert status["joined"] is False and "ChatGPT" in status["sources"]
+
+        bad = client.post("/api/agent/preview", json={"name": "Noa", "source": "ChatGPT", "text": "short"})
+        assert bad.status_code == 400
+
+        r = client.post("/api/agent/preview", json={"name": "Noa", "source": "ChatGPT", "text": AGENT_TEXT})
+        assert r.status_code == 200
+        assert r.json()["card"]["essence"] == "a warm host"
+
+        # a card sent by the browser is ignored -- confirm joins the stored draft
+        r = client.post("/api/agent/confirm", json={"card": {"essence": "forged"}})
+        assert r.status_code == 200 and r.json()["joined"] is True
+        saved = db.get_resident(resident["id"])
+        assert saved["card"]["essence"] == "a warm host"
+        assert saved["profile_complete_at"] is not None
+    finally:
+        client.cookies.clear()
+
+
+def test_agent_confirm_without_a_card_is_rejected():
+    reset_state()
+    resident, token = _consented_resident_session()
+    client.cookies.set(auth.SESSION_COOKIE_NAME, token)
+    try:
+        r = client.post("/api/agent/confirm")
+        assert r.status_code == 400
+    finally:
+        client.cookies.clear()
+
+
+def test_onboarding_page_is_now_bring_your_agent():
+    reset_state()
+    r = client.get("/onboarding")
+    assert r.status_code == 200
+    assert "Bring your agent" in r.text
+    assert "/api/agent/preview" in r.text

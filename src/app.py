@@ -28,6 +28,7 @@ from explain import explain_decision, context_summary
 from main import run_pipeline
 import admin
 import batch
+import bring_agent
 import my_match
 import onboarding
 import usage
@@ -651,6 +652,45 @@ async def api_onboarding_message(body: dict, request: Request):
         return await onboarding.take_turn(resident, message)
     except Exception as error:
         return JSONResponse(status_code=500, content={"error": str(error)})
+
+
+# ============================================================================
+# Real-user pilot: bring your agent (the signup that replaces the onboarding
+# chat). The resident pastes what their own AI wrote about them; see
+# bring_agent.py. /onboarding now serves this flow.
+# ============================================================================
+
+@app.get("/api/agent")
+async def api_agent_status(request: Request):
+    resident, error_response = _require_consented_resident(request)
+    if error_response is not None:
+        return error_response
+    return bring_agent.status(resident)
+
+
+@app.post("/api/agent/preview")
+async def api_agent_preview(body: dict, request: Request):
+    resident, error_response = _require_consented_resident(request)
+    if error_response is not None:
+        return error_response
+    try:
+        state, error = await bring_agent.preview(resident, body.get("name"), body.get("source"), body.get("text"))
+    except Exception as error:
+        return JSONResponse(status_code=500, content={"error": "Couldn't read that just now (" + str(error) + "). Try again."})
+    if error is not None:
+        return JSONResponse(status_code=400, content={"error": error})
+    return state
+
+
+@app.post("/api/agent/confirm")
+async def api_agent_confirm(request: Request):
+    resident, error_response = _require_consented_resident(request)
+    if error_response is not None:
+        return error_response
+    state, error = bring_agent.confirm(resident)
+    if error is not None:
+        return JSONResponse(status_code=400, content={"error": error})
+    return state
 
 
 # ============================================================================

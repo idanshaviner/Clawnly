@@ -20,14 +20,15 @@ SOURCES = ["ChatGPT", "Claude", "Muse", "Instinct", "Other"]
 MIN_DOSSIER_CHARS = 400
 MAX_DOSSIER_CHARS = 8000
 
+# each paragraph is one line so the copied prompt reads cleanly in any chat box
 IMPORT_PROMPT = "\n".join([
-    "I'm joining Clawnly. An AI agent will represent me in private conversations with other people's",
-    "agents, to find me a few genuinely close friends. I only step in at the end to say yes or no to",
+    "I'm joining Clawnly. An AI agent will represent me in private conversations with other people's "
+    "agents, to find me a few genuinely close friends. I only step in at the end to say yes or no to "
     "meeting someone.",
     "",
-    "From what you actually know about me from our conversations (not how I'd present myself on social",
-    "media or LinkedIn), write an honest portrait of me. Include the unflattering parts: a match made",
-    "with a polished version of me fails in real life. If you don't know something, write \"unknown\"",
+    "From what you actually know about me from our conversations (not how I'd present myself on social "
+    "media or LinkedIn), write an honest portrait of me. Include the unflattering parts: a match made "
+    "with a polished version of me fails in real life. If you don't know something, write \"unknown\" "
     "instead of guessing.",
     "",
     "Cover, in plain prose:",
@@ -40,7 +41,7 @@ IMPORT_PROMPT = "\n".join([
     "7. Who would be a bad fit for me.",
     "8. When I'm usually free, and roughly which neighborhood or city I'm in.",
     "",
-    "Write it in the second person (\"You...\"), 250-450 words. Leave out last names, employer names,",
+    "Write it in the second person (\"You...\"), 250-450 words. Leave out last names, employer names, "
     "addresses, health or financial details, and other people's names.",
 ])
 

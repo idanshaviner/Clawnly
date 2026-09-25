@@ -22,6 +22,27 @@ It runs on the viewer's Claude account (the Artifact `sample` capability). The p
 stores its own results by republishing itself (the `artifact` capability): the saved
 state lives in the `<script id="clawnly-state">` block.
 
+**Who can do what.** Share it by email invite ("Only people invited"), never "Anyone with
+the link": a public page has its Claude and saving switched off, and real dossiers would
+be readable by anyone.
+- The owner (and anyone inside the owner's Claude account): runs the agents, reads, joins,
+  answers, clears results.
+- A guest invited as an editor from outside the owner's account: Claude can't run in their
+  view, but they can bring their agent (the hub writes its card on the owner's next run),
+  answer their own invitations, and read everything. The top bar says "Guest view".
+- Anyone else: reading only.
+
+**Answering only for yourself.** A person added from a browser gets a random claim token
+that stays in that browser's localStorage; the page stores only its SHA-256 hash. Only that
+browser (or a signed-in viewer with the same user id) can answer that person's invitations.
+Someone added on another person's behalf (no owner, no claim) can only be answered by the
+page owner. Only the page owner can clear results. Everything shown is escaped text.
+
+**Two writers at once.** Every save stashes the unsaved state in sessionStorage first. If it
+loses the race (`conflict`), the page reloads to the winner and merges the stash back in
+(people, conversations and answers by id, log lines by content), then saves again, so a
+round never disappears because someone joined mid-run.
+
 **Before republishing this file from a Claude session, read the live artifact first
 and carry its `clawnly-state` JSON over.** Otherwise you overwrite every saved
 conversation and yes/no answer.

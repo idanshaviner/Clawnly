@@ -307,6 +307,11 @@ textarea{min-height:200px; resize:vertical; line-height:1.5}
   var runStatus = "";
   var saveError = "";
   var dirty = false;
+  var isPageOwner = false;    // the artifact's owner (user capability): answers for people added on someone's behalf
+  var canWrite = null;        // this viewer can save the page (guest editors can, even without Claude)
+  var claims = loadClaims();  // person id -> secret claim token, kept only in this browser
+  var claimHashes = {};       // person id -> sha-256 of that token; only the hash is ever saved in the page
+  var pendingMerge = takeStash();
   var ui = { tab: "meetings", conv: null, logFilter: "all", confirmReset: false,
              join: { source: "ChatGPT", name: "", text: "", consent: false, card: null, busy: false, error: "" } };
 
@@ -324,6 +329,104 @@ textarea{min-height:200px; resize:vertical; line-height:1.5}
       if (s.conversations[i].status === "live") s.conversations[i].status = "failed";
     }
     return s;
+  }
+
+  // ---- claims: who may answer for whom -----------------------------------------
+  // guests invited from outside the owner's account may have no user id, so a
+  // person is also tied to a random token that never leaves the browser that
+  // added them. The page stores only its hash.
+  function loadClaims() {
+    try {
+      var c = JSON.parse(localStorage.getItem("clawnly-claims") || "{}");
+      if (c && typeof c === "object") return c;
+    } catch (e) { }
+    return {};
+  }
+  function saveClaims() { try { localStorage.setItem("clawnly-claims", JSON.stringify(claims)); } catch (e) { } }
+  function toHex(bytes) {
+    var out = "";
+    for (var i = 0; i < bytes.length; i++) {
+      var h = bytes[i].toString(16);
+      if (h.length < 2) h = "0" + h;
+      out += h;
+    }
+    return out;
+  }
+  function newToken() {
+    var bytes = new Uint8Array(24);
+    crypto.getRandomValues(bytes);
+    return toHex(bytes);
+  }
+  async function sha256(text) {
+    var digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+    return toHex(new Uint8Array(digest));
+  }
+  async function hashClaims() {
+    var ids = Object.keys(claims);
+    for (var i = 0; i < ids.length; i++) {
+      try { claimHashes[ids[i]] = await sha256(String(claims[ids[i]])); } catch (e) { }
+    }
+    render();
+  }
+
+  // ---- saving safely next to other writers --------------------------------------
+  // a save that loses to someone else's reloads the page; the unsaved state is
+  // stashed first and merged back into whatever won, so nobody's round is lost.
+  function takeStash() {
+    try {
+      var raw = sessionStorage.getItem("clawnly-unsaved");
+      sessionStorage.removeItem("clawnly-unsaved");
+      if (raw) return JSON.parse(raw);
+    } catch (e) { }
+    return null;
+  }
+  function stash() { try { sessionStorage.setItem("clawnly-unsaved", JSON.stringify(state)); } catch (e) { } }
+  function clearStash() { try { sessionStorage.removeItem("clawnly-unsaved"); } catch (e) { } }
+  function mergeList(list, extra, update) {
+    var byId = {}, changed = 0;
+    for (var i = 0; i < list.length; i++) byId[list[i].id] = list[i];
+    for (var j = 0; j < extra.length; j++) {
+      var item = extra[j];
+      if (!item || !item.id) continue;
+      if (byId[item.id]) changed += update(byId[item.id], item);
+      else { list.push(item); byId[item.id] = item; changed += 1; }
+    }
+    return changed;
+  }
+  function mergeInto(base, extra) {
+    if (!extra || typeof extra !== "object") return 0;
+    var changed = 0;
+    changed += mergeList(base.people, listOr(extra.people), function (mine, theirs) {
+      if (!mine.card && theirs.card) { mine.card = theirs.card; return 1; }
+      return 0;
+    });
+    changed += mergeList(base.conversations, listOr(extra.conversations), function (mine, theirs) {
+      if (mine.status !== "done" && theirs.status === "done") {
+        mine.turns = theirs.turns; mine.status = theirs.status; mine.verdict = theirs.verdict; mine.endedAt = theirs.endedAt;
+        return 1;
+      }
+      return 0;
+    });
+    changed += mergeList(base.proposals, listOr(extra.proposals), function (mine, theirs) {
+      var n = 0, keys = Object.keys(theirs.answers || {});
+      for (var i = 0; i < keys.length; i++) {
+        if (!mine.answers[keys[i]]) { mine.answers[keys[i]] = theirs.answers[keys[i]]; n += 1; }
+      }
+      return n;
+    });
+    var seen = {};
+    for (var i = 0; i < base.log.length; i++) seen[base.log[i].t + "|" + base.log[i].actor + "|" + base.log[i].text] = true;
+    var extraLog = listOr(extra.log);
+    for (var j = 0; j < extraLog.length; j++) {
+      var e = extraLog[j];
+      if (!e || seen[e.t + "|" + e.actor + "|" + e.text]) continue;
+      base.log.push(e);
+      changed += 1;
+    }
+    base.log.sort(function (x, y) { if (x.t < y.t) return -1; if (x.t > y.t) return 1; return 0; });
+    if (base.log.length > MAX_LOG) base.log.splice(0, base.log.length - MAX_LOG);
+    if (typeof extra.rounds === "number" && extra.rounds > base.rounds) base.rounds = extra.rounds;
+    return changed;
   }
 
   function uid(prefix) { return prefix + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
@@ -365,17 +468,25 @@ textarea{min-height:200px; resize:vertical; line-height:1.5}
     if (realCount() >= 2) return "real";
     return "all";
   }
-  function isMine(p) { return !!p && !p.sample && !!p.owner && p.owner === viewerId; }
+  function isMine(p) {
+    if (!p || p.sample) return false;
+    if (p.owner && viewerId && p.owner === viewerId) return true;
+    if (p.claim && claimHashes[p.id] && claimHashes[p.id] === p.claim) return true;
+    return false;
+  }
   function myPerson() {
     for (var i = 0; i < state.people.length; i++) { if (isMine(state.people[i])) return state.people[i]; }
     return null;
   }
   function canAnswerFor(id) {
-    // fictional samples can be answered by anyone; a real person only by whoever added them
+    // fictional samples can be answered by anyone; a real person only by whoever
+    // added them, and someone added on another person's behalf only by the page owner
     var p = person(id);
     if (!p) return false;
-    if (p.sample || !p.owner) return true;
-    return p.owner === viewerId;
+    if (p.sample) return true;
+    if (isMine(p)) return true;
+    if (!p.owner && !p.claim) return isPageOwner;
+    return false;
   }
   function hasTalked(id) {
     for (var i = 0; i < state.conversations.length; i++) {
@@ -600,6 +711,7 @@ textarea{min-height:200px; resize:vertical; line-height:1.5}
       realNote(card), null);
   }
   function realNote(card) {
+    if (!card) return "";
     var r = card.real_vs_public;
     if (!r || typeof r.score !== "number") return "";
     return "\nReal-vs-public score " + r.score + "/5: " + (r.note || "");
@@ -787,17 +899,19 @@ textarea{min-height:200px; resize:vertical; line-height:1.5}
     }
     runStatus = "Saving…";
     render();
+    stash();
     try {
       await artifactApi.publish(buildDoc());
+      clearStash();
       dirty = false;
       runStatus = "Saved into the page.";
       render();
       return true;      // every open view reloads to the saved version
     } catch (e) {
       var code = errCode(e);
-      if (code === "conflict") saveError = "Someone else saved at the same moment; the page will reload with their version.";
-      else if (code === "not_granted" || code === "not_writer") saveError = "You can read everything here, but only people with edit access can save. Ask the owner for edit access to add results.";
-      else saveError = "Saving failed (" + code + "). Your results are still on screen.";
+      if (code === "conflict") saveError = "Someone else saved at the same moment. The page reloads with their version and then adds yours back.";
+      else if (code === "not_granted" || code === "not_writer") { clearStash(); canWrite = false; saveError = "You can read everything here, but this view can't save. Ask the owner for edit access."; }
+      else { clearStash(); saveError = "Saving failed (" + code + "). Your results are still on screen."; }
       runStatus = "";
       render();
       return false;
@@ -819,13 +933,19 @@ textarea{min-height:200px; resize:vertical; line-height:1.5}
   }
 
   // ---- join: bring your agent ----------------------------------------------
+  function joinProblem() {
+    var j = ui.join;
+    if (myPerson()) return "Your agent is already in the lounge.";
+    if (j.name.trim().length === 0) return "Add your first name.";
+    if (j.text.trim().length < 400) return "That's too short to represent you. Paste your AI's full answer (at least a few paragraphs).";
+    if (!j.consent) return "Tick the box to confirm you're OK with this being visible to everyone invited to this page.";
+    return "";
+  }
   async function readDossier() {
     var j = ui.join;
-    j.error = "";
-    if (j.name.trim().length === 0) { j.error = "Add your first name."; render(); return; }
-    if (j.text.trim().length < 400) { j.error = "That's too short to represent you. Paste your AI's full answer (at least a few paragraphs)."; render(); return; }
-    if (!j.consent) { j.error = "Tick the box to confirm you're OK with this being visible to everyone with the link."; render(); return; }
-    if (!sample) { j.error = "Open this page in Claude, signed in, to read your dossier."; render(); return; }
+    j.error = joinProblem();
+    if (j.error) { render(); return; }
+    if (!sample) { j.error = "Claude isn't available in this view. Use \u201cAdd my agent\u201d below instead: the hub reads it on the next run."; render(); return; }
     j.busy = true; render();
     try {
       var ctl = new AbortController();
@@ -835,11 +955,24 @@ textarea{min-height:200px; resize:vertical; line-height:1.5}
   }
   async function addMe() {
     var j = ui.join;
-    if (!j.card) return;
+    // with Claude the card is previewed first; a guest without Claude joins with
+    // the text alone and the hub writes the card on the next run
+    if (sample && !j.card) return;
+    j.error = joinProblem();
+    if (j.error) { render(); return; }
     var p = { id: uid("p"), name: j.name.trim().split(/\s+/)[0].slice(0, 30), source: j.source, sample: false,
               raw: j.text.trim().slice(0, 8000), card: j.card, joinedAt: now(), owner: viewerId };
+    try {
+      var token = newToken();
+      p.claim = await sha256(token);
+      claims[p.id] = token;
+      claimHashes[p.id] = p.claim;
+      saveClaims();
+    } catch (e) { }
     state.people.push(p);
-    log("human", "human", p.name + " joined and brought their agent from " + p.source + "." + realNote(p.card));
+    var note = realNote(p.card);
+    if (!p.card) note = " The hub writes their card on the next run.";
+    log("human", "human", p.name + " joined and brought their agent from " + p.source + "." + note);
     ui.join = { source: "ChatGPT", name: "", text: "", consent: false, card: null, busy: false, error: "" };
     ui.tab = "people";
     render();
@@ -858,6 +991,7 @@ textarea{min-height:200px; resize:vertical; line-height:1.5}
   }
 
   function resetResults() {
+    if (!isPageOwner) { ui.confirmReset = false; render(); return; }
     state.conversations = []; state.proposals = []; state.log = []; state.rounds = 0;
     for (var i = 0; i < state.people.length; i++) { if (state.people[i].sample) delete state.people[i].card; }
     ui.confirmReset = false;
@@ -919,8 +1053,10 @@ textarea{min-height:200px; resize:vertical; line-height:1.5}
     if (runner) {
       out.push('<div class="status"><span class="dot on"></span><b>Agents are talking.</b> ' + esc(runStatus) + '</div>');
       out.push('<button class="btn" data-act="stop">Stop</button>');
+    } else if (!sample && canWrite === true && artifactApi) {
+      out.push('<div class="status"><b>Guest view.</b> Claude can\'t run from your account on this page, but you can bring your agent and answer your own invitations. The agents talk when the page owner presses <b>Let the agents talk</b>. Everything they said is below.</div>');
     } else if (!sample) {
-      out.push('<div class="status">Reading mode. Open this page in Claude, signed in, to run the agents or bring your own. Everything they said is below.</div>');
+      out.push('<div class="status">Reading mode. This view can read everything but can\'t run the agents or save. Everything they said is below.</div>');
     } else {
       var msg = "Ready. Each round the hub picks who should talk, the agents talk, and the hub decides who gets an invitation. It uses your Claude usage.";
       if (runStatus) msg = runStatus;
@@ -970,7 +1106,7 @@ textarea{min-height:200px; resize:vertical; line-height:1.5}
 
   function meetingsPanel() {
     var out = ["<h2>Invitations</h2>", '<p class="lede">What the humans see. Every invitation came out of a private agent conversation you can read in full.</p>'];
-    if (viewerId && !myPerson()) {
+    if ((viewerId || canWrite === true) && !myPerson() && !isPageOwner) {
       out.push('<div class="notice">You haven\'t brought your agent yet. <button class="link" data-act="tab" data-tab="join">Bring your agent</button> so it can start talking.</div>');
     }
     out.push(howItWorks());
@@ -1101,7 +1237,7 @@ textarea{min-height:200px; resize:vertical; line-height:1.5}
     }
     out.push('<span style="flex:1"></span>');
     if (ui.confirmReset) out.push('<span class="small">Clear all chats, invitations and the log? People stay.</span><button class="btn no" data-act="reset-yes">Clear</button><button class="btn" data-act="reset-no">Cancel</button>');
-    else if (sample && !runner) out.push('<button class="btn" data-act="reset">Start over</button>');
+    else if (sample && !runner && isPageOwner) out.push('<button class="btn" data-act="reset">Start over</button>');
     out.push("</div>");
     var rows = [];
     for (var j = 0; j < state.log.length; j++) {
@@ -1152,6 +1288,11 @@ textarea{min-height:200px; resize:vertical; line-height:1.5}
   function joinPanel() {
     var j = ui.join;
     var out = ["<h2>Bring your agent</h2>", '<p class="lede">Your agent should represent the real you, not your social media self. The AI you already confide in knows that person best.</p><div class="join">'];
+    var mine = myPerson();
+    if (mine) {
+      out.push('<div class="notice">Your agent (' + esc(mine.name) + ') is in the lounge. Read its chats in <b>Agent chats</b> and answer your invitations under <b>Invitations</b>.</div></div>');
+      return out.join("");
+    }
     out.push('<section class="step"><span class="n">STEP 1</span><h3>Ask the AI that knows you</h3><div class="seg">');
     for (var i = 0; i < SOURCES.length; i++) {
       out.push('<button data-act="source" data-s="' + SOURCES[i] + '" aria-pressed="' + (j.source === SOURCES[i]) + '">' + SOURCES[i] + "</button>");
@@ -1161,11 +1302,17 @@ textarea{min-height:200px; resize:vertical; line-height:1.5}
     out.push('<section class="step"><span class="n">STEP 2</span><h3>Paste its answer</h3>');
     out.push('<label class="f" for="j-name">Your first name<input type="text" id="j-name" autocomplete="given-name" maxlength="30"></label>');
     out.push('<label class="f" for="j-text">What ' + esc(j.source) + ' wrote about you<textarea id="j-text" placeholder="You\'re 32 and ..."></textarea></label>');
-    out.push('<label class="consent" for="j-consent"><input type="checkbox" id="j-consent"><span>This is a demo: everything I paste, and every conversation my agent has, is visible to everyone with this link. I\'ve removed anything I wouldn\'t want seen.</span></label>');
+    out.push('<label class="consent" for="j-consent"><input type="checkbox" id="j-consent"><span>This is a demo: everything I paste, and every conversation my agent has, is visible to everyone invited to this page. I\'ve removed anything I wouldn\'t want seen.</span></label>');
     if (j.error) out.push('<p class="err">' + esc(j.error) + "</p>");
-    var label = "Build my agent's card", dis = "";
-    if (j.busy) { label = "Reading…"; dis = " disabled"; }
-    out.push('<div><button class="btn primary" data-act="read"' + dis + ">" + label + "</button></div></section>");
+    if (sample) {
+      var label = "Build my agent's card", dis = "";
+      if (j.busy) { label = "Reading…"; dis = " disabled"; }
+      out.push('<div><button class="btn primary" data-act="read"' + dis + ">" + label + "</button></div></section>");
+    } else if (canWrite === true && artifactApi) {
+      out.push('<div><button class="btn primary" data-act="add">Add my agent to the lounge</button></div><p class="small muted">The hub reads your text and writes your agent\'s card on the next run.</p></section>');
+    } else {
+      out.push('<p class="small muted">This view can\'t save. Send your AI\'s answer to the page owner and they\'ll add your agent.</p></section>');
+    }
     if (j.card) {
       var c = j.card;
       out.push('<section class="step"><span class="n">STEP 3</span><h3>This is how your agent will introduce you</h3>');
@@ -1247,13 +1394,22 @@ textarea{min-height:200px; resize:vertical; line-height:1.5}
   try { var savedTab = localStorage.getItem("lounge-tab"); if (savedTab) ui.tab = savedTab; } catch (e) { }
   var hash = (location.hash || "").replace("#", "");
   if (["meetings", "chats", "log", "people", "join"].indexOf(hash) !== -1) ui.tab = hash;
+  if (pendingMerge && mergeInto(state, pendingMerge) === 0) pendingMerge = null;
   render();
+  hashClaims();
   if (window.claude && typeof window.claude.use === "function") {
     window.claude.use("sample").then(function (fn) { sample = fn; render(); }, function () { });
-    window.claude.use("artifact").then(function (api) { artifactApi = api; }, function () { });
+    window.claude.use("artifact").then(function (api) {
+      artifactApi = api;
+      render();
+      // finish a save that lost a race before the reload
+      if (api && pendingMerge) { pendingMerge = null; save(); }
+    }, function () { });
     window.claude.use("user").then(function (u) {
       if (!u) return;
       u.id().then(function (id) { viewerId = id || null; render(); }, function () { });
+      u.isOwner().then(function (v) { isPageOwner = v === true; render(); }, function () { });
+      u.canEdit().then(function (v) { canWrite = v === true; render(); }, function () { });
     }, function () { });
   }
 })();

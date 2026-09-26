@@ -465,7 +465,7 @@ ol.in{margin:8px 0; padding-left:20px; font-size:13.5px; display:grid; gap:3px}
     m.state = "asked";
     scheduleRender();
     try {
-      var r = await askJson(agentPrompt(id, g, message), "quick", "agent reply");
+      var r = await askJson(agentPrompt(id, g, message), "default", "agent reply");
       var answer = String((r && r.answer) || "no").toLowerCase();
       if (answer !== "yes" && answer !== "counter") answer = "no";
       m.state = answer;

@@ -9,12 +9,11 @@ import os
 from anthropic import AsyncAnthropic
 
 
-# ----- model tiers (cost/reasoning ladder) ---------------------------------
-# three tiers, cheapest to most expensive. Route each AI task to the cheapest
-# tier that can reliably do the job -- reserve the premium tier for the call
-# where getting it right matters most.
-MODEL_CHEAP = "claude-haiku-4-5"       # bulk, mechanical, low-reasoning tasks
-MODEL_REASONING = "claude-sonnet-4-6"  # real judgment, but not the highest-stakes call
+# ----- model tiers ------------------------------------------------------------
+# two tiers, no cheap one: every call in Clawnly speaks for a real person or
+# decides something about them, so none of it goes to a bulk model (no Haiku).
+# Reserve the premium tier for the calls where getting it right matters most.
+MODEL_REASONING = "claude-sonnet-5"    # real judgment: agents, cards, pairing
 MODEL_PREMIUM = "claude-opus-5-5"      # the reasoning-critical call: who should meet
 
 # named per-task aliases -- kept for readability at each call site. Always equal
@@ -34,6 +33,11 @@ MODEL_HUB_VERDICT = MODEL_PREMIUM    # the hub deciding who gets an invitation
 # depth lever. "medium" is also its own default; set explicitly so a model
 # change never silently moves it. Bump to "high" for maximum rigor.
 HUB_EFFORT = "medium"
+
+# effort for the Sonnet 5 calls. Sonnet 5 also thinks by default (adaptive; it
+# counts toward max_tokens) and rejects a non-default `temperature`. "medium" is
+# about Sonnet 4.6's best; raise to "high" if agents read shallow.
+REASONING_EFFORT = "medium"
 
 # how many residents with an agent a neighborhood needs before the hub runs
 # its first round automatically. Each neighborhood snapshots this value when

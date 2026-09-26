@@ -124,10 +124,10 @@ name-blind pitches) are enforced in code, never trusted to the model.
 
 ## Model routing (product's own AI calls, not Claude Code's own model)
 
-`config.py` defines three tiers -- `MODEL_CHEAP` (Haiku), `MODEL_REASONING`
-(Sonnet), `MODEL_PREMIUM` (Opus 5.5) -- and named per-task aliases on top of
-them (`MODEL_AGENT_TURN`, `MODEL_HUB_VERDICT`, etc). When adding a new AI call,
-pick the cheapest tier that can reliably do the job; read the comments in
-`config.py` before changing one. Opus 5.5 has thinking always on (it counts
-toward `max_tokens`, so keep caps generous) and rejects `temperature` -- depth is
-set with `config.HUB_EFFORT`.
+`config.py` defines two tiers and no cheap one -- **no Haiku**, because every call
+speaks for a real person or decides something about them: `MODEL_REASONING`
+(Sonnet 5) and `MODEL_PREMIUM` (Opus 5.5), with named per-task aliases on top
+(`MODEL_AGENT_TURN`, `MODEL_HUB_VERDICT`, etc). Read the comments in `config.py`
+before changing one. Both models think by default (thinking counts toward
+`max_tokens`, so keep caps generous) and reject a non-default `temperature` --
+depth is set with `config.REASONING_EFFORT` and `config.HUB_EFFORT`.

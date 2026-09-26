@@ -130,7 +130,7 @@ def test_neighborhood_activity_and_run_detail_expose_every_log():
     db.log_event(run_id, "hub", "thought", "reasoning", None, nb["id"])
     db.log_ai_call(run_id, nb["id"], None, "verdict", "claude-opus-5-5", "sys", [{"role": "user", "content": "t"}],
                    "reply", 10, 5, 42, None)
-    db.log_ai_call(None, nb["id"], 1, "card", "claude-sonnet-4-6", "sys", [], "card reply", None, None, 7, None)
+    db.log_ai_call(None, nb["id"], 1, "card", "claude-sonnet-5", "sys", [], "card reply", None, None, 7, None)
 
     activity = admin.neighborhood_activity(nb["id"])
     assert [e["text"] for e in activity["events"]] == ["Alex joined.", "reasoning"]

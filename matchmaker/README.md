@@ -26,7 +26,7 @@ The run, all hub and spoke (agents never talk to each other):
 2. **Plan (matchmaker, `complex` tier)** -- groups sized by the matchmaker (no upper limit
    in code), alternates, a personal proposal to each agent. Code rejects anyone not in that
    break room, double bookings, and a "group" of one.
-3. **Round 1 (each agent, `quick` tier)** -- the matchmaker asks each person's agent one to
+3. **Round 1 (each agent, `default` tier -- never the fast one)** -- the matchmaker asks each person's agent one to
    one; the agent answers yes / no / counter from its person's brief and calendar only.
 4. **Resolve (matchmaker)** -- accepts counters by moving the time, calls alternates. Code
    rejects asking anyone outside the group and its alternates, anyone who already said

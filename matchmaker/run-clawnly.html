@@ -1,4 +1,4 @@
-<template id="mm-head"><title>Clawnly Matchmaker</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap"></template><title>Clawnly Matchmaker</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<template id="mm-head"><title>Run Clawnly</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap"></template><title>Run Clawnly</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style id="mm-css">:root{
   --ground:#F1F3F0; --surface:#FFFFFF; --sunk:#E6EAE5; --ink:#16212B; --muted:#5A6570; --line:#D3D9D2;
   --hub:#22406A; --hub-soft:#E1E8F2; --agent:#17695A; --agent-soft:#DCEDE7; --magic:#A5561A; --magic-soft:#F6E7D6;
@@ -574,7 +574,7 @@ h3.minor{font:600 12px var(--body); letter-spacing:.06em; text-transform:upperca
     var root = document.getElementById("root");
     var c = counts();
     var out = ['<div class="wrap"><header class="top">'];
-    out.push('<div class="brand"><h1>Clawnly <span>Matchmaker</span></h1><p class="sub">' + esc(DATA.neighborhood) + " · " + DATA.people.length +
+    out.push('<div class="brand"><h1>Run <span>Clawnly</span></h1><p class="sub">' + esc(DATA.neighborhood) + " · " + DATA.people.length +
       " emulated neighbors · " + DATA.activities.length + " things to do · groups of " + DATA.groupMin + "-" + DATA.groupMax + "</p></div>");
     out.push('<p class="thesis">People tell their own agent what they like and when they\'re free. The <b class="hub-t">matchmaker</b> finds common ground, negotiates with each <b class="agent-t">agent</b> one to one (agents never talk to each other), and hands each person <b class="magic-t">a plan for tomorrow</b>.</p>');
     out.push(controls());

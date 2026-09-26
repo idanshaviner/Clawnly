@@ -1,4 +1,4 @@
-# Clawnly Matchmaker (activity groups, hub and spoke)
+# Run Clawnly (activity groups, hub and spoke)
 
 A single-file page published as a claude.ai Artifact:
 https://claude.ai/artifact/1XBuxUg6WCjSXjXgq9FREX

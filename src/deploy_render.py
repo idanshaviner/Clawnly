@@ -1,6 +1,6 @@
 """Deploy Clawnly to Render and prove it works, in one command.
 
-  .venv/bin/python src/deploy_render.py --admin you@example.com [--first-run]
+  .venv/bin/python src/deploy_render.py --admin you@example.com [--first-run] [--free]
 
 Reads RENDER_API_KEY (to talk to Render) and ANTHROPIC_API_KEY (handed to the
 service; the server's own key) from the environment. Optional RESEND_API_KEY,
@@ -38,11 +38,13 @@ def say(line):
     print(line, flush=True)
 
 
-def env_vars(admin, base_url, environ):
+def env_vars(admin, base_url, environ, free=False):
     # [{"key", "value"}] for the service; secrets only from the environment
     out = [{"key": "PYTHON_VERSION", "value": "3.12.6"},
-           {"key": "CLAWNLY_DB_PATH", "value": "/var/data/clawnly.db"},
            {"key": "CLAWNLY_ADMIN_EMAILS", "value": admin}]
+    if not free:
+        # the free plan has no disk, so the database stays in the container
+        out.append({"key": "CLAWNLY_DB_PATH", "value": "/var/data/clawnly.db"})
     if base_url:
         out.append({"key": "CLAWNLY_BASE_URL", "value": base_url})
     i = 0
@@ -54,13 +56,17 @@ def env_vars(admin, base_url, environ):
     return out
 
 
-def create_body(owner_id, branch, admin, environ):
+def create_body(owner_id, branch, admin, environ, free=False):
+    details = {"runtime": "python", "plan": "starter", "region": "oregon", "healthCheckPath": "/",
+               "disk": {"name": "clawnly-pilot-data", "mountPath": "/var/data", "sizeGB": 1},
+               "envSpecificDetails": {"buildCommand": BUILD, "startCommand": START}}
+    if free:
+        # free: no card, but no disk (saved runs vanish on a restart) and it sleeps when idle
+        details["plan"] = "free"
+        del details["disk"]
     return {"type": "web_service", "name": SERVICE_NAME, "ownerId": owner_id, "repo": REPO,
-            "branch": branch, "autoDeploy": "yes", "envVars": env_vars(admin, None, environ),
-            "serviceDetails": {"runtime": "python", "plan": "starter", "region": "oregon",
-                               "healthCheckPath": "/",
-                               "disk": {"name": "clawnly-pilot-data", "mountPath": "/var/data", "sizeGB": 1},
-                               "envSpecificDetails": {"buildCommand": BUILD, "startCommand": START}}}
+            "branch": branch, "autoDeploy": "yes", "envVars": env_vars(admin, None, environ, free),
+            "serviceDetails": details}
 
 
 def _check(res, what):
@@ -164,6 +170,7 @@ def main():
     parser.add_argument("--admin", required=True, help="the admin email(s), comma-separated")
     parser.add_argument("--branch", default="clawnly-lounge")
     parser.add_argument("--first-run", action="store_true", help="sign in and run one real day")
+    parser.add_argument("--free", action="store_true", help="Render's free plan: no disk, sleeps when idle")
     args = parser.parse_args()
     key = os.environ.get("RENDER_API_KEY")
     if not key:
@@ -176,7 +183,7 @@ def main():
     service = find_service(render)
     if service is None:
         say("Creating " + SERVICE_NAME + " from " + REPO + " (" + args.branch + ")...")
-        created = _check(render.post("/services", json=create_body(owner, args.branch, args.admin, os.environ)),
+        created = _check(render.post("/services", json=create_body(owner, args.branch, args.admin, os.environ, args.free)),
                          "Creating the service")
         service = created.get("service", created)
     else:
@@ -184,7 +191,7 @@ def main():
     base_url = service.get("serviceDetails", {}).get("url")
     if not base_url:
         base_url = "https://" + SERVICE_NAME + ".onrender.com"
-    set_env(render, service["id"], env_vars(args.admin, base_url, os.environ))
+    set_env(render, service["id"], env_vars(args.admin, base_url, os.environ, args.free))
     say("Env vars set (values not shown). Deploying...")
     deploy = _check(render.post("/services/" + service["id"] + "/deploys", json={"clearCache": "do_not_clear"}),
                     "Starting a deploy")

@@ -64,3 +64,11 @@ def test_env_vars_are_upserted_one_by_one_and_errors_never_echo_values(capsys):
     assert ("PUT", "/v1/services/srv-1/env-vars/PYTHON_VERSION") in seen
     assert "sk-secret-anthropic" not in str(stop.value)
     assert "sk-secret-anthropic" not in capsys.readouterr().out
+
+
+def test_the_free_plan_has_no_disk_and_keeps_the_database_in_the_container():
+    body = deploy_render.create_body("own-1", "clawnly-lounge", "a@example.com", ENV, free=True)
+    assert body["serviceDetails"]["plan"] == "free"
+    assert "disk" not in body["serviceDetails"]
+    keys = [v["key"] for v in body["envVars"]]
+    assert "CLAWNLY_DB_PATH" not in keys

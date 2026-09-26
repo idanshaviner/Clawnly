@@ -3,7 +3,7 @@
 Before any agent is asked anything, this looks at every activity in the
 neighborhood catalog for a given day and finds who could do it: people who
 like it, don't dislike or avoid anything about it, are free in that day part,
-and can afford it. Then it proposes groups -- each person in
+and can afford it -- and the activity is running that month and day. Then it proposes groups -- each person in
 at most one group that day, every group 2 to 5 people (catalog.GROUP_MIN..MAX).
 
 No AI calls: this is the cheap, deterministic part of the orchestrator. Its
@@ -25,6 +25,8 @@ BUDGET_OK = {"free": ["free"], "low": ["free", "low"], "any": ["free", "low", "m
 def fit(person, activity, day, part):
     # (score, None) if this person could join this activity in this day part,
     # else (0, the reason they can't). The score says how much they'd want to.
+    if day.month not in activity["months"]:
+        return 0, "out of season"
     if day.weekday() not in activity["days"] or part not in activity["parts"]:
         return 0, "not running then"
     if part not in person["calendar"].get(day.isoformat(), []):
@@ -136,10 +138,10 @@ def main():
     day = datetime.date.today() + datetime.timedelta(days=1)
     if len(sys.argv) > 1:
         day = datetime.date.fromisoformat(sys.argv[1])
-    people = population.generate(100, seed=7, start=day)
+    people = population.generate(200, seed=7, start=day)
     result = propose_groups(people, catalog.ACTIVITIES, day)
     names = _names(people)
-    print("Break room for " + day.strftime("%A %d %B %Y") + ": 100 emulated neighbors in " + catalog.NEIGHBORHOOD +
+    print("Break room for " + day.strftime("%A %d %B %Y") + ": " + str(len(people)) + " emulated neighbors in " + catalog.NEIGHBORHOOD +
           ", " + str(len(catalog.ACTIVITIES)) + " things to do.")
     print(str(result["slots_that_could_run"]) + " activity slots have enough free, interested people. Proposed groups:\n")
     g = 0

@@ -1,4 +1,4 @@
-# Plan: from friendship matching to neighborhood activity groups
+# Plan: from friendship matching to neighborhood activity groups (Black Diamond, WA)
 
 Status: **proposal for discussion.** Step 1 (the emulated people, the catalog and
 the code-only break room) is built; nothing else changes until we agree.
@@ -54,20 +54,29 @@ every agent reply and counter, every lock and every drop.
 
 ## What's built (step 1)
 
-- `src/catalog.py` -- 30 things to do in one neighborhood, College Park: beers and the
-  game at a sports bar, a brewery flight, trivia, karaoke, board games, coffee walks,
-  pickleball, kayaking, a garden workday, a food bank shift, and more. Each has tags,
-  what people avoid about it, days, day parts, cost, indoor/outdoor. Groups are 2-5.
-  Times and prices are invented for simulation.
-- `src/population.py` -- 100 emulated College Park neighbors from a seed (same seed,
-  same people): weighted likes, dislikes, avoid-list, archetype (student, office, shift
-  worker, parent, remote worker), 7-day calendar, budget, and a plain-words brief
-  ("what they told their bot").
+- `src/catalog.py` -- **37 things to do in and around Black Diamond, WA**, grounded in real
+  places and recurring events: Lake Sawyer Regional Park (paddling, fishing, swimming,
+  birding) and its summer dock concerts, the Black Diamond Historical Museum (free; Thu,
+  Sat, Sun), Black Diamond Bakery, the Franklin ghost town trail, the Green River Gorge,
+  Flaming Geyser State Park (tubing, RC airfield), Black Diamond Open Space singletrack,
+  the BMX track, The Vault Taphouse (Seahawks, live music), Lumber House, Big Block
+  Brewery, Black Diamond Grill (Kraken nights), Lake Wilderness Golf Course, the Maple
+  Valley Farmers Market (Sat 9-2), a Mount Rainier day hike. Each has tags, what people
+  avoid about it, days, day parts, **months it runs** (tubing and dock concerts are
+  summer-only), cost. Exact times and prices are estimates. Groups are 2-5.
+- `src/population.py` -- **200 emulated adults** following the city's census profile (ACS
+  2024 5-year: median age 38, 65+ about 10% of residents, 39% of households with kids,
+  median household income about $141k, names in the city's proportions -- ethnicity is
+  never stored or used). Each has weighted likes (leaning by stage of life: retirees
+  toward history, golf, birding; students toward BMX, biking), dislikes, an avoid-list,
+  an archetype (student, commuter, shift worker, parent at home, remote worker, retiree),
+  kids at home, a Black Diamond area, a 7-day calendar, a budget, and a plain-words brief.
 - `src/demand.py` -- the break room and the proposed groups, no AI calls.
   `.venv/bin/python src/demand.py 2026-09-27` prints the day's groups.
 
-First results (seed 7): **Sunday**: 32 slots could run, 15 groups, **60 of 100** people
-have a plan. **Tuesday**: 36 of 100.
+First results (seed 7): **Sunday 27 Sep**: 39 slots could run, 27 groups, **124 of 200**
+have a plan (two Seahawks watch groups at The Vault, ghost town hikes, cribbage at the
+bakery). **Tuesday**: 73 of 200.
 
 ## Next steps (after we agree)
 

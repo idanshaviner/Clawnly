@@ -3,8 +3,8 @@
 import catalog
 
 
-def test_thirty_well_formed_activities_in_one_neighborhood():
-    assert len(catalog.ACTIVITIES) == 30
+def test_thirty_to_forty_well_formed_activities_in_one_neighborhood():
+    assert 30 <= len(catalog.ACTIVITIES) <= 40
     ids = set()
     for a in catalog.ACTIVITIES:
         assert a["id"] not in ids
@@ -15,6 +15,7 @@ def test_thirty_well_formed_activities_in_one_neighborhood():
         assert set(a["parts"]) <= set(catalog.DAY_PARTS) and len(a["parts"]) > 0
         assert set(a["days"]) <= set(range(7)) and len(a["days"]) > 0
         assert a["cost"] in ("free", "low", "mid")
+        assert set(a["months"]) <= set(range(1, 13)) and len(a["months"]) > 0
 
 
 def test_every_interest_has_something_to_do():
@@ -29,5 +30,5 @@ def test_groups_are_two_to_five():
 
 
 def test_get():
-    assert catalog.get("sports-bar")["name"].startswith("Beers and the game")
+    assert catalog.get("seahawks")["where"] == "The Vault Taphouse & Beer Garden"
     assert catalog.get("nope") is None

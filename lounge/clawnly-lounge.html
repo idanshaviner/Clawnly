@@ -168,6 +168,11 @@ textarea{min-height:200px; resize:vertical; line-height:1.5}
 .how li b{display:block; font-weight:600; margin-bottom:2px}
 .how li.human{border-color:var(--human); background:var(--human-soft)}
 .how li.human b{color:var(--human)}
+table.mt{width:100%; border-collapse:collapse; font-size:13.5px}
+table.mt td,table.mt th{padding:4px 6px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top}
+table.mt th{font-weight:500; color:var(--muted)}
+table.mt td.num{text-align:right; font-family:var(--mono); font-variant-numeric:tabular-nums}
+table.mt td.barcell{font-family:var(--mono); color:var(--agent-a); white-space:nowrap}
 </style>
 
 <div id="root"></div>
@@ -207,11 +212,10 @@ textarea{min-height:200px; resize:vertical; line-height:1.5}
   ].join("\n");
 
   // the hub only proposes a meeting when ALL of these hold -- checked in code, not trusted to the model
-  var DEPTH_BAR = 8;
+  // the owner can tune these from the Monitor tab; every change is logged
+  var DEFAULTS = { depthBar: 8, turns: 6, pairsPerRound: 6, emulate: "on" };
   var MIN_VERIFIED_EVIDENCE = 2;
-  var PAIRS_PER_ROUND = 6;
   var MAX_PAIRS_PER_PERSON = 2;
-  var TURNS = 6;
   var MAX_LOG = 1500;
 
   // fictional sample people, written the way a person's own AI would describe them
@@ -295,6 +299,86 @@ textarea{min-height:200px; resize:vertical; line-height:1.5}
       "You're missing a friend for sunrise plans who won't flake at 6am.",
       "Bad fit: drama, night owls, and people whose social life runs through bars.",
       "Free early weekday mornings and weekend mornings. Ballard, Seattle."
+    ].join("\n\n") },
+    { id: "s9", name: "Maya", source: "ChatGPT", sample: true, raw: [
+      "You're 20, a computer science undergrad at the University of Maryland. You build things constantly: hackathon projects, a half-finished app for your dorm, a Discord bot nobody asked for. You care about making things that actually work and about people who are honest when your idea is bad.",
+      "This chapter is your first year living far from home. Classes are fine; belonging is the hard part. You've joined three clubs and still eat most dinners alone.",
+      "With friends you're generous with your time and you'll debug anyone's code at 1am. You need people who show up consistently and don't make you guess whether they like you. When let down, you go quiet and overanalyze it.",
+      "Big parties and small talk drain you. Building something together, late-night food runs and long walks around campus fill you up.",
+      "Your humor is nerdy and a little absurd: you named your laptop 'The Intern'.",
+      "You're missing a small crew you can build things with and just hang out with.",
+      "Bad fit: flaky people and people who care more about status than substance.",
+      "Free most weekday evenings. College Park, Maryland."
+    ].join("\n\n") },
+    { id: "s10", name: "Dev", source: "Claude", sample: true, raw: [
+      "You're 22, a mechanical engineering senior at UMD. You lift at the campus rec center at 6am almost every day and you're blunt to a fault. You admit you turn almost everything into a competition, including board games and grocery runs.",
+      "This chapter is your last year of college and a job offer in another state; you're unsure whether to invest in new friends you might leave.",
+      "With friends you're loyal and you'll push them to be better, sometimes harder than they asked for. You need people who can take directness and give it back. Conflict doesn't scare you; you'd rather argue than simmer.",
+      "Sleeping in and aimless hanging out drain you. Early workouts, pickup basketball and ambitious plans fill you up.",
+      "Your humor is roasting, affectionate but relentless.",
+      "You're missing a training partner who never skips and friends who'll outlast graduation.",
+      "Bad fit: late risers, flaky people and anyone who's easily bruised by teasing.",
+      "Free early mornings and Saturday afternoons. College Park, Maryland."
+    ].join("\n\n") },
+    { id: "s11", name: "Hannah", source: "Muse", sample: true, raw: [
+      "You're 24, a public-policy master's student living in Hyattsville. You're an organizer at heart: you care about fairness and about follow-through, and you overcommit to everything.",
+      "This chapter is exhausting: grad school, a part-time research job, and volunteering. You've noticed you only see people when there's a meeting agenda.",
+      "With friends you're the planner who remembers everyone's deadlines. You need friends who tell you to stop and rest, and who like you when you're not being useful. You handle conflict by over-explaining.",
+      "Performative networking drains you. Cooking a big dinner for a few people, long Sunday walks and honest conversation fill you up.",
+      "Your humor is sarcastic and dry: you call your calendar 'a crime scene'.",
+      "You're missing friends who aren't also colleagues.",
+      "Bad fit: people who only talk about work and people who can't sit still for a slow afternoon.",
+      "Free Sunday afternoons and some Thursday evenings. Hyattsville, Maryland."
+    ].join("\n\n") },
+    { id: "s12", name: "Luis", source: "Instinct", sample: true, raw: [
+      "You're 27, a line cook who just launched your own food truck in Riverdale Park. You care about craft and about people who work hard without making a show of it.",
+      "This chapter is all-in on the truck. You work nights and weekends, so your social life has quietly disappeared, and you're lonelier than you let on.",
+      "With friends you feed people; that's how you show you care. You need friends who don't take it personally when you cancel because the truck broke down, and who'll come to you. When let down, you shrug it off outwardly and remember it for a long time.",
+      "Loud bars drain you after a shift. Late-night food, honest talk and quiet mornings fill you up.",
+      "Your humor is deadpan: 'The truck has more moods than my ex.'",
+      "You're missing a friend for late-night food and early Monday coffee.",
+      "Bad fit: people who need weekend plans and anyone who's rude to service workers.",
+      "Free Mondays and Tuesdays, and late nights after 11pm. Riverdale Park, Maryland."
+    ].join("\n\n") },
+    { id: "s13", name: "Grace", source: "ChatGPT", sample: true, raw: [
+      "You're 19, a first-year art student at UMD from a small town. You care about gentleness and about people who don't judge you for being quiet.",
+      "This chapter is overwhelming: the campus is bigger than your whole hometown, and you haven't found your people yet. Some nights you call home just to hear a familiar voice.",
+      "With friends you're a careful listener and you draw little comics for people's birthdays. You need patience: it takes you a while to open up. You avoid conflict and need people who'll bring things up kindly.",
+      "Parties and loud dining halls drain you. Drawing side by side, quiet cafes and one-on-one walks fill you up.",
+      "Your humor is gentle and absurd: your comics are about a frog who is bad at college.",
+      "You're missing one or two close friends you don't have to perform for.",
+      "Bad fit: very loud people, pranksters and anyone who treats shyness as a flaw.",
+      "Free weekday afternoons and Sunday mornings. College Park, Maryland."
+    ].join("\n\n") },
+    { id: "s14", name: "Omar", source: "Claude", sample: true, raw: [
+      "You're 25, a software engineer working remotely from Columbia Heights in DC. You climb, you read too much philosophy, and you value honesty over comfort.",
+      "This chapter is post-college drift: your college friends scattered and remote work means whole days pass without talking to anyone.",
+      "With friends you're curious and a good question-asker; you'll help anyone think a problem through. You overthink texts and can go days before replying. You handle conflict by wanting to talk it all the way through.",
+      "Small talk and big crowds drain you. Climbing, weekend hikes, building side projects and long debates fill you up.",
+      "Your humor is dry and self-aware: 'I have strong opinions about sourdough and no evidence.'",
+      "You're missing weekend adventure friends who also like ideas.",
+      "Bad fit: people who never want to go deep, and people who treat every disagreement as an attack.",
+      "Free weekends and some weekday evenings. Columbia Heights, Washington DC."
+    ].join("\n\n") },
+    { id: "s15", name: "Tess", source: "Muse", sample: true, raw: [
+      "You're 30, a nurse who moved to Silver Spring six months ago. You run most mornings, you're competitive at trivia, and you care about people being present rather than on their phones.",
+      "This chapter is starting over in a new city after a breakup. Work is steady; weekends are the lonely part.",
+      "With friends you're dependable and funny, the one who remembers your coffee order. You need people who make plans and keep them. When let down, you say so directly, once.",
+      "Being around people glued to their phones drains you. Morning runs, trivia nights and long brunches fill you up.",
+      "Your humor is dry and quick.",
+      "You're missing a weekend friend and a running partner.",
+      "Bad fit: people who are always on their phones, and chronic cancellers.",
+      "Free Wednesday evenings and Saturday mornings. Silver Spring, Maryland."
+    ].join("\n\n") },
+    { id: "s16", name: "Ben", source: "Instinct", sample: true, raw: [
+      "You're 21, a philosophy major at UMD and on the debate team. You're intense and intellectually restless, and you admit you can come across as condescending when you're excited about an idea.",
+      "This chapter is figuring out what you actually believe, and whether you want grad school or a startup.",
+      "With friends you're generous with ideas and brutally honest. You need people who push back and don't take it personally. After a conflict you want to resolve it the same night.",
+      "Shallow conversation and scheduled fun drain you. Late-night arguments, weird side projects and walks with no destination fill you up.",
+      "Your humor is absurdist: you once gave a 10-minute defense of cereal being soup.",
+      "You're missing friends who are ambitious without being competitive about it.",
+      "Bad fit: people who find ambition embarrassing, and people who can't handle being disagreed with.",
+      "Free late evenings, most days. College Park, Maryland."
     ].join("\n\n") }
   ];
 
@@ -324,6 +408,16 @@ textarea{min-height:200px; resize:vertical; line-height:1.5}
     if (!Array.isArray(s.proposals)) s.proposals = [];
     if (!Array.isArray(s.log)) s.log = [];
     if (typeof s.rounds !== "number") s.rounds = 0;
+    if (!s.settings || typeof s.settings !== "object") s.settings = {};
+    if (!s.metrics || typeof s.metrics !== "object") s.metrics = {};
+    if (!s.metrics.calls || typeof s.metrics.calls !== "object") s.metrics.calls = {};
+    if (typeof s.metrics.rejectedPairs !== "number") s.metrics.rejectedPairs = 0;
+    // fictional people added to SEED later join an existing lounge automatically
+    for (var k = 0; k < SEED.length; k++) {
+      var found = false;
+      for (var n = 0; n < s.people.length; n++) { if (s.people[n].id === SEED[k].id) found = true; }
+      if (!found) s.people.push(JSON.parse(JSON.stringify(SEED[k])));
+    }
     // a conversation interrupted by a reload can never finish
     for (var i = 0; i < s.conversations.length; i++) {
       if (s.conversations[i].status === "live") s.conversations[i].status = "failed";
@@ -429,6 +523,12 @@ textarea{min-height:200px; resize:vertical; line-height:1.5}
     return changed;
   }
 
+  function setting(name) {
+    var v = state.settings[name];
+    if (v === undefined || v === null) return DEFAULTS[name];
+    return v;
+  }
+
   function uid(prefix) { return prefix + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
   function now() { return new Date().toISOString(); }
   function esc(s) {
@@ -514,19 +614,32 @@ textarea{min-height:200px; resize:vertical; line-height:1.5}
     if (waiting.length > 0) { var next = waiting.shift(); next(); return; }
     slots += 1;
   }
-  async function askText(prompt, tier, signal, onText) {
+  function track(kind, started, ok) {
+    var calls = state.metrics.calls;
+    if (!calls[kind]) calls[kind] = { n: 0, ms: 0, failed: 0 };
+    calls[kind].n += 1;
+    calls[kind].ms += Date.now() - started;
+    if (!ok) calls[kind].failed += 1;
+  }
+  async function askText(prompt, tier, signal, onText, kind) {
     await acquire();
+    var started = Date.now(), ok = false;
     try {
       var opts = { modelTier: tier, signal: signal, cache: false };
       if (onText) opts.onText = onText;
       var res = await sample(prompt, opts);
+      ok = true;
       return res.text;
-    } finally { release(); }
+    } finally { track(kind || "turn", started, ok); release(); }
   }
-  async function askJson(prompt, tier, signal) {
+  async function askJson(prompt, tier, signal, kind) {
     await acquire();
-    try { return await sample.json(prompt, { modelTier: tier, signal: signal, cache: false }); }
-    finally { release(); }
+    var started = Date.now(), ok = false;
+    try {
+      var out = await sample.json(prompt, { modelTier: tier, signal: signal, cache: false });
+      ok = true;
+      return out;
+    } finally { track(kind || "other", started, ok); release(); }
   }
   function errCode(e) { if (e && e.code) return e.code; return "upstream_error"; }
   function errCopy(code) {
@@ -599,7 +712,7 @@ textarea{min-height:200px; resize:vertical; line-height:1.5}
     var lines = [
       "You are the Master Claw, the orchestrator (hub) of Clawnly. Each person below brought their own AI agent. Before any human is involved, agents hold private one-on-one conversations; you decide which agents talk next.",
       "Pick the pairs where a deep, lasting friendship is most plausible -- shared values, complementary needs, compatible rhythm, overlapping free time and area -- or where it is genuinely uncertain enough that a conversation would tell. Surface overlap (same hobby) is not enough.",
-      "Pick at most " + PAIRS_PER_ROUND + " pairs. Each person in at most " + MAX_PAIRS_PER_PERSON + " pairs. Never pick a pair that already talked.",
+      "Pick at most " + setting("pairsPerRound") + " pairs. Each person in at most " + MAX_PAIRS_PER_PERSON + " pairs. Never pick a pair that already talked.",
       ""
     ];
     if (newcomers.length > 0) lines.push("New arrivals who haven't talked to anyone yet (prioritize giving each of them a conversation): " + newcomers.join(", "), "");
@@ -616,7 +729,7 @@ textarea{min-height:200px; resize:vertical; line-height:1.5}
   }
 
   function turnPrompt(me, other, c, index) {
-    var closing = index >= TURNS - 2;
+    var closing = index >= setting("turns") - 2;
     var lines = [
       "You are the Clawnly agent of " + me.name + ". You are in a private, agent-to-agent conversation with the agent of " + other.name + ". Neither human is present; they will only see a yes/no invitation later if the hub thinks they should meet.",
       "Your job: find out honestly whether " + me.name + " and " + other.name + " could become genuinely close friends, and represent " + me.name + " truthfully.",
@@ -667,14 +780,21 @@ textarea{min-height:200px; resize:vertical; line-height:1.5}
     return String(s || "").toLowerCase().replace(/[‘’“”]/g, "'").replace(/[^a-z0-9']+/g, " ").trim();
   }
   function verifyEvidence(items, c) {
-    var whole = norm(transcriptText(c));
-    var kept = [], dropped = [];
+    // a quote counts only if it appears word for word inside ONE agent's message;
+    // each kept quote remembers whose agent said it
+    var kept = [], dropped = [], said = [];
     if (!Array.isArray(items)) return { kept: kept, dropped: dropped };
+    for (var t = 0; t < c.turns.length; t++) said.push(norm(c.turns[t].text));
     for (var i = 0; i < items.length; i++) {
       var it = items[i];
       if (!it || typeof it.quote !== "string") continue;
-      var q = norm(it.quote);
-      if (q.length >= 12 && whole.indexOf(q) !== -1) kept.push({ quote: it.quote, why: String(it.why || "") });
+      var q = norm(it.quote), by = null;
+      if (q.length >= 12) {
+        for (var k = 0; k < said.length; k++) {
+          if (by === null && said[k].indexOf(q) !== -1) by = c.turns[k].by;
+        }
+      }
+      if (by) kept.push({ quote: it.quote, why: String(it.why || ""), by: by });
       else dropped.push(it.quote);
     }
     return { kept: kept, dropped: dropped };
@@ -693,7 +813,7 @@ textarea{min-height:200px; resize:vertical; line-height:1.5}
       if ((used[a] || 0) >= MAX_PAIRS_PER_PERSON || (used[b] || 0) >= MAX_PAIRS_PER_PERSON) {
         rejected.push(nameOf(a) + "+" + nameOf(b) + ": over the per-person limit"); continue;
       }
-      if (out.length >= PAIRS_PER_ROUND) { rejected.push(nameOf(a) + "+" + nameOf(b) + ": over the round limit"); continue; }
+      if (out.length >= setting("pairsPerRound")) { rejected.push(nameOf(a) + "+" + nameOf(b) + ": over the round limit"); continue; }
       seen[key] = true;
       used[a] = (used[a] || 0) + 1;
       used[b] = (used[b] || 0) + 1;
@@ -704,7 +824,7 @@ textarea{min-height:200px; resize:vertical; line-height:1.5}
 
   // ---- the round ------------------------------------------------------------
   async function buildCard(p, signal) {
-    var card = await askJson(cardPrompt(p.source, p.raw), "default", signal);
+    var card = await askJson(cardPrompt(p.source, p.raw), "default", signal, "card");
     if (!card || typeof card !== "object") throw { code: "invalid_json" };
     p.card = card;
     log("hub", "thought", "Read " + p.name + "'s dossier (from " + p.source + ") and wrote their card: \"" + (card.essence || "") + "\"" +
@@ -739,9 +859,10 @@ textarea{min-height:200px; resize:vertical; line-height:1.5}
     if (ready.length < 2) { log("code", "check", "Fewer than 2 people have a card. Nothing to pair."); return []; }
     runStatus = "The hub is reading " + ready.length + " cards and choosing who should talk…";
     scheduleRender();
-    var res = await askJson(pairPrompt(ready, doneList, newcomers), "default", signal);
+    var res = await askJson(pairPrompt(ready, doneList, newcomers), "default", signal, "pairing");
     log("hub", "thought", String((res && res.thoughts) || "(the hub gave no reasoning)"));
     var cleaned = cleanPairs(res && res.pairs, validIds, done);
+    state.metrics.rejectedPairs += cleaned.rejected.length;
     for (var r = 0; r < cleaned.rejected.length; r++) log("code", "check", "Rejected a pair the hub picked: " + cleaned.rejected[r]);
     for (var q = 0; q < cleaned.pairs.length; q++) {
       var pr = cleaned.pairs[q];
@@ -758,7 +879,7 @@ textarea{min-height:200px; resize:vertical; line-height:1.5}
     state.conversations.push(c);
     if (!ui.conv || !conv(ui.conv) || conv(ui.conv).status !== "live") ui.conv = c.id;
     log("system", "system", nameOf(a.id) + "'s agent and " + nameOf(b.id) + "'s agent opened a private conversation.", c.id);
-    for (var i = 0; i < TURNS; i++) {
+    for (var i = 0; i < setting("turns"); i++) {
       var me = a, other = b;
       if (i % 2 === 1) { me = b; other = a; }
       var turn = { by: me.id, text: "" };
@@ -766,7 +887,7 @@ textarea{min-height:200px; resize:vertical; line-height:1.5}
       scheduleRender();
       var text = await askText(turnPrompt(me, other, { turns: c.turns.slice(0, c.turns.length - 1) }, i),
         turnTier(), signal,
-        function (u) { turn.text = u.text; scheduleRender(); });
+        function (u) { turn.text = u.text; scheduleRender(); }, "agent turn");
       turn.text = text.trim();
       log("agent", "message", me.name + "'s agent: " + turn.text, c.id);
     }
@@ -779,7 +900,7 @@ textarea{min-height:200px; resize:vertical; line-height:1.5}
     var a = person(c.a), b = person(c.b);
     runStatus = "The hub is judging " + a.name + " + " + b.name + "…";
     scheduleRender();
-    var v = await askJson(verdictPrompt(a, b, c), "complex", signal);
+    var v = await askJson(verdictPrompt(a, b, c), "complex", signal, "verdict");
     if (!v || typeof v !== "object") throw { code: "invalid_json" };
     var ev = verifyEvidence(v.evidence, c);
     var depth = Number(v.depth);
@@ -790,8 +911,15 @@ textarea{min-height:200px; resize:vertical; line-height:1.5}
     }
     var reasons = [];
     if (v.recommend !== true) reasons.push("hub did not recommend");
-    if (depth < DEPTH_BAR) reasons.push("depth " + depth + " < " + DEPTH_BAR);
+    if (depth < setting("depthBar")) reasons.push("depth " + depth + " < " + setting("depthBar"));
     if (ev.kept.length < MIN_VERIFIED_EVIDENCE) reasons.push("only " + ev.kept.length + " verified quote(s), need " + MIN_VERIFIED_EVIDENCE);
+    // one person's pasted text can't manufacture the evidence alone
+    var fromA = false, fromB = false;
+    for (var e = 0; e < ev.kept.length; e++) {
+      if (ev.kept[e].by === a.id) fromA = true;
+      if (ev.kept[e].by === b.id) fromB = true;
+    }
+    if (ev.kept.length >= MIN_VERIFIED_EVIDENCE && (!fromA || !fromB)) reasons.push("verified quotes must come from both agents");
     var propose = reasons.length === 0;
     c.verdict = { depth: depth, recommend: v.recommend === true, headline: String(v.headline || ""), thoughts: String(v.thoughts || ""),
                   evidence: ev.kept, dropped: ev.dropped, tensions: listOr(v.tensions), invite: v.invite || {},
@@ -799,12 +927,55 @@ textarea{min-height:200px; resize:vertical; line-height:1.5}
     if (propose) {
       log("code", "check", "Gate passed: recommended, depth " + depth + "/10, " + ev.kept.length + " verified quotes.", c.id);
       var inv = v.invite || {};
-      state.proposals.push({ id: uid("m"), conv: c.id, a: a.id, b: b.id, headline: c.verdict.headline, depth: depth,
+      var pr = { id: uid("m"), conv: c.id, a: a.id, b: b.id, headline: c.verdict.headline, depth: depth,
         invite: { activity: String(inv.activity || ""), when: String(inv.when || ""), where: String(inv.where || "") },
-        pitch: { a: String(inv.to_a || ""), b: String(inv.to_b || "") }, answers: {}, createdAt: now() });
+        pitch: { a: String(inv.to_a || ""), b: String(inv.to_b || "") }, answers: {}, sim: {}, createdAt: now() };
+      state.proposals.push(pr);
       log("hub", "decision", "Invite " + a.name + " and " + b.name + " to meet: " + c.verdict.headline, c.id);
+      if (setting("emulate") === "on") await emulateAnswers(pr, signal);
     } else {
       log("code", "check", "No invitation for " + a.name + " + " + b.name + ": " + reasons.join("; ") + ".", c.id);
+    }
+  }
+
+  function emulatePrompt(me, pr, side) {
+    return [
+      "You are emulating " + me.name + ", a person described only by the dossier below (written by the AI that knows them). You know nothing else about them.",
+      "Clawnly's hub has just invited " + me.name + " to meet someone. This is exactly what " + me.name + " sees:",
+      "Why meet: " + pr.pitch[side],
+      "What: " + (pr.invite.activity || "to be agreed") + ". When: " + (pr.invite.when || "to be agreed") + ". Where: " + (pr.invite.where || "to be agreed") + ".",
+      "",
+      "Would " + me.name + " actually say yes? Answer as the real person would, not as a helpful assistant: people say no when the time, place or energy conflicts, when it matches their bad-fit list, or when the pitch feels generic.",
+      "",
+      "DOSSIER -- " + me.name + ":",
+      me.raw.slice(0, 5000),
+      "",
+      "Reply with only this JSON object:",
+      "{\"answer\": \"yes\" or \"no\", \"why\": \"one sentence in " + me.name + "'s voice\", \"confidence\": 1-5}"
+    ].join("\n");
+  }
+  async function emulateAnswers(pr, signal) {
+    // no humans in the loop: each side's answer is emulated from their dossier,
+    // stored apart from any real answer and always labelled as emulated
+    var sides = [["a", pr.a], ["b", pr.b]];
+    for (var i = 0; i < sides.length; i++) {
+      var p = person(sides[i][1]);
+      try {
+        var res = await askJson(emulatePrompt(p, pr, sides[i][0]), "default", signal, "emulated answer");
+        var ans = "no";
+        if (res && String(res.answer).toLowerCase() === "yes") ans = "yes";
+        var why = "";
+        if (res && res.why) why = String(res.why);
+        pr.sim[p.id] = { answer: ans, why: why };
+        log("agent", "emulated", "Emulated " + p.name + ": " + ans.toUpperCase() + " to meeting " + nameOf(otherOf(pr, p.id)) + ". \u201c" + why + "\u201d", pr.conv);
+      } catch (e) {
+        var code = errCode(e);
+        log("system", "system", "Couldn't emulate " + p.name + "'s answer: " + errCopy(code), pr.conv);
+        if (isFatal(code)) throw e;
+      }
+    }
+    if (pr.sim[pr.a] && pr.sim[pr.b] && pr.sim[pr.a].answer === "yes" && pr.sim[pr.b].answer === "yes") {
+      log("system", "system", "Emulated: both " + nameOf(pr.a) + " and " + nameOf(pr.b) + " would say yes.", pr.conv);
     }
   }
 
@@ -813,8 +984,9 @@ textarea{min-height:200px; resize:vertical; line-height:1.5}
     runner = new AbortController();
     var signal = runner.signal;
     saveError = "";
-    state.rounds += 1;
-    log("human", "system", "A human pressed Run (round " + state.rounds + "). From here until the yes/no invitation, no human is involved.");
+    var total = Number(ui.rounds || 1);
+    log("human", "system", "The owner pressed Run: up to " + total + " round(s) with depth bar " + setting("depthBar") + ", " +
+      setting("turns") + " turns, " + setting("pairsPerRound") + " pairs per round, emulated answers " + setting("emulate") + ".");
     try {
       var missing = [];
       var skipSamples = poolMode() === "real";
@@ -829,33 +1001,30 @@ textarea{min-height:200px; resize:vertical; line-height:1.5}
         for (var m = 0; m < missing.length; m++) tasks.push(cardTask(missing[m], signal));
         throwFirst(await Promise.allSettled(tasks));
       }
-      var pairs = await choosePairs(signal);
-      var next = 0;
-      async function worker() {
-        while (next < pairs.length && !signal.aborted) {
-          var pair = pairs[next];
-          next += 1;
-          runStatus = "Agents talking: " + nameOf(pair.a) + " + " + nameOf(pair.b) + "…";
-          scheduleRender();
-          var c = null;
-          try {
-            c = await converse(pair, signal);
-            await judge(c, signal);
-          } catch (e) {
-            var code = errCode(e);
-            if (c) c.status = "failed";
-            else markLiveFailed(pair);
-            log("system", "system", "Conversation " + nameOf(pair.a) + " + " + nameOf(pair.b) + " stopped: " + errCopy(code));
-            if (isFatal(code)) { if (runner) runner.abort(); throw e; }
+      if (setting("emulate") === "on") {
+        // invitations made before emulation was switched on get their answers first
+        for (var q = 0; q < state.proposals.length && !signal.aborted; q++) {
+          var pq = state.proposals[q];
+          if (!pq.sim) pq.sim = {};
+          if (!pq.sim[pq.a] || !pq.sim[pq.b]) {
+            runStatus = "Emulating answers for " + nameOf(pq.a) + " + " + nameOf(pq.b) + "…";
+            scheduleRender();
+            await emulateAnswers(pq, signal);
           }
         }
       }
-      throwFirst(await Promise.allSettled([worker(), worker()]));
-      runStatus = "Round " + state.rounds + " finished. Saving results into the page…";
-      log("system", "system", "Round " + state.rounds + " finished.");
+      for (var round = 0; round < total && !signal.aborted; round++) {
+        state.rounds += 1;
+        log("system", "system", "Round " + state.rounds + " started. No human is involved.");
+        var more = await runOneRound(signal);
+        runStatus = "Round " + state.rounds + " finished.";
+        log("system", "system", "Round " + state.rounds + " finished.");
+        if (!more) { log("hub", "decision", "No new pairs left worth a conversation. Stopping early."); break; }
+      }
+      runStatus = runStatus + " Saving results into the page…";
     } catch (e) {
       runStatus = errCopy(errCode(e)) + " Saving what finished…";
-      log("system", "system", "Round stopped: " + errCopy(errCode(e)));
+      log("system", "system", "Run stopped: " + errCopy(errCode(e)));
     } finally {
       for (var k = 0; k < state.conversations.length; k++) {
         if (state.conversations[k].status === "live") state.conversations[k].status = "failed";
@@ -864,6 +1033,33 @@ textarea{min-height:200px; resize:vertical; line-height:1.5}
       scheduleRender();
       await save();
     }
+  }
+  async function runOneRound(signal) {
+    // true when the hub found at least one pair to talk
+    var pairs = await choosePairs(signal);
+    if (pairs.length === 0) return false;
+    var next = 0;
+    async function worker() {
+      while (next < pairs.length && !signal.aborted) {
+        var pair = pairs[next];
+        next += 1;
+        runStatus = "Agents talking: " + nameOf(pair.a) + " + " + nameOf(pair.b) + "…";
+        scheduleRender();
+        var c = null;
+        try {
+          c = await converse(pair, signal);
+          await judge(c, signal);
+        } catch (e) {
+          var code = errCode(e);
+          if (c) c.status = "failed";
+          else markLiveFailed(pair);
+          log("system", "system", "Conversation " + nameOf(pair.a) + " + " + nameOf(pair.b) + " stopped: " + errCopy(code));
+          if (isFatal(code)) { if (runner) runner.abort(); throw e; }
+        }
+      }
+    }
+    throwFirst(await Promise.allSettled([worker(), worker()]));
+    return true;
   }
   async function cardTask(p, signal) {
     try { await buildCard(p, signal); }
@@ -949,7 +1145,7 @@ textarea{min-height:200px; resize:vertical; line-height:1.5}
     j.busy = true; render();
     try {
       var ctl = new AbortController();
-      j.card = await askJson(cardPrompt(j.source, j.text), "default", ctl.signal);
+      j.card = await askJson(cardPrompt(j.source, j.text), "default", ctl.signal, "card");
     } catch (e) { j.error = errCopy(errCode(e)); }
     j.busy = false; render();
   }
@@ -977,6 +1173,17 @@ textarea{min-height:200px; resize:vertical; line-height:1.5}
     ui.tab = "people";
     render();
     await save();
+  }
+
+  function changeSetting(name, raw) {
+    if (!isPageOwner || runner || !(name in DEFAULTS)) { render(); return; }
+    var value = raw;
+    if (typeof DEFAULTS[name] === "number") value = Number(raw);
+    var before = setting(name);
+    if (String(before) === String(value)) return;
+    state.settings[name] = value;
+    log("human", "system", "The owner changed " + name + ": " + before + " \u2192 " + value + " (applies to the next run).");
+    save();
   }
 
   function removeMine(id) {
@@ -1019,7 +1226,18 @@ textarea{min-height:200px; resize:vertical; line-height:1.5}
     }
     var hit = "--";
     if (decided > 0) hit = Math.round(100 * mutual / decided) + "%";
-    return { people: state.people.length, done: done, proposals: state.proposals.length, mutual: mutual, decided: decided, hit: hit };
+    var simDecided = 0, simMutual = 0;
+    for (var k = 0; k < state.proposals.length; k++) {
+      var q = state.proposals[k], sa = (q.sim || {})[q.a], sb = (q.sim || {})[q.b];
+      if (sa && sb) {
+        simDecided += 1;
+        if (sa.answer === "yes" && sb.answer === "yes") simMutual += 1;
+      }
+    }
+    var simHit = "--";
+    if (simDecided > 0) simHit = Math.round(100 * simMutual / simDecided) + "%";
+    return { people: state.people.length, done: done, proposals: state.proposals.length, mutual: mutual, decided: decided, hit: hit,
+             simDecided: simDecided, simMutual: simMutual, simHit: simHit };
   }
 
   function render() {
@@ -1033,7 +1251,7 @@ textarea{min-height:200px; resize:vertical; line-height:1.5}
     html.push('<p class="thesis">Everyone brings the AI that already knows them. <b>Agents talk to agents in private</b>, the hub decides who should meet, and <b>humans only say yes or no</b>.</p>');
     html.push('<div class="stats">' +
       statTile(s.people, "people") + statTile(s.done, "agent chats") + statTile(s.proposals, "invitations") +
-      statTile(s.mutual, "both said yes") + '<div class="stat hit"><div class="n">' + esc(s.hit) + '</div><div class="l">hit rate (' + s.decided + ' decided)</div></div></div>');
+      statTile(s.simMutual, "emulated both yes") + '<div class="stat hit"><div class="n">' + esc(s.simHit) + '</div><div class="l">emulated hit rate (' + s.simDecided + ')</div></div></div>');
     html.push(runBar());
     html.push("</header>");
     if (saveError) html.push('<div class="notice warn">' + esc(saveError) + "</div>");
@@ -1067,6 +1285,10 @@ textarea{min-height:200px; resize:vertical; line-height:1.5}
       out.push('<label class="small muted" for="pool">Who talks</label><select id="pool" class="select">' +
         '<option value="real"' + selectedIf(poolMode() === "real") + '>Real people only (' + realCount() + ')</option>' +
         '<option value="all"' + selectedIf(poolMode() === "all") + '>Everyone, incl. samples</option></select>');
+      out.push('<label class="small muted" for="rounds">Rounds</label><select id="rounds" class="select">' +
+        '<option value="1"' + selectedIf(String(ui.rounds || 1) === "1") + '>1</option>' +
+        '<option value="3"' + selectedIf(String(ui.rounds) === "3") + '>up to 3</option>' +
+        '<option value="5"' + selectedIf(String(ui.rounds) === "5") + '>up to 5</option></select>');
       out.push('<button class="btn primary" data-act="run">Let the agents talk</button>');
     }
     out.push("</div>");
@@ -1075,7 +1297,8 @@ textarea{min-height:200px; resize:vertical; line-height:1.5}
 
   function tabs(s) {
     var list = [["meetings", "Invitations", s.proposals], ["chats", "Agent chats", state.conversations.length],
-                ["log", "Behind the scenes", state.log.length], ["people", "People", s.people], ["join", "Bring your agent", null]];
+                ["log", "Behind the scenes", state.log.length], ["monitor", "Monitor", null], ["people", "People", s.people],
+                ["about", "How it's built", null], ["join", "Bring your agent", null]];
     var out = ['<nav class="tabs" role="tablist">'];
     for (var i = 0; i < list.length; i++) {
       var t = list[i];
@@ -1092,6 +1315,8 @@ textarea{min-height:200px; resize:vertical; line-height:1.5}
     if (ui.tab === "log") return logPanel();
     if (ui.tab === "people") return peoplePanel();
     if (ui.tab === "join") return joinPanel();
+    if (ui.tab === "monitor") return monitorPanel();
+    if (ui.tab === "about") return aboutPanel();
     return meetingsPanel();
   }
 
@@ -1100,8 +1325,8 @@ textarea{min-height:200px; resize:vertical; line-height:1.5}
       '<li><b>1. Bring your agent</b>Paste what ChatGPT, Claude, Muse or Instinct knows about the real you. Not your social media self.</li>' +
       '<li><b>2. The hub picks pairs</b>The orchestrator reads every card and decides which agents should talk.</li>' +
       '<li><b>3. Agents talk</b>Each agent knows only its own person and says "I don\'t know" rather than invent.</li>' +
-      '<li><b>4. Code checks the hub</b>Invitations need depth 8/10+ and quotes that really appear in the chat.</li>' +
-      '<li class="human"><b>5. You: yes or no</b>The only moment a human is involved. Both yes, you meet.</li></ul>';
+      '<li><b>4. Code checks the hub</b>Invitations need depth ' + esc(setting("depthBar")) + '/10+ and quotes that really appear in the chat, from both agents.</li>' +
+      '<li class="human"><b>5. Yes or no</b>Emulated from each dossier for now; a real person can still answer their own.</li></ul>';
   }
 
   function meetingsPanel() {
@@ -1165,7 +1390,10 @@ textarea{min-height:200px; resize:vertical; line-height:1.5}
     return out.join("");
   }
   function side(p, who, pitch, ans) {
-    var out = ['<div class="side"><span class="to">To ' + esc(nameOf(who)) + "</span><p>" + esc(pitch) + '</p><div class="act">'];
+    var out = ['<div class="side"><span class="to">To ' + esc(nameOf(who)) + "</span><p>" + esc(pitch) + "</p>"];
+    var sim = (p.sim || {})[who];
+    if (sim) out.push('<p class="small"><span class="chip">emulated</span> <span class="answer ' + esc(sim.answer) + '">would say ' + esc(sim.answer) + "</span> " + esc(sim.why) + "</p>");
+    out.push('<div class="act">');
     if (ans) out.push('<span class="answer ' + ans + '">' + esc(nameOf(who)) + " said " + ans + "</span>");
     else if (!canAnswerFor(who)) out.push('<span class="small muted">Waiting for ' + esc(nameOf(who)) + " to answer.</span>");
     else out.push('<button class="btn yes" data-act="answer" data-p="' + p.id + '" data-who="' + who + '" data-v="yes">Yes, I\'ll meet</button>' +
@@ -1228,7 +1456,7 @@ textarea{min-height:200px; resize:vertical; line-height:1.5}
     return out.join("");
   }
 
-  var FILTERS = [["all", "Everything"], ["thought", "Hub thoughts"], ["decision", "Hub decisions"], ["message", "Agent messages"], ["check", "Code checks"], ["human", "Humans"]];
+  var FILTERS = [["all", "Everything"], ["thought", "Hub thoughts"], ["decision", "Hub decisions"], ["message", "Agent messages"], ["check", "Code checks"], ["emulated", "Emulated answers"], ["human", "Humans"]];
   function logPanel() {
     var out = ["<h2>Behind the scenes</h2>", '<p class="lede">The full activity log: the hub\'s reasoning, every agent message, every check the code ran on the hub, and the few moments a human stepped in.</p>'];
     out.push('<div class="logtools">');
@@ -1257,6 +1485,96 @@ textarea{min-height:200px; resize:vertical; line-height:1.5}
     }
     out.push("</div>");
     return out.join("");
+  }
+
+  function gateBuckets() {
+    var b = { "hub did not recommend": 0, "depth below the bar": 0, "not enough verified quotes": 0, "quotes not from both agents": 0 };
+    var depths = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], dropped = 0, judged = 0, failed = 0;
+    for (var i = 0; i < state.conversations.length; i++) {
+      var c = state.conversations[i];
+      if (c.status === "failed") failed += 1;
+      var v = c.verdict;
+      if (!v) continue;
+      judged += 1;
+      if (v.depth >= 1 && v.depth <= 10) depths[v.depth] += 1;
+      dropped += listOr(v.dropped).length;
+      var g = listOr(v.gate);
+      for (var k = 0; k < g.length; k++) {
+        if (g[k].indexOf("did not recommend") !== -1) b["hub did not recommend"] += 1;
+        else if (g[k].indexOf("depth") === 0) b["depth below the bar"] += 1;
+        else if (g[k].indexOf("both agents") !== -1) b["quotes not from both agents"] += 1;
+        else b["not enough verified quotes"] += 1;
+      }
+    }
+    return { buckets: b, depths: depths, dropped: dropped, judged: judged, failed: failed };
+  }
+  function row2(label, value) { return "<tr><td>" + esc(label) + '</td><td class="num">' + esc(value) + "</td></tr>"; }
+  function settingSelect(name, label, options) {
+    var out = '<label class="small muted" for="set-' + name + '">' + esc(label) + '</label><select id="set-' + name + '" class="select">';
+    for (var i = 0; i < options.length; i++) {
+      out += '<option value="' + esc(options[i]) + '"' + selectedIf(String(setting(name)) === String(options[i])) + ">" + esc(options[i]) + "</option>";
+    }
+    return out + "</select>";
+  }
+  function monitorPanel() {
+    var s = stats(), g = gateBuckets();
+    var out = ["<h2>Monitor</h2>", '<p class="lede">How the hub and the agents are doing across every round: where invitations stop, how deep the conversations go, and what each step costs. Nothing here is written by the model; it is counted from the saved record.</p>'];
+    out.push('<div class="people">');
+    out.push('<article class="person"><b class="k">Pipeline</b><table class="mt">' +
+      row2("People in the pool", s.people) + row2("Rounds run", state.rounds) + row2("Conversations judged", g.judged) +
+      row2("Conversations interrupted", g.failed) + row2("Pairs the code rejected", state.metrics.rejectedPairs) +
+      row2("Invitations", s.proposals) + row2("Emulated: both would say yes", s.simMutual) + row2("Emulated hit rate", s.simHit) + "</table></article>");
+    var gate = "";
+    var keys = Object.keys(g.buckets);
+    for (var i = 0; i < keys.length; i++) gate += row2(keys[i], g.buckets[keys[i]]);
+    out.push('<article class="person"><b class="k">Why the gate said no</b><table class="mt">' + gate +
+      row2("Quotes discarded (not in the chat)", g.dropped) + "</table></article>");
+    var depthRows = "";
+    for (var d = 10; d >= 1; d--) {
+      var bar = "";
+      for (var x = 0; x < g.depths[d]; x++) bar += "\u2588";
+      var mark = "";
+      if (d === setting("depthBar")) mark = " \u2190 bar";
+      depthRows += "<tr><td>" + d + '</td><td class="num">' + g.depths[d] + '</td><td class="barcell">' + bar + mark + "</td></tr>";
+    }
+    out.push('<article class="person"><b class="k">Hub depth scores</b><table class="mt">' + depthRows + "</table></article>");
+    var calls = "";
+    var kinds = Object.keys(state.metrics.calls);
+    for (var j = 0; j < kinds.length; j++) {
+      var m = state.metrics.calls[kinds[j]];
+      var avg = 0;
+      if (m.n > 0) avg = Math.round(m.ms / m.n / 100) / 10;
+      calls += "<tr><td>" + esc(kinds[j]) + '</td><td class="num">' + m.n + '</td><td class="num">' + avg + 's</td><td class="num">' + m.failed + "</td></tr>";
+    }
+    if (!calls) calls = '<tr><td colspan="4" class="muted">No calls yet.</td></tr>';
+    out.push('<article class="person"><b class="k">Claude calls (this lounge)</b><table class="mt"><tr><th>step</th><th>calls</th><th>avg</th><th>failed</th></tr>' + calls + "</table></article>");
+    out.push("</div>");
+    out.push('<section class="step" style="margin-top:18px"><h3>Knobs</h3><p class="small muted">Current settings. They apply to the next run; every change is logged in Behind the scenes.</p><div class="logtools">');
+    if (isPageOwner && sample && !runner) {
+      out.push(settingSelect("depthBar", "Depth bar", [6, 7, 8, 9]) + settingSelect("turns", "Messages per chat", [4, 6, 8]) +
+        settingSelect("pairsPerRound", "Pairs per round", [4, 6, 10, 15]) + settingSelect("emulate", "Emulate yes/no", ["on", "off"]));
+    } else {
+      out.push('<span class="small">Depth bar ' + esc(setting("depthBar")) + " \u00b7 " + esc(setting("turns")) + " messages per chat \u00b7 " +
+        esc(setting("pairsPerRound")) + " pairs per round \u00b7 emulated yes/no " + esc(setting("emulate")) + " (the page owner changes these)</span>");
+    }
+    out.push('</div><p><button class="btn" data-act="export">Copy all results as JSON</button> <span class="small muted" id="exported"></span></p></section>');
+    return out.join("");
+  }
+  function aboutPanel() {
+    return '<h2>How it\'s built</h2><div class="join">' +
+      '<section class="step"><h3>What changed from the previous model</h3><table class="mt">' +
+      '<tr><th></th><th>Before</th><th>Now</th></tr>' +
+      '<tr><td>Who decides</td><td>One matcher read every profile and formed groups</td><td>A hub (orchestrator) pairs people; each person\'s agent talks for them; the hub judges each conversation</td></tr>' +
+      '<tr><td>Where people come from</td><td>An onboarding chat built a profile</td><td>The AI that already knows the person writes a portrait of the real them</td></tr>' +
+      '<tr><td>Evidence</td><td>The model\'s reasoning, taken on trust</td><td>Quotes checked word for word by code, from both agents</td></tr>' +
+      '<tr><td>Humans</td><td>Onboarding, negotiation, meetup popups</td><td>None in the loop: yes/no is emulated from the dossier (real people can still answer their own)</td></tr>' +
+      '<tr><td>Visibility</td><td>A final answer</td><td>Every hub thought, agent message, code check and emulated answer is logged; Monitor counts it all</td></tr></table></section>' +
+      '<section class="step"><h3>Hub and spoke</h3><p class="small">' +
+      '<b>Spokes:</b> one agent per person. It knows only that person\'s dossier, talks about them in the third person, and says \u201cI don\'t know\u201d instead of inventing.<br>' +
+      '<b>Hub:</b> reads every card, picks pairs worth a conversation, reads each transcript, scores depth 1-10, quotes evidence, writes both pitches and a meetup.<br>' +
+      '<b>Code, never the model:</b> rejects unknown, self, repeated and over-limit pairs; drops quotes that aren\'t in one agent\'s message; invites only if the hub recommends, depth \u2265 the bar, and \u2265 2 verified quotes from both agents.<br>' +
+      '<b>Emulation:</b> after an invitation, each person\'s answer is emulated from their dossier and labelled as such.</p></section>' +
+      '<section class="step"><h3>Where it runs</h3><p class="small">This lounge runs on the owner\'s Claude account inside the page (a prototype everyone invited can read). The real app (repo, <code>src/</code>) runs the same pipeline on a server with its own API key, logs every Claude call verbatim, runs a round nightly, and has an admin view. Same rules in both.</p></section></div>';
   }
 
   function peoplePanel() {
@@ -1357,6 +1675,14 @@ textarea{min-height:200px; resize:vertical; line-height:1.5}
     if (act === "remove-yes") { removeMine(el.getAttribute("data-p")); return; }
     if (act === "reset-no") { ui.confirmReset = false; render(); return; }
     if (act === "reset-yes") { resetResults(); return; }
+    if (act === "export") {
+      var note2 = document.getElementById("exported");
+      try {
+        navigator.clipboard.writeText(JSON.stringify(state, null, 2)).then(function () { if (note2) note2.textContent = "Copied."; },
+          function () { if (note2) note2.textContent = "Your browser blocked copying."; });
+      } catch (e) { if (note2) note2.textContent = "Your browser blocked copying."; }
+      return;
+    }
     if (act === "copy") {
       var note = document.getElementById("copied");
       try {
@@ -1374,6 +1700,8 @@ textarea{min-height:200px; resize:vertical; line-height:1.5}
     if (ev.target.id === "j-consent") ui.join.consent = ev.target.checked;
     if (ev.target.id === "speed") ui.speed = ev.target.value;
     if (ev.target.id === "pool") { ui.pool = ev.target.value; render(); }
+    if (ev.target.id === "rounds") ui.rounds = ev.target.value;
+    if (ev.target.id.indexOf("set-") === 0) changeSetting(ev.target.id.slice(4), ev.target.value);
   });
   function selectPrompt() {
     var pre = document.getElementById("import-prompt");
@@ -1393,7 +1721,7 @@ textarea{min-height:200px; resize:vertical; line-height:1.5}
   // ---- boot -----------------------------------------------------------------
   try { var savedTab = localStorage.getItem("lounge-tab"); if (savedTab) ui.tab = savedTab; } catch (e) { }
   var hash = (location.hash || "").replace("#", "");
-  if (["meetings", "chats", "log", "people", "join"].indexOf(hash) !== -1) ui.tab = hash;
+  if (["meetings", "chats", "log", "monitor", "people", "about", "join"].indexOf(hash) !== -1) ui.tab = hash;
   if (pendingMerge && mergeInto(state, pendingMerge) === 0) pendingMerge = null;
   render();
   hashClaims();

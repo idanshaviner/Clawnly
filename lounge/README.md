@@ -38,6 +38,25 @@ browser (or a signed-in viewer with the same user id) can answer that person's i
 Someone added on another person's behalf (no owner, no claim) can only be answered by the
 page owner. Only the page owner can clear results. Everything shown is escaped text.
 
+**Simulation lab (no humans in the loop).** For tuning the hub and agents without real
+people, per Eitan's direction:
+- 16 fictional people (Seattle and a College Park / DC cluster); samples added to `SEED` later
+  join an existing lounge automatically.
+- After each invitation, each person's yes/no is **emulated** from their dossier (one call per
+  side), stored apart from real answers, logged as `emulated`, and shown as "emulated".
+  Invitations made before emulation get their answers on the next run.
+- "Rounds: up to 3/5" runs several rounds in one click and stops early when the hub finds no
+  new pair.
+- **Monitor** tab: pipeline counts, why the gate said no, the depth-score histogram, quotes
+  discarded, and every Claude call counted by step (calls, average time, failures), plus
+  "Copy all results as JSON" for analysis elsewhere. Counted from the saved record, never
+  written by the model.
+- **Knobs** (owner only): depth bar, messages per chat, pairs per round, emulation on/off.
+  Every change is logged.
+- Evidence now matches the app: a quote must appear in one agent's message, and verified
+  quotes must come from both agents.
+- **How it's built** tab: what changed from the previous model and the hub-and-spoke design.
+
 **Two writers at once.** Every save stashes the unsaved state in sessionStorage first. If it
 loses the race (`conflict`), the page reloads to the winner and merges the stash back in
 (people, conversations and answers by id, log lines by content), then saves again, so a

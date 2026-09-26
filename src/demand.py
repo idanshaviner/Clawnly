@@ -3,8 +3,8 @@
 Before any agent is asked anything, this looks at every activity in the
 neighborhood catalog for a given day and finds who could do it: people who
 like it, don't dislike or avoid anything about it, are free in that day part,
-can get there, and can afford it. Then it proposes groups -- each person in
-at most one group that day, every group 3 to 5 people (catalog.GROUP_MIN..MAX).
+and can afford it. Then it proposes groups -- each person in
+at most one group that day, every group 2 to 5 people (catalog.GROUP_MIN..MAX).
 
 No AI calls: this is the cheap, deterministic part of the orchestrator. Its
 output is what the orchestrator will go and negotiate with each person's agent.
@@ -29,8 +29,6 @@ def fit(person, activity, day, part):
         return 0, "not running then"
     if part not in person["calendar"].get(day.isoformat(), []):
         return 0, "busy"
-    if not catalog.reachable(person["neighborhood"], activity["neighborhood"], person["travel"]):
-        return 0, "too far"
     if activity["cost"] not in BUDGET_OK[person["budget"]]:
         return 0, "over budget"
     i = 0
@@ -141,8 +139,8 @@ def main():
     people = population.generate(100, seed=7, start=day)
     result = propose_groups(people, catalog.ACTIVITIES, day)
     names = _names(people)
-    print("Break room for " + day.strftime("%A %d %B %Y") + ": 100 emulated neighbors, " +
-          str(len(catalog.ACTIVITIES)) + " activities in the catalog.")
+    print("Break room for " + day.strftime("%A %d %B %Y") + ": 100 emulated neighbors in " + catalog.NEIGHBORHOOD +
+          ", " + str(len(catalog.ACTIVITIES)) + " things to do.")
     print(str(result["slots_that_could_run"]) + " activity slots have enough free, interested people. Proposed groups:\n")
     g = 0
     while g < len(result["groups"]):
@@ -153,8 +151,7 @@ def main():
         while m < len(group["members"]):
             who.append(names[group["members"][m]["id"]])
             m += 1
-        print("  " + activity["name"] + " (" + group["part"] + ", " + activity["neighborhood"] + ", " +
-              str(len(who)) + " people): " + ", ".join(who))
+        print("  " + activity["name"] + " (" + group["part"] + ", " + str(len(who)) + " people): " + ", ".join(who))
         g += 1
     placed = len(people) - len(result["unplaced"])
     print("\n" + str(placed) + " of " + str(len(people)) + " people have a plan for that day; " +

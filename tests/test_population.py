@@ -15,7 +15,7 @@ def test_hundred_distinct_people_with_everything_a_bot_needs():
     assert len({p["name"] for p in people}) == 100
     for p in people:
         assert p["emulated"] is True
-        assert p["neighborhood"] in catalog.NEIGHBORHOODS
+        assert p["neighborhood"] == catalog.NEIGHBORHOOD
         assert 3 <= len(p["likes"]) <= 6
         tags = [like["tag"] for like in p["likes"]]
         assert set(tags) <= set(catalog.TAGS) and not (set(tags) & set(p["dislikes"]))

@@ -7,7 +7,7 @@ A person is what they'd tell their own bot:
   likes     -- activity tags (catalog.TAGS) with a weight 1-3 (3 = love it)
   dislikes  -- activity tags they never want to do
   avoid     -- things they avoid (catalog.TRAITS: crowds, early mornings, ...)
-  budget, travel -- free/low/any, walk/bike/car
+  budget    -- free / low / any
   calendar  -- the next 7 days: date -> the day parts they're free
   brief     -- the same thing in plain words, as they'd say it to their bot
 """
@@ -42,7 +42,6 @@ ARCHETYPES = {
 ARCHETYPE_NAMES = ["student", "student", "office", "office", "shift worker", "parent", "remote worker"]
 
 BUDGETS = ["free", "low", "any"]
-TRAVEL = ["walk", "bike", "bike", "car"]
 
 LOVE = {3: "love", 2: "really like", 1: "am up for"}
 
@@ -103,8 +102,7 @@ def _brief(p):
             avoid.append(_words(p["avoid"][k]))
             k += 1
         parts.append("I avoid " + ", ".join(avoid) + ".")
-    parts.append("I'm a " + p["archetype"] + " in " + p["neighborhood"] + ", I get around by " + p["travel"] +
-                 ", and my budget is " + p["budget"] + ".")
+    parts.append("I'm a " + p["archetype"] + " in " + p["neighborhood"] + ", and my budget is " + p["budget"] + ".")
     return " ".join(parts)
 
 
@@ -138,13 +136,12 @@ def generate(count=100, seed=7, start=None, days=7):
             "id": "e" + str(n + 1).zfill(3),
             "name": name,
             "age": rng.randint(18, 45),
-            "neighborhood": catalog.NEIGHBORHOODS[rng.choice([0, 0, 0, 1, 1, 2, 3])],
+            "neighborhood": catalog.NEIGHBORHOOD,
             "archetype": archetype,
             "likes": likes,
             "dislikes": _pick(rng, others, rng.randint(1, 3)),
             "avoid": _pick(rng, catalog.TRAITS, rng.randint(0, 2)),
             "budget": rng.choice(BUDGETS),
-            "travel": rng.choice(TRAVEL),
             "calendar": _calendar(rng, archetype, start, days),
             "emulated": True,
         }

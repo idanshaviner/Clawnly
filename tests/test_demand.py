@@ -11,7 +11,7 @@ SUNDAY = datetime.date(2026, 9, 27)
 
 def person(**over):
     p = {"id": "x1", "name": "X", "neighborhood": "Hyattsville", "travel": "walk", "budget": "any",
-         "likes": [{"tag": "kayaking", "weight": 3}], "dislikes": [], "avoid": [], "group_size": "medium",
+         "likes": [{"tag": "kayaking", "weight": 3}], "dislikes": [], "avoid": [],
          "calendar": {SUNDAY.isoformat(): ["morning", "afternoon"]}}
     p.update(over)
     return p
@@ -20,7 +20,7 @@ def person(**over):
 def test_fit_scores_a_keen_free_person():
     kayak = catalog.get("hy-kayak")
     score, why_not = demand.fit(person(), kayak, SUNDAY, "afternoon")
-    assert why_not is None and score == 4   # loves kayaking (3) + group size fits (1)
+    assert why_not is None and score == 3   # loves kayaking
 
 
 def test_fit_says_why_not():
@@ -41,7 +41,7 @@ def test_groups_respect_sizes_and_nobody_is_booked_twice():
     seen = set()
     for g in result["groups"]:
         activity = catalog.get(g["activity"])
-        assert activity["min_size"] <= len(g["members"]) <= activity["max_size"]
+        assert 3 <= len(g["members"]) <= 5
         for m in g["members"]:
             assert m["id"] not in seen
             seen.add(m["id"])
@@ -57,8 +57,16 @@ def test_the_break_room_is_deterministic():
 
 def test_a_slot_below_its_minimum_never_becomes_a_group():
     kayak = catalog.get("hy-kayak")
-    few = [person(id="a"), person(id="b"), person(id="c")]   # kayaking needs 4
-    result = demand.propose_groups(few, [kayak], SUNDAY)
+    two = [person(id="a"), person(id="b")]   # every group needs 3
+    result = demand.propose_groups(two, [kayak], SUNDAY)
     assert result["groups"] == [] and result["slots_that_could_run"] == 0
-    four = few + [person(id="d")]
-    assert len(demand.propose_groups(four, [kayak], SUNDAY)["groups"]) == 1
+    three = two + [person(id="c")]
+    assert len(demand.propose_groups(three, [kayak], SUNDAY)["groups"]) == 1
+
+
+def test_a_crowd_is_split_into_small_groups_across_the_day():
+    kayak = catalog.get("hy-kayak")
+    eight = [person(id="p" + str(i)) for i in range(8)]   # all free morning and afternoon
+    groups = demand.propose_groups(eight, [kayak], SUNDAY)["groups"]
+    assert [len(g["members"]) for g in groups] == [5, 3]
+    assert {g["part"] for g in groups} == {"morning", "afternoon"}

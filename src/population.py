@@ -7,7 +7,7 @@ A person is what they'd tell their own bot:
   likes     -- activity tags (catalog.TAGS) with a weight 1-3 (3 = love it)
   dislikes  -- activity tags they never want to do
   avoid     -- things they avoid (catalog.TRAITS: crowds, early mornings, ...)
-  group_size, budget, travel -- small/medium/large, free/low/any, walk/bike/car
+  budget, travel -- free/low/any, walk/bike/car
   calendar  -- the next 7 days: date -> the day parts they're free
   brief     -- the same thing in plain words, as they'd say it to their bot
 """
@@ -41,7 +41,6 @@ ARCHETYPES = {
 }
 ARCHETYPE_NAMES = ["student", "student", "office", "office", "shift worker", "parent", "remote worker"]
 
-GROUP_SIZES = ["small", "medium", "large"]
 BUDGETS = ["free", "low", "any"]
 TRAVEL = ["walk", "bike", "bike", "car"]
 
@@ -105,7 +104,7 @@ def _brief(p):
             k += 1
         parts.append("I avoid " + ", ".join(avoid) + ".")
     parts.append("I'm a " + p["archetype"] + " in " + p["neighborhood"] + ", I get around by " + p["travel"] +
-                 ", I like " + p["group_size"] + " groups, and my budget is " + p["budget"] + ".")
+                 ", and my budget is " + p["budget"] + ".")
     return " ".join(parts)
 
 
@@ -144,7 +143,6 @@ def generate(count=100, seed=7, start=None, days=7):
             "likes": likes,
             "dislikes": _pick(rng, others, rng.randint(1, 3)),
             "avoid": _pick(rng, catalog.TRAITS, rng.randint(0, 2)),
-            "group_size": rng.choice(GROUP_SIZES),
             "budget": rng.choice(BUDGETS),
             "travel": rng.choice(TRAVEL),
             "calendar": _calendar(rng, archetype, start, days),

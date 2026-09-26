@@ -13,7 +13,7 @@ def test_every_activity_is_well_formed():
         assert set(a["traits"]) <= set(catalog.TRAITS)
         assert set(a["parts"]) <= set(catalog.DAY_PARTS) and len(a["parts"]) > 0
         assert set(a["days"]) <= set(range(7)) and len(a["days"]) > 0
-        assert 2 <= a["min_size"] <= a["max_size"]
+        assert "min_size" not in a and "max_size" not in a   # one size rule for every activity
         assert a["cost"] in ("free", "low", "mid")
 
 
@@ -28,6 +28,10 @@ def test_reachable_by_travel_mode():
     assert catalog.reachable("College Park", "Hyattsville", "bike")
     assert not catalog.reachable("College Park", "Columbia Heights", "bike")
     assert catalog.reachable("College Park", "Columbia Heights", "car")
+
+
+def test_groups_are_small_on_purpose():
+    assert (catalog.GROUP_MIN, catalog.GROUP_MAX) == (3, 5)
 
 
 def test_get():

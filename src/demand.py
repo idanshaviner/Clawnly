@@ -4,7 +4,7 @@ Before any agent is asked anything, this looks at every activity in the
 neighborhood catalog for a given day and finds who could do it: people who
 like it, don't dislike or avoid anything about it, are free in that day part,
 can get there, and can afford it. Then it proposes groups -- each person in
-at most one group that day, each group inside the activity's size range.
+at most one group that day, every group 3 to 5 people (catalog.GROUP_MIN..MAX).
 
 No AI calls: this is the cheap, deterministic part of the orchestrator. Its
 output is what the orchestrator will go and negotiate with each person's agent.
@@ -20,9 +20,6 @@ import population
 
 
 BUDGET_OK = {"free": ["free"], "low": ["free", "low"], "any": ["free", "low", "mid"]}
-
-# what "small", "medium" and "large" group mean, as sizes
-SIZE_RANGE = {"small": (2, 5), "medium": (4, 8), "large": (6, 15)}
 
 
 def fit(person, activity, day, part):
@@ -57,9 +54,6 @@ def fit(person, activity, day, part):
         k += 1
     if score == 0:
         return 0, "not interested"
-    low, high = SIZE_RANGE[person["group_size"]]
-    if high >= activity["min_size"] and low <= activity["max_size"]:
-        score += 1
     return score, None
 
 
@@ -79,7 +73,7 @@ def break_room(people, activities, day):
                 if why_not is None:
                     interested.append({"id": people[n]["id"], "score": score})
                 n += 1
-            if len(interested) >= activity["min_size"]:
+            if len(interested) >= catalog.GROUP_MIN:
                 interested.sort(key=lambda c: (-c["score"], c["id"]))
                 slots.append({"activity": activity["id"], "part": part, "candidates": interested})
             p += 1
@@ -89,8 +83,7 @@ def break_room(people, activities, day):
 
 def _slot_strength(slot):
     # how full and how keen a slot could be at its best
-    activity = catalog.get(slot["activity"])
-    top = slot["candidates"][:activity["max_size"]]
+    top = slot["candidates"][:catalog.GROUP_MAX]
     total = 0
     i = 0
     while i < len(top):
@@ -111,12 +104,12 @@ def propose_groups(people, activities, day):
         activity = catalog.get(slot["activity"])
         members = []
         j = 0
-        while j < len(slot["candidates"]) and len(members) < activity["max_size"]:
+        while j < len(slot["candidates"]) and len(members) < catalog.GROUP_MAX:
             candidate = slot["candidates"][j]
             if candidate["id"] not in placed:
                 members.append(candidate)
             j += 1
-        if len(members) >= activity["min_size"]:
+        if len(members) >= catalog.GROUP_MIN:
             k = 0
             while k < len(members):
                 placed[members[k]["id"]] = activity["id"]

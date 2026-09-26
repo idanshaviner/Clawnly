@@ -8,14 +8,16 @@ the code-only break room) is built; nothing else changes until we agree.
 People tell their bot what they like, what they don't, and when they're free. A
 matchmaker (the orchestrator) looks at what there is to do in the neighborhood,
 negotiates with each bot one-to-one, and brings each person a finished plan:
-**"Tomorrow 9am: kayaking at Bladensburg Waterfront with 5 neighbors. In?"**
-Groups doing an activity, not friendship matches.
+**"Tomorrow 9am: kayaking at Bladensburg Waterfront with 4 neighbors. In?"**
+Small groups doing an activity, not friendship matches. **Every group is 3-5
+people**: small enough that everyone actually meets everyone. The wow is meeting
+people whose agents already know the humans, so the plan can say why these few.
 
 ## What changes
 
 | | Today (friendship pilot) | New (activity groups) |
 |---|---|---|
-| Goal | Two people who could become close friends | A group (3-15) doing an activity together, tomorrow |
+| Goal | Two people who could become close friends | A small group (3-5) doing an activity together, tomorrow |
 | Agents talking to each other | Yes, 6-message private chats | **Never.** Every conversation is hub <-> one agent |
 | What the hub reads | Dossiers, then transcripts | Each person's likes, dislikes, avoid-list, budget, travel, calendar |
 | Common ground | The hub judges chemistry | The break room: code finds who is free, keen and able for each activity slot |
@@ -32,19 +34,19 @@ Groups doing an activity, not friendship matches.
  (things to do)                 every activity x day part -> free, keen, able candidates
                                               |
                             2. PROPOSE (code)      strongest slots first; each person in
-                                                   at most one group; group within min..max
+                                                   at most one group; every group 3-5 people
                                               |
                             3. NEGOTIATE (hub <-> each agent, one at a time, never agent<->agent)
-                                 hub: "Kayaking, Sun 9-11am, Bladensburg, ~5 others, $20. In?"
+                                 hub: "Kayaking, Sun 9-11am, Bladensburg, 4 others, $20. In?"
                                  agent (from its person's brief + calendar): yes / no / counter
                                    ("yes if it starts after 10", "prefers paddleboarding")
                                  hub adjusts within the activity's window and re-asks, max 2 rounds
                                               |
-                            4. LOCK (code)         a group locks only when >= min_size said yes;
+                            4. LOCK (code)         a group locks only when >= 3 said yes;
                                                    people who said no go back to the break room
                                               |
                             5. THE MAGIC           each person gets one message: what, when,
-                                                   where, how many, why it fits them
+                                                   where, and why these 2-4 others
 ```
 
 Every step is logged like today: the break room's candidate lists, every proposal,
@@ -54,19 +56,18 @@ every agent reply and counter, every lock and every drop.
 
 - `src/catalog.py` -- 28 illustrative activities in 4 neighborhoods (College Park,
   Hyattsville, Riverdale Park, Columbia Heights): tags, what people avoid about
-  them, days, day parts, group size range, cost, indoor/outdoor. Times and prices
-  are invented for simulation.
+  them, days, day parts, cost, indoor/outdoor. One size rule for all: 3-5 people.
+  Times and prices are invented for simulation.
 - `src/population.py` -- 100 emulated people from a seed (same seed, same people):
   likes with weights, dislikes, avoid-list, archetype (student, office, shift
-  worker, parent, remote worker), 7-day calendar, budget, travel, group size,
-  and a plain-words brief ("what they told their bot").
+  worker, parent, remote worker), 7-day calendar, budget, travel, and a
+  plain-words brief ("what they told their bot").
 - `src/demand.py` -- the break room and the proposed groups, no AI calls.
   `.venv/bin/python src/demand.py 2026-09-27` prints the day's groups.
 
-First results (seed 7): **Sunday**: 16 slots could run, 7 groups, 39 of 100 people
-have a plan. **Tuesday**: 2 groups, 13 of 100. Kayaking didn't form on Sunday: it
-needs 4+ people who like it, are free, can reach Hyattsville, afford "mid" and
-don't avoid mornings.
+First results (seed 7, groups of 3-5): **Sunday**: 25 slots could run, 8 groups
+(kayaking among them), 38 of 100 people have a plan. **Tuesday**: 4 groups, 17 of
+100. Weekdays are thin: few people are free at the same time as an activity runs.
 
 ## Next steps (after we agree)
 
@@ -84,7 +85,7 @@ don't avoid mornings.
 
 ## Decisions for us
 
-1. **Group size**: fixed per activity (kayaking 4-6) or from people's preference?
+1. ~~Group size~~ -- decided: 3-5 for every activity.
 2. **Negotiation depth**: one proposal + one counter round, or more?
 3. **Final human step**: emulate it for now, and later a real "In?" message by email/SMS?
 4. **One activity per person per day**, or allow morning + evening?

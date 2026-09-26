@@ -8,6 +8,15 @@ local activities (`src/catalog.py`) are embedded in the page. The owner presses
 **Run the matchmaker**; it runs on the owner's Claude account and saves the result into
 the page, so invited people can read every step.
 
+**What people see first is one screen**, after Muse's lesson that an agent should feel like
+messaging and show itself at work: the town (the Clawnly hub in the middle, 200 neighbor
+dots around it by area), one sentence for the result, and the plan cards. "Replay how it
+happened" plays a saved run back in about 25 seconds (lines from the hub to each agent as
+it asks, dots turning green / amber / red as they answer, groups lighting up in their
+color) without using any Claude. "Open someone's phone" shows the one message a person
+gets. Tapping a plan shows how it came together. Everything below lives behind
+**Behind the scenes** (Negotiation, Orchestrator calls, Break rooms, People, Things to do, Log).
+
 The run, all hub and spoke (agents never talk to each other):
 
 1. **Break rooms (code)** -- one per activity and time of day, same rules as

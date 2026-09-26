@@ -25,6 +25,10 @@ Tables:
                        dissolved_at
   match_acceptances -- one row per invited resident (the mutual yes/no gate)
 
+  matchmaker_runs   -- one Run Clawnly day (matchmaker.run_day): the whole run
+                       as JSON -- break rooms, plan, every hub<->agent message,
+                       the log and every Claude call -- saved as it goes
+
 Older databases may still hold tables from before the agent-to-agent pivot
 (users, interviews, negotiations, meetups, feedback, onboarding_messages) and
 old columns on residents, runs and matches; nothing reads them any more.
@@ -124,6 +128,11 @@ def init_db():
     conn.execute("""CREATE TABLE IF NOT EXISTS agent_conversations (
         id INTEGER PRIMARY KEY AUTOINCREMENT, run_id INTEGER, a_id TEXT, b_id TEXT,
         why TEXT, turns TEXT, verdict TEXT, invited INTEGER, created_at TEXT
+    )""")
+
+    conn.execute("""CREATE TABLE IF NOT EXISTS matchmaker_runs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, day TEXT, status TEXT, data TEXT,
+        started_by TEXT, created_at TEXT, updated_at TEXT
     )""")
 
     # a database made before the agent-to-agent pivot has these tables with
@@ -868,6 +877,64 @@ def list_agent_conversations(run_id=None):
     return out
 
 
+# ----- Run Clawnly: one matchmaker day --------------------------------------------
+
+def claim_matchmaker_run(day, started_by, stale_seconds):
+    # a new run row, or None while another run is still going. a run that hasn't
+    # saved progress for stale_seconds is treated as dead (the app restarted mid-run).
+    conn = _get_conn()
+    cutoff = (datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(seconds=stale_seconds)).isoformat()
+    # one process, one connection, no await in here: nothing can run between the check and the insert
+    conn.execute("UPDATE matchmaker_runs SET status = 'failed' WHERE status = 'running' AND updated_at < ?", (cutoff,))
+    busy = conn.execute("SELECT id FROM matchmaker_runs WHERE status = 'running'").fetchone()
+    if busy is not None:
+        conn.commit()
+        return None
+    now = _now()
+    cur = conn.execute(
+        "INSERT INTO matchmaker_runs (day, status, data, started_by, created_at, updated_at) VALUES (?, 'running', ?, ?, ?, ?)",
+        (day, json.dumps({"day": day, "status": "running", "groups": [], "log": [], "calls": []}), started_by, now, now),
+    )
+    conn.commit()
+    return cur.lastrowid
+
+
+def fail_unfinished_matchmaker_runs():
+    # at startup: a run still marked running died with the last process
+    conn = _get_conn()
+    cur = conn.execute("UPDATE matchmaker_runs SET status = 'failed', updated_at = ? WHERE status = 'running'", (_now(),))
+    conn.commit()
+    return cur.rowcount
+
+
+def save_matchmaker_run(run_id, data):
+    conn = _get_conn()
+    conn.execute("UPDATE matchmaker_runs SET status = ?, data = ?, updated_at = ? WHERE id = ?",
+                 (data.get("status", "running"), json.dumps(data), _now(), run_id))
+    conn.commit()
+
+
+def _row_to_matchmaker_run(row):
+    return {"id": row["id"], "day": row["day"], "status": row["status"], "data": json.loads(row["data"]),
+            "started_by": row["started_by"], "created_at": row["created_at"], "updated_at": row["updated_at"]}
+
+
+def get_matchmaker_run(run_id):
+    conn = _get_conn()
+    row = conn.execute("SELECT * FROM matchmaker_runs WHERE id = ?", (run_id,)).fetchone()
+    if row is None:
+        return None
+    return _row_to_matchmaker_run(row)
+
+
+def latest_matchmaker_run():
+    conn = _get_conn()
+    row = conn.execute("SELECT * FROM matchmaker_runs ORDER BY id DESC LIMIT 1").fetchone()
+    if row is None:
+        return None
+    return _row_to_matchmaker_run(row)
+
+
 # ----- full reset (ops / tests) -------------------------------------------------
 
 def reset_all():
@@ -875,7 +942,7 @@ def reset_all():
     conn = _get_conn()
     tables = ["runs", "matches", "neighborhoods", "residents", "sessions",
               "magic_link_tokens", "oauth_states", "match_acceptances",
-              "events", "agent_conversations", "ai_calls"]
+              "events", "agent_conversations", "ai_calls", "matchmaker_runs"]
     i = 0
     while i < len(tables):
         conn.execute("DELETE FROM " + tables[i])

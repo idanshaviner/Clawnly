@@ -1,7 +1,8 @@
 # Plan: from friendship matching to neighborhood activity groups (Black Diamond, WA)
 
-Status: **proposal for discussion.** Step 1 (the emulated people, the catalog and
-the code-only break room) is built; nothing else changes until we agree.
+Status: **the simulation is built and runs at `/run` on the Clawnly app** (and as the
+Run Clawnly Artifact). The resident pilot (signup, nightly rounds) still runs the
+friendship pipeline until we decide to switch it (decision 6 below).
 
 ## The product, in one line
 
@@ -9,15 +10,16 @@ People tell their bot what they like, what they don't, and when they're free. A
 matchmaker (the orchestrator) looks at what there is to do in the neighborhood,
 negotiates with each bot one-to-one, and brings each person a finished plan:
 **"Tomorrow 9am: kayaking at Bladensburg Waterfront with 4 neighbors. In?"**
-Small groups doing an activity, not friendship matches. **Every group is 2-5
-people**: small enough that everyone actually meets everyone. The wow is meeting
+Small groups doing an activity, not friendship matches. **No size rule beyond "at least
+two"**: the matchmaker sizes each group to the activity and the people (two people having a
+beer over the game is a group). The wow is meeting
 people whose agents already know the humans, so the plan can say why these few.
 
 ## What changes
 
 | | Today (friendship pilot) | New (activity groups) |
 |---|---|---|
-| Goal | Two people who could become close friends | A small group (2-5) doing an activity together, tomorrow |
+| Goal | Two people who could become close friends | A small group doing an activity together, tomorrow |
 | Agents talking to each other | Yes, 6-message private chats | **Never.** Every conversation is hub <-> one agent |
 | What the hub reads | Dossiers, then transcripts | Each person's likes, dislikes, avoid-list, budget, travel, calendar |
 | Common ground | The hub judges chemistry | The break room: code finds who is free, keen and able for each activity slot |
@@ -34,7 +36,7 @@ people whose agents already know the humans, so the plan can say why these few.
  (things to do)                 every activity x day part -> free, keen, able candidates
                                               |
                             2. PROPOSE (code)      strongest slots first; each person in
-                                                   at most one group; every group 2-5 people
+                                                   at most one group; at least 2 people
                                               |
                             3. NEGOTIATE (hub <-> each agent, one at a time, never agent<->agent)
                                  hub: "Kayaking, Sun 9-11am, Bladensburg, 4 others, $20. In?"
@@ -63,7 +65,7 @@ every agent reply and counter, every lock and every drop.
   Brewery, Black Diamond Grill (Kraken nights), Lake Wilderness Golf Course, the Maple
   Valley Farmers Market (Sat 9-2), a Mount Rainier day hike. Each has tags, what people
   avoid about it, days, day parts, **months it runs** (tubing and dock concerts are
-  summer-only), cost. Exact times and prices are estimates. Groups are 2-5.
+  summer-only), cost. Exact times and prices are estimates.
 - `src/population.py` -- **200 emulated adults** following the city's census profile (ACS
   2024 5-year: median age 38, 65+ about 10% of residents, 39% of households with kids,
   median household income about $141k, names in the city's proportions -- ethnicity is
@@ -78,23 +80,24 @@ First results (seed 7): **Sunday 27 Sep**: 39 slots could run, 27 groups, **124 
 have a plan (two Seahawks watch groups at The Vault, ghost town hikes, cribbage at the
 bakery). **Tuesday**: 73 of 200.
 
-## Next steps (after we agree)
+## Built next: the matchmaker, at a real URL
 
-1. **Negotiation** (`negotiate.py`): hub <-> agent messages for each proposed group,
-   using the person's brief and calendar. Agents on the cheap tier (Haiku), since
-   there are ~100 per day; the hub's re-planning on Sonnet. Offline tests with the
-   FakeClient, like everything else.
-2. **Lock + the final message** (`plans.py`): locked groups and the one message each
-   person gets. Emulated final yes/no.
-3. **Simulation run + monitor**: run a week for the 100 people; report % of people
-   with a plan per day, fill rate per activity, negotiation rounds, counters,
-   drop-outs, cost. The same monitor idea as the Lounge.
-4. **Where it runs**: the server app (needs the API key in Render) for scale; the
-   Lounge can show one day's run.
+- `src/matchmaker.py` -- one day, hub and spoke: break rooms (code) -> plan (Opus 5.5) ->
+  round 1, each agent one to one (Sonnet 5) -> resolve counters and declines (Opus) ->
+  round 2 -> lock at >= 2 yes (code) -> the message each person gets (Sonnet). Code
+  rejects anyone outside the break room, double bookings, and round-2 asks outside a
+  group's members and alternates. No Haiku anywhere.
+- `src/run_clawnly.py` + `/run` -- the Run Clawnly page served by the app. Anyone with the
+  link watches live and replays; only an admin starts a run (the server's key pays), one
+  at a time; saved to `db.matchmaker_runs` after every step; every Claude call verbatim
+  in the run and in `db.ai_calls`.
+
+Still open: a week-long simulation report (percent with a plan per day, fill rate per
+activity, counters, drop-outs, cost) and switching the resident pilot over.
 
 ## Decisions for us
 
-1. ~~Group size~~ -- decided: 2-5 for every activity (two people having a beer over the game counts).
+1. ~~Group size~~ -- decided: no upper limit in code; at least 2; the matchmaker sizes it.
 2. **Negotiation depth**: one proposal + one counter round, or more?
 3. **Final human step**: emulate it for now, and later a real "In?" message by email/SMS?
 4. **One activity per person per day**, or allow morning + evening?

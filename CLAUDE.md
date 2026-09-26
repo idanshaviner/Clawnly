@@ -44,6 +44,12 @@ name-blind pitches) are enforced in code, never trusted to the model.
   evidence must quote BOTH agents; every page sends anti-framing headers.
 - Persistence: SQLite via `db.py` (plain `sqlite3`, no ORM -- its module
   docstring lists every table).
+- **Run Clawnly (activity groups, hub and spoke)** is the new direction
+  (`docs/ACTIVITY_PLAN.md`): `catalog.py` (Black Diamond things to do) +
+  `population.py` (200 emulated neighbors) + `demand.py` (break rooms, code) ->
+  `matchmaker.py` (the hub plans, negotiates with each agent one to one, code
+  locks groups) -> `run_clawnly.py` serves it at `/run` (anyone watches, admins
+  run it, saved in `db.matchmaker_runs`). Agents never talk to each other.
 - `lounge/clawnly-lounge.html` is a separate, shareable prototype of the same
   idea, published as a claude.ai Artifact. Read its `README.md` before
   republishing it: its saved state lives inside the published page.

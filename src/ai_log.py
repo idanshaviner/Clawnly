@@ -22,6 +22,11 @@ PURPOSES = [
     ["agent-to-agent conversation", "agent_turn"],
     ["decide which agents talk next", "pairing"],
     ["should be invited to meet", "verdict"],
+    # Run Clawnly (matchmaker.py)
+    ["plan the day's activity groups", "matchmaker_plan"],
+    ["you are the personal agent of", "matchmaker_agent"],
+    ["finish the day's plan", "matchmaker_resolve"],
+    ["small group is confirmed", "matchmaker_message"],
 ]
 
 

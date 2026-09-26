@@ -1,7 +1,20 @@
 # Run Clawnly (activity groups, hub and spoke)
 
-A single-file page published as a claude.ai Artifact:
-https://claude.ai/artifact/1XBuxUg6WCjSXjXgq9FREX
+Two ways to run the same page:
+
+- **On the Clawnly app, at `/run`** (the real URL): the server runs the matchmaker with its
+  own key -- `src/matchmaker.py` (Opus 5.5 plans and resolves, Sonnet 5 speaks for each
+  agent and writes the messages), started by `src/run_clawnly.py`, saved to
+  `db.matchmaker_runs` after every step. Anyone with the link watches live and replays;
+  only a Clawnly admin (`CLAWNLY_ADMIN_EMAILS`, signed in at `/admin/login`) can start a
+  run, one at a time. Every call is also in `db.ai_calls`.
+- **As a claude.ai Artifact**: https://claude.ai/artifact/1XBuxUg6WCjSXjXgq9FREX -- runs on
+  the owner's Claude account in the browser and saves into the page.
+
+The page's sources are `src/web/run-clawnly.js`, `run-clawnly.css` and
+`run-clawnly-head.html`; `run-clawnly.html` here is the assembled Artifact copy. The
+server serves them with a `mm-mode` flag set to `"server"`; without it the page is the
+Artifact.
 
 200 emulated adults of Black Diamond, WA (`src/population.py`, census-shaped) and 37 real
 local activities (`src/catalog.py`) are embedded in the page. The owner presses

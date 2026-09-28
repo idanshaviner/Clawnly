@@ -154,3 +154,16 @@ def test_a_restart_releases_a_run_that_was_going():
         pass
     assert db.get_matchmaker_run(run_id)["status"] == "failed"
     assert db.claim_matchmaker_run(run_clawnly.days()[0], "admin@example.com", 900) is not None
+
+
+def test_the_artifact_copy_is_built_from_the_same_sources_and_has_no_saved_run(tmp_path):
+    out = tmp_path / "run-clawnly.html"
+    run_clawnly.write_artifact(str(out), "2026-09-27")
+    html = out.read_text()
+    assert 'id="mm-mode"' not in html
+    assert '<script type="application/json" id="mm-state">{"run":null}</script>' in html
+    data = page_data(html)
+    assert data["days"][0] == "2026-09-27"
+    assert len(data["days"]) == 7
+    assert [a for a in data["activities"] if a["id"] == "seahawks"][0]["fixed"]
+    assert open("src/web/run-clawnly.js").read() in html

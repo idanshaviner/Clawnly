@@ -142,26 +142,27 @@
   }
 
   // ---- prompts ---------------------------------------------------------------
-  function personLine(id, score) {
+  function personLine(id) {
+    // one compact line per person; the plan lists each person once, however many rooms they're in
     var p = PEOPLE[id], likes = [];
     for (var i = 0; i < p.likes.length; i++) likes.push(words(p.likes[i].tag) + " " + p.likes[i].weight);
     var kids = "";
-    if (p.kids_at_home) kids = ", kids at home";
-    return "  " + id + " " + p.name + " (" + p.age + ", " + p.archetype + kids + ", " + p.area + "; keenness " + score + "; likes " + likes.join(", ") + ")";
+    if (p.kids_at_home) kids = ", kids";
+    return "  " + id + " " + p.name + ", " + p.age + ", " + p.archetype + kids + ", " + p.area + ": " + likes.join(", ");
   }
   function planPrompt(iso, slots, maxGroups) {
     var lines = [
       "You are the Clawnly matchmaker: the orchestrator for " + DATA.neighborhood + ". Each neighbor has told their own agent what they like, what they don't, and when they're free. You plan small in-person activities for " + dayLabel(iso) + ".",
       "You talk to each person's agent one to one. Agents never talk to each other. The goal is not friendship matching: it is a good small group doing something real together, so neighbors get to know each other.",
       "",
-      "The break rooms below were built by code: one per activity and time of day that can run that day, holding every neighbor who is free then, interested, can afford it and doesn't avoid anything about it (keenness = how much they'd want to, higher is better).",
+      "The break rooms below were built by code: one per activity and time of day that can run that day, holding every neighbor who is free then, interested, can afford it and doesn't avoid anything about it. Each room lists its keenest people as id:keenness (higher is better), then everyone else in it by id. PEOPLE has one line per listed person, once each.",
       "",
       "Plan up to " + maxGroups + " groups:",
       "- Size each group to fit the activity and the people. You decide: two neighbors having a beer over the game is a group, and so is a bigger hike. Small groups are often where people actually meet each other.",
       "- Each person in at most one group. Use only people in that break room.",
       "- Prefer groups whose members share more than the activity (overlapping likes, similar stage of life), so they'd enjoy each other.",
       "- Spread plans across many people rather than stacking the keenest into one group.",
-      "- Pick a specific time inside the day part (morning " + PART_HOURS.morning + ", afternoon " + PART_HOURS.afternoon + ", evening " + PART_HOURS.evening + ").",
+      "- Pick a specific time inside the day part (morning " + PART_HOURS.morning + ", afternoon " + PART_HOURS.afternoon + ", evening " + PART_HOURS.evening + "). A room marked FIXED is a real event (a game, a concert): use exactly that time.",
       "- Name up to 2 alternates per group from the same break room, in case someone declines.",
       "- Write a short, personal proposal to each member's agent: what, when, where, how many others, and why it fits this person. Don't name the other people yet.",
       "",
@@ -170,35 +171,120 @@
       "",
       "BREAK ROOMS:"
     ];
+    var listed = [], seen = {};
     for (var i = 0; i < slots.length; i++) {
       var s = slots[i], a = ACTS[s.activity];
-      lines.push("", "[" + a.id + " | " + s.part + "] " + a.name + " at " + a.where + " (cost " + a.cost + ", " + s.candidates.length + " in the room)");
-      // the keenest with their profile; everyone else in the room by id, so nobody is left out
-      var rest = [];
+      var header = "[" + a.id + " | " + s.part + "] " + a.name + " at " + a.where + ", cost " + a.cost;
+      var fixed = fixedTime(a, s.part);
+      if (fixed) header += ", FIXED " + fixed;
+      lines.push("", header + " (" + s.candidates.length + " in the room)");
+      // the keenest with keenness (profiles once, below); everyone else by id, so nobody is left out
+      var top = [], rest = [];
       for (var j = 0; j < s.candidates.length; j++) {
-        if (j < 15) lines.push(personLine(s.candidates[j].id, s.candidates[j].score));
-        else rest.push(s.candidates[j].id + " " + first(s.candidates[j].id) + " (" + s.candidates[j].score + ")");
+        var c = s.candidates[j];
+        if (j < PROFILES_PER_ROOM) {
+          top.push(c.id + ":" + c.score);
+          if (!seen[c.id]) { seen[c.id] = true; listed.push(c.id); }
+        } else rest.push(c.id);
       }
-      if (rest.length > 0) lines.push("  also in the room: " + rest.join(", "));
+      lines.push("  keenest: " + top.join(" "));
+      if (rest.length > 0) lines.push("  also: " + rest.join(" "));
     }
+    lines.push("", "PEOPLE:");
+    for (var k = 0; k < listed.length; k++) lines.push(personLine(listed[k]));
     return lines.join("\n");
   }
+
+  // ---- what an agent checks before answering (same as src/matchmaker.py) ----------
+  var PROFILES_PER_ROOM = 8;
+  var LEVELS = [[3, "Loves"], [2, "Really likes"], [1, "Is up for"]];
+  var BUDGET_WORDS = { free: "free things only", low: "free or low-cost things", any: "any cost" };
+  function fixedTime(a, part) {
+    // the real time of a game, concert or event in that day part, or null when the time is free to pick
+    var f = a.fixed || {};
+    return f[part] || null;
+  }
+  function toHours(m, half) {
+    var h = Number(m[1]);
+    if (half === "pm" && h < 12) h += 12;
+    if (half === "am" && h === 12) h = 0;
+    return h + Number(m[2] || 0) / 60;
+  }
+  function parseHours(text) {
+    // "10:30am-12pm" -> [10.5, 12]; null when there's no start and end to read
+    var re = /(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/gi, found = [], m;
+    while ((m = re.exec(String(text || ""))) !== null) found.push(m);
+    if (found.length < 2) return null;
+    var last = found[found.length - 1];
+    var endHalf = String(last[3] || "").toLowerCase(), startHalf = String(found[0][3] || "").toLowerCase();
+    if (!startHalf) startHalf = endHalf;
+    return [toHours(found[0], startHalf), toHours(last, endHalf)];
+  }
+  function agentProfile(p) {
+    var f = p.name.split(" ")[0], kids = "";
+    if (p.kids_at_home) kids = ", with kids at home";
+    var lines = [f + " is " + p.age + ", a " + p.archetype + " in " + p.area + kids + "."];
+    for (var l = 0; l < LEVELS.length; l++) {
+      var tags = [];
+      for (var i = 0; i < p.likes.length; i++) { if (p.likes[i].weight === LEVELS[l][0]) tags.push(words(p.likes[i].tag)); }
+      if (tags.length > 0) lines.push(LEVELS[l][1] + ": " + tags.join(", ") + ".");
+    }
+    if (p.dislikes.length > 0) lines.push("Not into: " + p.dislikes.map(words).join(", ") + ".");
+    if (p.avoid.length > 0) lines.push("Avoids: " + p.avoid.map(words).join(", ") + ".");
+    lines.push("Budget: " + BUDGET_WORDS[p.budget] + ".");
+    var days = Object.keys(p.calendar).sort(), week = [];
+    for (var d = 0; d < days.length; d++) {
+      var free = listOr(p.calendar[days[d]]), txt = "busy";
+      if (free.length > 0) txt = "free " + free.join(", ");
+      week.push(dayLabel(days[d]) + ": " + txt);
+    }
+    lines.push("This week: " + week.join("; ") + ".");
+    return lines.join("\n");
+  }
+  function planChecks(p, a, part, time, iso) {
+    // what code can see in the profile that argues against this plan; the agent weighs it
+    var f = p.name.split(" ")[0], out = [];
+    if (!has(listOr(p.calendar[iso]), part)) out.push(f + " is busy that " + part + ".");
+    var hours = parseHours(time);
+    if (hours && has(p.avoid, "early_mornings") && hours[0] < 9) out.push("It starts before 9am, and " + f + " avoids early mornings.");
+    if (hours && has(p.avoid, "late_nights") && hours[1] >= 21) out.push("It runs to 9pm or later, and " + f + " avoids late nights.");
+    for (var i = 0; i < a.traits.length; i++) {
+      // an early start is judged on the real start time above, when there is one
+      var covered = a.traits[i] === "early_mornings" && hours;
+      if (has(p.avoid, a.traits[i]) && !covered) out.push("It involves " + words(a.traits[i]) + ", which " + f + " avoids.");
+    }
+    for (var j = 0; j < a.tags.length; j++) { if (has(p.dislikes, a.tags[j])) out.push("It's " + words(a.tags[j]) + ", which " + f + " is not into."); }
+    if (!has(BUDGET_OK[p.budget], a.cost)) out.push("It costs more than " + f + "'s budget (" + BUDGET_WORDS[p.budget] + ").");
+    var keen = 0;
+    for (var k = 0; k < p.likes.length; k++) { if (has(a.tags, p.likes[k].tag) && p.likes[k].weight > keen) keen = p.likes[k].weight; }
+    if (keen === 0) out.push(f + " never said they like this.");
+    if (keen === 1) out.push("Interest is mild: " + f + " is only up for it.");
+    return out;
+  }
   function agentPrompt(pid, group, message) {
-    var p = PEOPLE[pid], a = ACTS[group.activity];
-    var free = listOr(p.calendar[state.run.day]);
-    var freeText = "nothing";
-    if (free.length > 0) freeText = free.join(", ");
+    var p = PEOPLE[pid], a = ACTS[group.activity], f = first(pid);
+    var when = group.time + " (" + group.part + ")";
+    if (group.fixed) when += ", a fixed-time event";
+    var checks = planChecks(p, a, group.part, group.time, state.run.day);
+    var found = "  nothing in the profile conflicts with it";
+    if (checks.length > 0) found = "  - " + checks.join("\n  - ");
     return [
-      "You are the personal agent of " + p.name + ". You know " + first(pid) + " only from what they told you (below) and their calendar. You speak for " + first(pid) + " to the Clawnly matchmaker. You never talk to other people's agents.",
+      "You are the personal agent of " + p.name + ". You know " + f + " only from their profile and calendar below. You speak for " + f + " to the Clawnly matchmaker. You never talk to other people's agents.",
       "",
-      "What " + first(pid) + " told you: " + p.brief,
-      first(pid) + " is free on " + dayLabel(state.run.day) + ": " + freeText + ".",
+      "WHAT " + f.toUpperCase() + " TOLD YOU:",
+      agentProfile(p),
       "",
-      "The matchmaker proposes: " + a.name + " at " + a.where + ", " + dayLabel(state.run.day) + ", " + group.time + " (" + group.part + "), cost " + a.cost + ", a small group of neighbors.",
+      "The matchmaker proposes: " + a.name + " at " + a.where + ", " + dayLabel(state.run.day) + ", " + when + ", cost " + a.cost + ", a small group of neighbors.",
       "The matchmaker's message: " + message,
       "",
-      "Decide for " + first(pid) + ": \"yes\" if it fits, \"no\" if it clearly doesn't, or \"counter\" with one concrete change that would make it a yes (a different time within a day part they're free, for example). Be realistic: people are busy and choosy, so not everything they like is a yes.",
-      "Reply with only this JSON object: {\"answer\": \"yes\" or \"no\" or \"counter\", \"counter\": \"the change, if any\", \"say\": \"one or two sentences to the matchmaker, as " + first(pid) + "'s agent\"}"
+      "What code found in " + f + "'s profile:",
+      found,
+      "",
+      "Check the plan against everything above before you answer: the time against their calendar and what they avoid, the activity against their likes and dislikes, the cost against their budget. Code has listed what it found; weigh it, and look for anything it missed.",
+      "- \"no\" if something clearly conflicts and no small change fixes it, or if " + f + " just wouldn't be keen. A mild interest is a fair reason to pass. Saying no is normal and helps the matchmaker.",
+      "- \"counter\" with one concrete change that would make it a yes (for example a later start inside a day part they're free). A fixed-time event can't move, so don't counter its time.",
+      "- \"yes\" only if it genuinely fits and " + f + " would want to go.",
+      "Reply with only this JSON object: {\"answer\": \"yes\" or \"no\" or \"counter\", \"counter\": \"the change, if any\", \"say\": \"one or two sentences to the matchmaker, as " + f + "'s agent\"}"
     ].join("\n");
   }
   function resolvePrompt(groups) {
@@ -214,7 +300,9 @@
     ];
     for (var i = 0; i < groups.length; i++) {
       var g = groups[i], a = ACTS[g.activity];
-      lines.push("", g.id + ": " + a.name + ", " + g.time + " (" + g.part + ")");
+      var when = g.time + " (" + g.part + ")";
+      if (g.fixed) when += ", FIXED: a real event, the time can't move";
+      lines.push("", g.id + ": " + a.name + ", " + when);
       for (var j = 0; j < g.members.length; j++) {
         var m = g.members[j];
         var said = m.state;
@@ -284,6 +372,12 @@
       }
       var g = { id: "g" + (groups.length + 1), activity: slot.activity, part: slot.part, time: String(r.time || PART_HOURS[slot.part]),
                 why: String(r.why || ""), members: [], alternates: alternates, thread: [], status: "negotiating", magic: null };
+      // a game or concert happens when it happens, whatever time the plan wrote
+      var fixed = fixedTime(ACTS[slot.activity], slot.part);
+      if (fixed) {
+        g.fixed = true;
+        if (g.time !== fixed) { g.plannedTime = g.time; g.time = fixed; }
+      }
       var proposals = r.proposals || {};
       for (var m = 0; m < members.length; m++) {
         taken[members[m]] = g.id;
@@ -356,6 +450,7 @@
       state.run.groups = checked.groups;
       for (var g0 = 0; g0 < checked.groups.length; g0++) {
         var cg = checked.groups[g0];
+        if (cg.plannedTime) log("code", "check", "Set " + cg.id + " to the event's real time, " + cg.time + " (the plan said " + cg.plannedTime + ").", cg.id);
         log("hub", "decision", "Proposed " + cg.id + ": " + ACTS[cg.activity].name + ", " + cg.time + ", " + cg.members.length + " people. " + cg.why, cg.id);
       }
       // 3. round 1: the matchmaker asks each agent, one to one
@@ -386,7 +481,10 @@
         for (var s = 0; s < state.run.groups.length; s++) { if (state.run.groups[s].id === dec.id) grp = state.run.groups[s]; }
         if (!grp) continue;
         if (dec.keep === false) { grp.status = "dropped"; grp.dropReason = "the matchmaker dropped it"; log("hub", "decision", "Dropped " + grp.id + " (" + ACTS[grp.activity].name + ").", grp.id); continue; }
-        if (dec.time && String(dec.time) !== grp.time) { log("hub", "decision", grp.id + " moves to " + dec.time + ".", grp.id); grp.time = String(dec.time); }
+        if (dec.time && String(dec.time) !== grp.time) {
+          if (grp.fixed) log("code", "check", "Kept " + grp.id + " at " + grp.time + ": " + ACTS[grp.activity].name + " is a real event, so the matchmaker can't move it to " + dec.time + ".", grp.id);
+          else { log("hub", "decision", grp.id + " moves to " + dec.time + ".", grp.id); grp.time = String(dec.time); }
+        }
         var asks = listOr(dec.ask);
         for (var a2 = 0; a2 < asks.length; a2++) {
           var pid = String((asks[a2] || {}).id || "");

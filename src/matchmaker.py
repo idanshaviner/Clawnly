@@ -8,8 +8,9 @@ Hub and spoke, never agent to agent. For one day in the neighborhood:
      alternates and a personal proposal to each person's agent. Code keeps only
      people who are in that break room and never books anyone twice.
   3. round 1 (Sonnet, one call per agent): the matchmaker asks each agent one
-     to one; the agent answers yes / no / counter from its person's brief and
-     calendar only.
+     to one; the agent checks the plan against its person's full profile (likes,
+     dislikes, what they avoid, budget, the week's calendar) plus what code found
+     in it (plan_checks), and answers yes / no / counter.
   4. resolve (Opus): accept counters by moving the time, call alternates. Code
      only lets it ask the group's own members or alternates, never someone who
      already said yes elsewhere, and never one person for two groups.
@@ -25,6 +26,7 @@ is called after each step so the page can follow along live.
 
 import asyncio
 import datetime
+import re
 import time
 
 import ai_log
@@ -40,8 +42,9 @@ WEEKDAY = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "
 
 # how many agents are asked at once
 AGENT_CONCURRENCY = 4
-# the keenest people in a break room shown with their full profile; the rest by name
-PROFILES_PER_ROOM = 15
+# the keenest people in a break room, listed with keenness and a profile line (once each,
+# in PEOPLE); the rest of the room by id only. Keeps what Opus reads, and pays for, small.
+PROFILES_PER_ROOM = 8
 
 
 def _now():
@@ -71,7 +74,8 @@ def _index(items):
 
 # ----- prompts: each system prompt carries one marker phrase (ai_log.PURPOSES) -----
 
-def _person_line(p, score):
+def _person_line(p):
+    # one compact line per person; the plan lists each person once, however many rooms they're in
     likes = []
     i = 0
     while i < len(p["likes"]):
@@ -79,9 +83,8 @@ def _person_line(p, score):
         i += 1
     kids = ""
     if p["kids_at_home"]:
-        kids = ", kids at home"
-    return ("  " + p["id"] + " " + p["name"] + " (" + str(p["age"]) + ", " + p["archetype"] + kids + ", " + p["area"] +
-            "; keenness " + str(score) + "; likes " + ", ".join(likes) + ")")
+        kids = ", kids"
+    return "  " + p["id"] + " " + p["name"] + ", " + str(p["age"]) + ", " + p["archetype"] + kids + ", " + p["area"] + ": " + ", ".join(likes)
 
 
 def _plan_system(day, max_groups):
@@ -89,14 +92,14 @@ def _plan_system(day, max_groups):
         "You are the Clawnly matchmaker: the orchestrator for " + catalog.NEIGHBORHOOD + ". Task: plan the day's activity groups for " + day_label(day) + ".",
         "Each neighbor has told their own agent what they like, what they don't, and when they're free. You talk to each person's agent one to one. Agents never talk to each other. The goal is not friendship matching: it is a good small group doing something real together, so neighbors get to know each other.",
         "",
-        "The break rooms were built by code: one per activity and time of day that can run that day, holding every neighbor who is free then, interested, can afford it and doesn't avoid anything about it (keenness = how much they'd want to, higher is better).",
+        "The break rooms were built by code: one per activity and time of day that can run that day, holding every neighbor who is free then, interested, can afford it and doesn't avoid anything about it. Each room lists its keenest people as id:keenness (higher is better), then everyone else in it by id. PEOPLE has one line per listed person, once each.",
         "",
         "Plan up to " + str(max_groups) + " groups:",
         "- Size each group to fit the activity and the people. You decide: two neighbors having a beer over the game is a group, and so is a bigger hike. Small groups are often where people actually meet each other.",
         "- Each person in at most one group. Use only people in that break room.",
         "- Prefer groups whose members share more than the activity (overlapping likes, similar stage of life), so they'd enjoy each other.",
         "- Spread plans across many people rather than stacking the keenest into one group.",
-        "- Pick a specific time inside the day part (morning " + PART_HOURS["morning"] + ", afternoon " + PART_HOURS["afternoon"] + ", evening " + PART_HOURS["evening"] + ").",
+        "- Pick a specific time inside the day part (morning " + PART_HOURS["morning"] + ", afternoon " + PART_HOURS["afternoon"] + ", evening " + PART_HOURS["evening"] + "). A room marked FIXED is a real event (a game, a concert): use exactly that time.",
         "- Name up to 2 alternates per group from the same break room, in case someone declines.",
         "- Write a short, personal proposal to each member's agent: what, when, where, how many others, and why it fits this person. Don't name the other people yet.",
         "",
@@ -107,51 +110,197 @@ def _plan_system(day, max_groups):
 
 def _plan_payload(rooms, people):
     lines = ["BREAK ROOMS:"]
+    listed = []
+    seen = {}
     i = 0
     while i < len(rooms):
         room = rooms[i]
         a = catalog.get(room["activity"])
+        header = "[" + a["id"] + " | " + room["part"] + "] " + a["name"] + " at " + a["where"] + ", cost " + a["cost"]
+        fixed = fixed_time(a, room["part"])
+        if fixed is not None:
+            header = header + ", FIXED " + fixed
         lines.append("")
-        lines.append("[" + a["id"] + " | " + room["part"] + "] " + a["name"] + " at " + a["where"] + " (cost " + a["cost"] + ", " +
-                     str(len(room["candidates"])) + " in the room)")
+        lines.append(header + " (" + str(len(room["candidates"])) + " in the room)")
+        top = []
         rest = []
         j = 0
         while j < len(room["candidates"]):
             c = room["candidates"][j]
             if j < PROFILES_PER_ROOM:
-                lines.append(_person_line(people[c["id"]], c["score"]))
+                top.append(c["id"] + ":" + str(c["score"]))
+                if c["id"] not in seen:
+                    seen[c["id"]] = True
+                    listed.append(c["id"])
             else:
-                rest.append(c["id"] + " " + _first(people[c["id"]]) + " (" + str(c["score"]) + ")")
+                rest.append(c["id"])
             j += 1
+        lines.append("  keenest: " + " ".join(top))
         if len(rest) > 0:
-            lines.append("  also in the room: " + ", ".join(rest))
+            lines.append("  also: " + " ".join(rest))
         i += 1
+    lines.append("")
+    lines.append("PEOPLE:")
+    k = 0
+    while k < len(listed):
+        lines.append(_person_line(people[listed[k]]))
+        k += 1
     return "\n".join(lines)
+
+
+# ----- what an agent checks before answering (Idan: "so they can actually say no") -----
+
+LEVELS = [[3, "Loves"], [2, "Really likes"], [1, "Is up for"]]
+BUDGET_WORDS = {"free": "free things only", "low": "free or low-cost things", "any": "any cost"}
+_CLOCK = re.compile(r"(\d{1,2})(?::(\d{2}))?\s*(am|pm)?", re.IGNORECASE)
+
+
+def fixed_time(activity, part):
+    # the real time of a game, concert or event in that day part, or None when the time is free to pick
+    times = activity.get("fixed") or {}
+    return times.get(part)
+
+
+def _to_hours(match, half):
+    hour = int(match[0])
+    if half == "pm" and hour < 12:
+        hour += 12
+    if half == "am" and hour == 12:
+        hour = 0
+    minutes = 0
+    if match[1]:
+        minutes = int(match[1])
+    return hour + minutes / 60.0
+
+
+def parse_hours(text):
+    # "10:30am-12pm" -> (10.5, 12.0); None when there's no start and end to read
+    found = _CLOCK.findall(str(text or ""))
+    if len(found) < 2:
+        return None
+    end_half = found[-1][2].lower()
+    start_half = found[0][2].lower()
+    if start_half == "":
+        start_half = end_half
+    return _to_hours(found[0], start_half), _to_hours(found[-1], end_half)
+
+
+def agent_profile(person):
+    # everything the person told their agent, in plain words: the agent checks a plan against all of it
+    first = _first(person)
+    kids = ""
+    if person["kids_at_home"]:
+        kids = ", with kids at home"
+    lines = [first + " is " + str(person["age"]) + ", a " + person["archetype"] + " in " + person["area"] + kids + "."]
+    l = 0
+    while l < len(LEVELS):
+        tags = []
+        i = 0
+        while i < len(person["likes"]):
+            if person["likes"][i]["weight"] == LEVELS[l][0]:
+                tags.append(_words(person["likes"][i]["tag"]))
+            i += 1
+        if len(tags) > 0:
+            lines.append(LEVELS[l][1] + ": " + ", ".join(tags) + ".")
+        l += 1
+    dislikes = []
+    i = 0
+    while i < len(person["dislikes"]):
+        dislikes.append(_words(person["dislikes"][i]))
+        i += 1
+    if len(dislikes) > 0:
+        lines.append("Not into: " + ", ".join(dislikes) + ".")
+    avoid = []
+    i = 0
+    while i < len(person["avoid"]):
+        avoid.append(_words(person["avoid"][i]))
+        i += 1
+    if len(avoid) > 0:
+        lines.append("Avoids: " + ", ".join(avoid) + ".")
+    lines.append("Budget: " + BUDGET_WORDS[person["budget"]] + ".")
+    days = sorted(person["calendar"].keys())
+    week = []
+    d = 0
+    while d < len(days):
+        free = person["calendar"][days[d]]
+        free_text = "busy"
+        if len(free) > 0:
+            free_text = "free " + ", ".join(free)
+        week.append(day_label(datetime.date.fromisoformat(days[d])) + ": " + free_text)
+        d += 1
+    lines.append("This week: " + "; ".join(week) + ".")
+    return "\n".join(lines)
+
+
+def plan_checks(person, activity, part, time_text, day):
+    # what code can see in the profile that argues against this plan; the agent weighs it
+    first = _first(person)
+    out = []
+    if part not in person["calendar"].get(day.isoformat(), []):
+        out.append(first + " is busy that " + part + ".")
+    hours = parse_hours(time_text)
+    if hours is not None and "early_mornings" in person["avoid"] and hours[0] < 9:
+        out.append("It starts before 9am, and " + first + " avoids early mornings.")
+    if hours is not None and "late_nights" in person["avoid"] and hours[1] >= 21:
+        out.append("It runs to 9pm or later, and " + first + " avoids late nights.")
+    i = 0
+    while i < len(activity["traits"]):
+        # an early start is judged on the real start time above, when there is one
+        covered = activity["traits"][i] == "early_mornings" and hours is not None
+        if activity["traits"][i] in person["avoid"] and not covered:
+            out.append("It involves " + _words(activity["traits"][i]) + ", which " + first + " avoids.")
+        i += 1
+    i = 0
+    while i < len(activity["tags"]):
+        if activity["tags"][i] in person["dislikes"]:
+            out.append("It's " + _words(activity["tags"][i]) + ", which " + first + " is not into.")
+        i += 1
+    if activity["cost"] not in demand.BUDGET_OK[person["budget"]]:
+        out.append("It costs more than " + first + "'s budget (" + BUDGET_WORDS[person["budget"]] + ").")
+    keen = 0
+    i = 0
+    while i < len(person["likes"]):
+        if person["likes"][i]["tag"] in activity["tags"] and person["likes"][i]["weight"] > keen:
+            keen = person["likes"][i]["weight"]
+        i += 1
+    if keen == 0:
+        out.append(first + " never said they like this.")
+    if keen == 1:
+        out.append("Interest is mild: " + first + " is only up for it.")
+    return out
 
 
 def _agent_system(person):
     first = _first(person)
     return "\n".join([
-        "You are the personal agent of " + person["name"] + ". You know " + first + " only from what they told you and their calendar. You speak for " + first + " to the Clawnly matchmaker. You never talk to other people's agents.",
+        "You are the personal agent of " + person["name"] + ". You know " + first + " only from their profile and calendar below. You speak for " + first + " to the Clawnly matchmaker. You never talk to other people's agents.",
         "",
-        "What " + first + " told you: " + person["brief"],
+        "WHAT " + first.upper() + " TOLD YOU:",
+        agent_profile(person),
         "",
-        "Decide for " + first + ': "yes" if it fits, "no" if it clearly doesn\'t, or "counter" with one concrete change that would make it a yes (a different time within a day part they\'re free, for example). Be realistic: people are busy and choosy, so not everything they like is a yes.',
+        "Check the plan against everything above before you answer: the time against their calendar and what they avoid, the activity against their likes and dislikes, the cost against their budget. Code has listed what it found; weigh it, and look for anything it missed.",
+        '- "no" if something clearly conflicts and no small change fixes it, or if ' + first + " just wouldn't be keen. A mild interest is a fair reason to pass. Saying no is normal and helps the matchmaker.",
+        '- "counter" with one concrete change that would make it a yes (for example a later start inside a day part they\'re free). A fixed-time event can\'t move, so don\'t counter its time.',
+        '- "yes" only if it genuinely fits and ' + first + " would want to go.",
         'Reply with only this JSON object: {"answer": "yes" or "no" or "counter", "counter": "the change, if any", "say": "one or two sentences to the matchmaker, as ' + first + "'s agent\"}",
     ])
 
 
 def _agent_payload(person, group, day, message):
     a = catalog.get(group["activity"])
-    free = person["calendar"].get(day.isoformat(), [])
-    free_text = "nothing"
-    if len(free) > 0:
-        free_text = ", ".join(free)
+    when = group["time"] + " (" + group["part"] + ")"
+    if group.get("fixed"):
+        when = when + ", a fixed-time event"
+    checks = plan_checks(person, a, group["part"], group["time"], day)
+    found = "  nothing in the profile conflicts with it"
+    if len(checks) > 0:
+        found = "  - " + "\n  - ".join(checks)
     return "\n".join([
-        _first(person) + " is free on " + day_label(day) + ": " + free_text + ".",
-        "The matchmaker proposes: " + a["name"] + " at " + a["where"] + ", " + day_label(day) + ", " + group["time"] + " (" + group["part"] +
-        "), cost " + a["cost"] + ", a small group of neighbors.",
+        "The matchmaker proposes: " + a["name"] + " at " + a["where"] + ", " + day_label(day) + ", " + when + ", cost " + a["cost"] + ", a small group of neighbors.",
         "The matchmaker's message: " + message,
+        "",
+        "What code found in " + _first(person) + "'s profile:",
+        found,
     ])
 
 
@@ -173,7 +322,10 @@ def _resolve_payload(groups, people):
         g = groups[i]
         a = catalog.get(g["activity"])
         lines.append("")
-        lines.append(g["id"] + ": " + a["name"] + ", " + g["time"] + " (" + g["part"] + ")")
+        when = g["time"] + " (" + g["part"] + ")"
+        if g.get("fixed"):
+            when = when + ", FIXED: a real event, the time can't move"
+        lines.append(g["id"] + ": " + a["name"] + ", " + when)
         j = 0
         while j < len(g["members"]):
             m = g["members"][j]
@@ -338,6 +490,13 @@ def check_plan(raw, rooms, max_groups, people):
         group = {"id": "g" + str(len(groups) + 1), "activity": room["activity"], "part": room["part"],
                  "time": str(r.get("time") or PART_HOURS[room["part"]]), "why": str(r.get("why") or ""),
                  "members": [], "alternates": alternates, "thread": [], "status": "negotiating", "magic": None}
+        # a game or concert happens when it happens, whatever time the plan wrote
+        fixed = fixed_time(activity, room["part"])
+        if fixed is not None:
+            group["fixed"] = True
+            if group["time"] != fixed:
+                group["plannedTime"] = group["time"]
+                group["time"] = fixed
         m = 0
         while m < len(members):
             taken[members[m]] = group["id"]
@@ -450,6 +609,9 @@ async def run_day(day, max_groups=10, people_list=None, client=None, on_progress
         data["groups"] = groups
         g = 0
         while g < len(groups):
+            if groups[g].get("plannedTime"):
+                run.log("code", "check", "Set " + groups[g]["id"] + " to the event's real time, " + groups[g]["time"] +
+                        " (the plan said " + groups[g]["plannedTime"] + ").", groups[g]["id"])
             run.log("hub", "decision", "Proposed " + groups[g]["id"] + ": " + catalog.get(groups[g]["activity"])["name"] + ", " +
                     groups[g]["time"] + ", " + str(len(groups[g]["members"])) + " people. " + groups[g]["why"], groups[g]["id"])
             g += 1
@@ -578,8 +740,12 @@ def _resolve_jobs(run, res, groups, people):
             run.log("hub", "decision", "Dropped " + group["id"] + " (" + name + ").", group["id"])
             continue
         if dec.get("time") and str(dec["time"]) != group["time"]:
-            group["time"] = str(dec["time"])
-            run.log("hub", "decision", group["id"] + " moves to " + group["time"] + ".", group["id"])
+            if group.get("fixed"):
+                run.log("code", "check", "Kept " + group["id"] + " at " + group["time"] + ": " + name +
+                        " is a real event, so the matchmaker can't move it to " + str(dec["time"]) + ".", group["id"])
+            else:
+                group["time"] = str(dec["time"])
+                run.log("hub", "decision", group["id"] + " moves to " + group["time"] + ".", group["id"])
         asks = dec.get("ask")
         if not isinstance(asks, list):
             asks = []

@@ -53,5 +53,19 @@ Every message is shown word for word (Negotiation tab); the Orchestrator tab kee
 Claude call verbatim (exactly what was sent, exactly what came back, how long it took);
 every step is logged; and "Copy the run as JSON" exports it all.
 
-To rebuild after changing the people or the catalog, regenerate the embedded
-`mm-data` JSON from `population.generate(200, seed=7, start=...)` and `catalog.ACTIVITIES`.
+**What each agent checks** (Idan's change): the agent gets its person's full profile (likes by
+strength, dislikes, what they avoid, budget, the whole week's calendar) and a list of what code
+found against the plan (`plan_checks`: an early start for someone who avoids early mornings, a
+late finish, over budget, busy then, only a mild interest). A no is a normal answer.
+
+**Real events keep real times**: activities with a `fixed` time in `src/catalog.py` (Seahawks
+kickoffs, Kraken puck drop, the dock concert, live music, trivia, the trail work party) always
+meet then. Code overrides whatever time the plan wrote, and refuses the matchmaker's later
+attempts to move it.
+
+**A smaller plan**: each break room lists its 8 keenest people as `id:keenness` and the rest by
+id; every listed person's profile appears once, under PEOPLE. For Sunday 27 Sep that's about
+5,600 tokens instead of 16,300.
+
+To rebuild this file after changing the page, the people or the catalog:
+`.venv/bin/python src/run_clawnly.py matchmaker/run-clawnly.html 2026-09-27`

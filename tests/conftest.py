@@ -33,6 +33,14 @@ def json_body(obj):
     return json.dumps(obj)
 
 
+MATCHMAKER_MARKERS = [
+    ("plan the day's activity groups", "mm_plan"),
+    ("you are the personal agent of", "mm_agent"),
+    ("finish the day's plan", "mm_resolve"),
+    ("small group is confirmed", "mm_message"),
+]
+
+
 class FakeMessages:
     def __init__(self, outer):
         self.outer = outer
@@ -63,6 +71,13 @@ class FakeMessages:
             if outer.verdict_fn is not None:
                 return text_response(outer.verdict_fn(system, content))
             return text_response(outer.verdict_queue.pop(0))
+        for marker, kind in MATCHMAKER_MARKERS:
+            if marker in low:
+                outer.calls.append((kind, kwargs))
+                fn = outer.matchmaker.get(kind)
+                if fn is None:
+                    raise AssertionError("FakeClient has no reply set for " + kind)
+                return text_response(fn(system, content))
         raise AssertionError("FakeClient got an unrecognised call: " + system[:120])
 
 
@@ -74,11 +89,12 @@ class FakeClient:
     - pairing_queue: the hub's pairing replies
     - verdict_queue / verdict_fn: the hub's verdict replies
     - fail_names: people whose agent-turn call should raise
+    - matchmaker: reply functions for the Run Clawnly calls (matchmaker.py)
     - calls: every call recorded as (kind, kwargs) for assertions
     """
 
     def __init__(self, card_queue=None, card_fn=None, agent_fn=None, pairing_queue=None,
-                 verdict_queue=None, verdict_fn=None, fail_names=None):
+                 verdict_queue=None, verdict_fn=None, fail_names=None, matchmaker=None):
         self.card_queue = list(card_queue or [])
         self.card_fn = card_fn
         self.agent_fn = agent_fn or (lambda system, content: "canned agent message")
@@ -86,6 +102,8 @@ class FakeClient:
         self.verdict_queue = list(verdict_queue or [])
         self.verdict_fn = verdict_fn
         self.fail_names = set(fail_names or [])
+        # Run Clawnly: {"mm_plan" | "mm_agent" | "mm_resolve" | "mm_message": fn(system, content) -> reply text}
+        self.matchmaker = dict(matchmaker or {})
         self.calls = []
         self.messages = FakeMessages(self)
 

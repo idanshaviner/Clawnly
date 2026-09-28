@@ -79,7 +79,9 @@ async def agent_turn(me, other, turns, index, client):
         so_far = transcript_text(turns, names)
     message = await client.messages.create(
         model=config.MODEL_AGENT_TURN,
-        max_tokens=400,
+        # thinking counts toward this cap; the message itself is 2-4 sentences
+        max_tokens=4000,
+        output_config={"effort": config.REASONING_EFFORT},
         system=_turn_system(me, other, index),
         messages=[{"role": "user", "content": "Conversation so far:\n\n" + so_far + "\n\nWrite only your next message."}],
     )

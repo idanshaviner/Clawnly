@@ -228,7 +228,9 @@ async def choose_pairs(people, done_keys, client, record):
 
     message = await client.messages.create(
         model=config.MODEL_HUB_PAIRING,
-        max_tokens=1200,
+        # thinking counts toward this cap
+        max_tokens=8000,
+        output_config={"effort": config.REASONING_EFFORT},
         system=_pairing_system(),
         messages=[{"role": "user", "content": _pairing_payload(people, done_keys, newcomers)}],
     )

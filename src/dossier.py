@@ -125,7 +125,9 @@ async def build_card(source, text, client=None):
         client = config.get_client()
     message = await client.messages.create(
         model=config.MODEL_DOSSIER,
-        max_tokens=900,
+        # thinking counts toward this cap
+        max_tokens=6000,
+        output_config={"effort": config.REASONING_EFFORT},
         system=_card_system_prompt(),
         messages=[{"role": "user", "content": "Their AI (" + source + ") wrote:\n\n" + text.strip()[:MAX_DOSSIER_CHARS]}],
     )

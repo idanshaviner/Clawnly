@@ -24,12 +24,17 @@ import config
 import db
 import my_match
 import nightly
+import run_clawnly
 
 
 @contextlib.asynccontextmanager
 async def lifespan(app):
     # the nightly rounds live as long as the server does
     nightly.start()
+    # a Run Clawnly run can't outlive the process that ran it
+    stopped = db.fail_unfinished_matchmaker_runs()
+    if stopped > 0:
+        db.log_event(None, "system", "system", "Run Clawnly: marked " + str(stopped) + " unfinished run(s) failed after a restart.")
     yield
 
 
@@ -481,6 +486,40 @@ async def api_admin_run(run_id: int, request: Request):
     if detail is None:
         return JSONResponse(status_code=404, content={"error": "no such round"})
     return detail
+
+
+# ============================================================================
+# Run Clawnly: the matchmaker plans a day of activity groups for an emulated
+# neighborhood. Anyone with the link watches and replays; only an admin runs it
+# (each run is paid for with the server's key). Emulated people only.
+# ============================================================================
+
+@app.get("/run")
+async def run_page():
+    return HTMLResponse(run_clawnly.page_html())
+
+
+@app.get("/api/run/latest")
+async def api_run_latest(request: Request):
+    session = auth.current_session(request)
+    can_run = session is not None and session.get("role") == "admin"
+    latest = run_clawnly.latest()
+    run = None
+    if latest is not None:
+        # never who started it: this answer is public
+        run = {"id": latest["id"], "day": latest["day"], "status": latest["status"], "data": latest["data"]}
+    return {"can_run": can_run, "run": run}
+
+
+@app.post("/api/run")
+async def api_run_start(body: dict, request: Request):
+    session, error_response = _require_admin(request)
+    if error_response is not None:
+        return error_response
+    run_id, error = run_clawnly.start(body.get("day"), body.get("max_groups"), session.get("email"))
+    if error is not None:
+        return JSONResponse(status_code=400, content={"error": error})
+    return {"run_id": run_id}
 
 
 if __name__ == "__main__":

@@ -17,10 +17,12 @@ Each activity:
   months     -- months of the year it runs, 1..12 (summer-only things are summer-only)
   cost       -- "free", "low" or "mid"
   outdoor    -- weather-dependent
+  fixed      -- for real events (games, concerts, a work party): the time it
+                actually happens, per day part. A group meets then; the
+                matchmaker can't move it.
 
-Every group is 2 to 5 people (GROUP_MIN..GROUP_MAX), whatever the activity:
-two neighbors having a beer over the game counts, and five is the most where
-everyone still actually meets everyone.
+GROUP_MIN is the smallest group anywhere. GROUP_MAX only sizes the code-only
+preview in demand.py; the matchmaker has no upper limit.
 """
 
 GROUP_MIN = 2
@@ -50,9 +52,13 @@ EVERY_DAY = [0, 1, 2, 3, 4, 5, 6]
 WEEKEND = [5, 6]
 
 
-def _a(id, name, where, tags, traits, days, parts, months, cost, outdoor):
+def _a(id, name, where, tags, traits, days, parts, months, cost, outdoor, fixed=None):
+    times = {}
+    if fixed is not None:
+        times = fixed
     return {"id": id, "name": name, "neighborhood": NEIGHBORHOOD, "where": where, "tags": tags,
-            "traits": traits, "days": days, "parts": parts, "months": months, "cost": cost, "outdoor": outdoor}
+            "traits": traits, "days": days, "parts": parts, "months": months, "cost": cost, "outdoor": outdoor,
+            "fixed": times}
 
 
 ACTIVITIES = [
@@ -64,7 +70,8 @@ ACTIVITIES = [
     _a("sawyer-swim", "Swim and picnic at Lake Sawyer", "Lake Sawyer Regional Park beach",
        ["swimming", "picnics"], ["crowds"], EVERY_DAY, ["afternoon"], SUMMER, "free", True),
     _a("dock-concert", "Lake Sawyer Dock Concert", "Lake Sawyer (the summer dock concert series)",
-       ["live_music", "boating", "picnics"], ["crowds"], [5], ["evening"], [7, 8], "free", True),
+       ["live_music", "boating", "picnics"], ["crowds"], [5], ["evening"], [7, 8], "free", True,
+       {"evening": "6pm-8pm"}),
     _a("sawyer-birding", "Birding walk at Lake Sawyer", "Lake Sawyer Regional Park",
        ["birding", "photography"], ["early_mornings"], EVERY_DAY, ["morning"], ALL_YEAR, "free", True),
     _a("sawyer-dogs", "Dog walk around the park", "Lake Sawyer Regional Park",
@@ -104,7 +111,8 @@ ACTIVITIES = [
     _a("hoops", "Pickup basketball", "the court on Bruckners Way",
        ["basketball"], ["competitive"], EVERY_DAY, ["afternoon", "evening"], ALL_YEAR, "free", True),
     _a("little-league", "Catch a Little League game", "the ballfield by Black Diamond Elementary",
-       ["baseball", "watch_sports"], [], [0, 2, 5], ["evening"], [4, 5, 6], "free", True),
+       ["baseball", "watch_sports"], [], [0, 2, 5], ["evening"], [4, 5, 6], "free", True,
+       {"evening": "6pm-8pm"}),
     _a("pickleball", "Pickleball doubles", "public courts in Maple Valley",
        ["pickleball"], ["competitive"], EVERY_DAY, ["morning", "evening"], ALL_YEAR, "free", True),
     _a("golf", "Nine holes at Lake Wilderness", "Lake Wilderness Golf Course, Maple Valley",
@@ -120,17 +128,22 @@ ACTIVITIES = [
 
     # pubs, games and music
     _a("seahawks", "Watch the Seahawks over beers", "The Vault Taphouse & Beer Garden",
-       ["watch_sports", "craft_beer"], ["crowds", "loud_places"], [0, 3, 6], ["afternoon", "evening"], [9, 10, 11, 12, 1], "low", False),
+       ["watch_sports", "craft_beer"], ["crowds", "loud_places"], [0, 3, 6], ["afternoon", "evening"], [9, 10, 11, 12, 1], "low", False,
+       # the usual kickoff slots, Pacific time; check the real schedule before telling a real person
+       {"afternoon": "1:25pm-4:30pm", "evening": "5:20pm-8:30pm"}),
     _a("kraken", "Kraken hockey night", "Black Diamond Grill",
-       ["watch_sports", "craft_beer", "dining"], ["loud_places"], [1, 3, 5], ["evening"], [10, 11, 12, 1, 2, 3, 4], "low", False),
+       ["watch_sports", "craft_beer", "dining"], ["loud_places"], [1, 3, 5], ["evening"], [10, 11, 12, 1, 2, 3, 4], "low", False,
+       {"evening": "7pm-9:30pm"}),
     _a("vault-music", "Live music in the beer garden", "The Vault Taphouse & Beer Garden",
-       ["live_music", "craft_beer"], ["loud_places", "late_nights"], [4, 5], ["evening"], ALL_YEAR, "low", False),
+       ["live_music", "craft_beer"], ["loud_places", "late_nights"], [4, 5], ["evening"], ALL_YEAR, "low", False,
+       {"evening": "7pm-10pm"}),
     _a("lumber-house", "Pints at Lumber House", "Lumber House brewery",
        ["craft_beer"], [], [3, 4, 5, 6], ["afternoon", "evening"], ALL_YEAR, "low", False),
     _a("big-block", "Brewpub dinner at Big Block", "Big Block Brewery, Black Diamond",
        ["craft_beer", "dining"], ["spending_money"], [3, 4, 5, 6], ["evening"], ALL_YEAR, "mid", False),
     _a("trivia", "Trivia night as one team", "a Black Diamond taproom",
-       ["trivia", "craft_beer"], ["loud_places", "competitive"], [2], ["evening"], ALL_YEAR, "low", False),
+       ["trivia", "craft_beer"], ["loud_places", "competitive"], [2], ["evening"], ALL_YEAR, "low", False,
+       {"evening": "7pm-9pm"}),
     _a("game-night", "Board game night", "a neighbor's table (the host rotates)",
        ["board_games", "cards"], [], [4, 5], ["evening"], ALL_YEAR, "free", False),
 
@@ -140,7 +153,8 @@ ACTIVITIES = [
     _a("garden-swap", "Garden workday and plant swap", "a Lawson Hills backyard (the host rotates)",
        ["gardening", "volunteering"], ["early_mornings"], WEEKEND, ["morning"], [3, 4, 5, 6, 7, 8, 9, 10], "free", True),
     _a("trail-cleanup", "Trail cleanup work party", "Green River Gorge Conservation Area",
-       ["volunteering", "hiking"], ["early_mornings"], [5], ["morning"], ALL_YEAR, "free", True),
+       ["volunteering", "hiking"], ["early_mornings"], [5], ["morning"], ALL_YEAR, "free", True,
+       {"morning": "9am-12pm"}),
 ]
 
 

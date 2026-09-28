@@ -32,3 +32,14 @@ def test_groups_are_two_to_five():
 def test_get():
     assert catalog.get("seahawks")["where"] == "The Vault Taphouse & Beer Garden"
     assert catalog.get("nope") is None
+
+
+def test_real_events_carry_their_real_time_in_a_part_they_run():
+    import matchmaker
+    events = [a for a in catalog.ACTIVITIES if a["fixed"]]
+    assert {"seahawks", "kraken", "dock-concert", "vault-music", "trivia"} <= {a["id"] for a in events}
+    for a in events:
+        for part, when in a["fixed"].items():
+            assert part in a["parts"]
+            start, end = matchmaker.parse_hours(when)
+            assert start < end

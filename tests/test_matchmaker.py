@@ -303,3 +303,98 @@ def test_only_one_run_at_a_time_and_a_stale_one_is_released():
     latest = db.latest_matchmaker_run()
     assert latest["id"] == second
     assert latest["status"] == "done"
+
+
+# ----- Idan's changes: agents can say no, real event times, a smaller plan ---------
+
+def test_parse_hours_reads_the_times_plans_use():
+    assert matchmaker.parse_hours("10:30am-12pm") == (10.5, 12.0)
+    assert matchmaker.parse_hours("12-5pm") == (12.0, 17.0)
+    assert matchmaker.parse_hours("5:20pm-8:30pm") == (17 + 20 / 60, 20.5)
+    assert matchmaker.parse_hours("morning") is None
+
+
+def test_the_agent_sees_the_full_profile_and_the_whole_week():
+    person = town()[0]
+    system = matchmaker._agent_system(person)
+    for word in person["dislikes"] + person["avoid"]:
+        assert word.replace("_", " ") in system
+    assert "Budget:" in system
+    for day in person["calendar"]:
+        assert matchmaker.day_label(datetime.date.fromisoformat(day)) in system
+    assert "Saying no is normal" in system
+
+
+def test_code_flags_what_argues_against_a_plan():
+    person = dict(town()[0], avoid=["early_mornings", "late_nights"], budget="free",
+                  likes=[{"tag": "fishing", "weight": 1}], dislikes=[])
+    day = datetime.date.fromisoformat(sorted(person["calendar"])[0])
+    person["calendar"] = {day.isoformat(): ["morning"]}
+    early = matchmaker.plan_checks(person, catalog.get("sawyer-fishing"), "morning", "7:30am-9am", day)
+    assert any("starts before 9am" in c for c in early)
+    assert any("only up for it" in c for c in early)
+    later = matchmaker.plan_checks(person, catalog.get("sawyer-fishing"), "morning", "9:30am-11am", day)
+    assert not any("before 9am" in c for c in later)
+    busy = matchmaker.plan_checks(person, catalog.get("golf"), "afternoon", "1pm-3pm", day)
+    assert any("busy that afternoon" in c for c in busy)
+    assert any("budget" in c for c in busy)
+    assert any("never said they like" in c for c in busy)
+
+
+def test_agents_get_what_code_found_with_the_proposal():
+    reset_db()
+    people = town()
+    plan = two_group_plan(rooms_for(people))
+    client = fake(plan)
+    run(matchmaker.run_day(DAY, 5, people, client))
+    payloads = [kwargs["messages"][0]["content"] for kind, kwargs in client.calls if kind == "mm_agent"]
+    assert all("What code found in" in p for p in payloads)
+
+
+def test_events_keep_their_real_time_whatever_the_plan_says():
+    people = town()
+    index = {p["id"]: p for p in people}
+    rooms = rooms_for(people)
+    room = [r for r in rooms if r["activity"] == "seahawks"][0]
+    real = catalog.get("seahawks")["fixed"][room["part"]]
+    ids = [c["id"] for c in room["candidates"]][:3]
+    raw = {"groups": [{"activity": "seahawks", "part": room["part"], "time": "11am-1pm", "members": ids}]}
+    groups, rejected = matchmaker.check_plan(raw, rooms, 5, index)
+    assert groups[0]["time"] == real
+    assert groups[0]["fixed"] is True
+    assert groups[0]["plannedTime"] == "11am-1pm"
+
+
+def test_the_matchmaker_cannot_move_an_event_in_round_two():
+    reset_db()
+    people = town()
+    rooms = rooms_for(people)
+    room = [r for r in rooms if r["activity"] == "seahawks"][0]
+    ids = [c["id"] for c in room["candidates"]]
+    plan = {"thoughts": "game day", "groups": [{"activity": "seahawks", "part": room["part"], "time": "whenever",
+                                                 "members": ids[:3], "alternates": [], "proposals": {}}]}
+
+    def resolve(system, content):
+        return json.dumps({"thoughts": "move it", "groups": [{"id": "g1", "keep": True, "time": "9am-10am", "ask": []}]})
+
+    data = run(matchmaker.run_day(DAY, 5, people, fake(plan, resolve=resolve)))
+    real = catalog.get("seahawks")["fixed"][room["part"]]
+    assert data["groups"][0]["time"] == real
+    checks = [e["text"] for e in data["log"] if e["kind"] == "check"]
+    assert any("to the event's real time" in c for c in checks)
+    assert any("can't move it to 9am-10am" in c for c in checks)
+
+
+def test_the_plan_lists_each_person_once_and_stays_small():
+    people = town()
+    index = {p["id"]: p for p in people}
+    rooms = rooms_for(people)
+    payload = matchmaker._plan_payload(rooms, index)
+    profiled = [line.split()[0] for line in payload.split("PEOPLE:")[1].splitlines() if line.strip()]
+    assert len(profiled) == len(set(profiled))
+    # every room still names everyone in it, so nobody is left out of the plan
+    for room in rooms:
+        for c in room["candidates"]:
+            assert c["id"] in payload
+    # about a third of what it used to be (65,000 characters for this day before the trim)
+    assert len(matchmaker._plan_system(DAY, 10) + payload) < 25000

@@ -61,19 +61,37 @@ def _script_json(value):
     return json.dumps(value).replace("<", "\\u003c")
 
 
-def page_html():
-    listed = days()
+def page_html(listed=None, server=True):
+    # the Run Clawnly page. server=True is /run on this app; server=False is the standalone
+    # claude.ai Artifact (matchmaker/run-clawnly.html), which runs in the owner's browser.
+    if listed is None:
+        listed = days()
     data = {"neighborhood": catalog.NEIGHBORHOOD, "people": town(listed[0]), "activities": catalog.ACTIVITIES,
             "days": listed, "groupMin": catalog.GROUP_MIN, "groupMax": catalog.GROUP_MAX}
     head = _read("run-clawnly-head.html")
+    mode = ""
+    if server:
+        mode = "<script type=\"application/json\" id=\"mm-mode\">\"server\"</script>"
     return ("<!doctype html>\n<html lang=\"en\"><head><meta charset=\"utf-8\">"
             "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, viewport-fit=cover\">" +
             "<template id=\"mm-head\">" + head + "</template>" + head +
             "<style id=\"mm-css\">" + _read("run-clawnly.css") + "</style></head><body><div id=\"root\"></div>" +
-            "<script type=\"application/json\" id=\"mm-mode\">\"server\"</script>" +
+            mode +
             "<script type=\"application/json\" id=\"mm-data\">" + _script_json(data) + "</script>" +
             "<script type=\"application/json\" id=\"mm-state\">{\"run\":null}</script>" +
             "<script id=\"mm-app\">" + _read("run-clawnly.js") + "</script></body></html>")
+
+
+def write_artifact(path, first_day):
+    # rebuild the standalone Artifact copy from the same sources as /run, with no saved run in it
+    start = datetime.date.fromisoformat(first_day)
+    listed = []
+    i = 0
+    while i < DAYS_AHEAD:
+        listed.append((start + datetime.timedelta(days=i)).isoformat())
+        i += 1
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(page_html(listed, server=False))
 
 
 def check_request(day, max_groups):
@@ -121,3 +139,9 @@ def start(day, max_groups, by):
 
 def latest():
     return db.latest_matchmaker_run()
+
+
+if __name__ == "__main__":
+    # .venv/bin/python src/run_clawnly.py matchmaker/run-clawnly.html 2026-09-27
+    import sys
+    write_artifact(sys.argv[1], sys.argv[2])

@@ -28,6 +28,12 @@
   if (!state.run) ui.tab = "breakroom";
   if (!state.run || !Array.isArray(state.run.calls)) { if (state.run) state.run.calls = []; }
   if (state.run) ui.day = state.run.day;
+  // the day picker starts on the first day that hasn't passed, so "Find plans" never plans yesterday
+  (function () {
+    var d = new Date(), today = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+    if (ui.day >= today) return;
+    for (var i = 0; i < DATA.days.length; i++) { if (DATA.days[i] >= today) { ui.day = DATA.days[i]; return; } }
+  })();
 
   function loadState() {
     var s = {};

@@ -39,7 +39,11 @@ GOOGLE_USERINFO_URL = "https://openidconnect.googleapis.com/v1/userinfo"
 GOOGLE_SCOPE = "openid email profile"
 
 RESEND_URL = "https://api.resend.com/emails"
-MAGIC_LINK_FROM = "Clawnly <onboarding@clawnly.app>"
+# temporary: clawnly.app isn't verified in Resend yet, so mail from it is
+# rejected outright. Resend's own shared domain needs no verification and
+# works immediately -- switch back to onboarding@clawnly.app once that
+# domain is verified at resend.com/domains.
+MAGIC_LINK_FROM = "Clawnly <onboarding@resend.dev>"
 
 
 def _hash_token(raw):

@@ -75,6 +75,12 @@
     if (score === 0) return { score: 0, why: "not interested" };
     return { score: score, why: null };
   }
+  // equally keen people in a per-day order, not id order (same FNV-1a as demand.tie_order)
+  function tieOrder(iso, id) {
+    var text = iso + "|" + id, value = 2166136261;
+    for (var i = 0; i < text.length; i++) { value = Math.imul(value ^ text.charCodeAt(i), 16777619) >>> 0; }
+    return value;
+  }
   function breakRoom(iso) {
     var slots = [];
     for (var a = 0; a < DATA.activities.length; a++) {
@@ -86,7 +92,13 @@
           if (f.why === null) cands.push({ id: DATA.people[n].id, score: f.score });
         }
         if (cands.length >= DATA.groupMin) {
-          cands.sort(function (x, y) { if (y.score !== x.score) return y.score - x.score; if (x.id < y.id) return -1; return 1; });
+          cands.sort(function (x, y) {
+            if (y.score !== x.score) return y.score - x.score;
+            var tx = tieOrder(iso, x.id), ty = tieOrder(iso, y.id);
+            if (tx !== ty) return tx - ty;
+            if (x.id < y.id) return -1;
+            return 1;
+          });
           slots.push({ activity: act.id, part: PARTS[p], candidates: cands });
         }
       }

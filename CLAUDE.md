@@ -50,6 +50,11 @@ name-blind pitches) are enforced in code, never trusted to the model.
   `matchmaker.py` (the hub plans, negotiates with each agent one to one, code
   locks groups) -> `run_clawnly.py` serves it at `/run` (anyone watches, admins
   run it, saved in `db.matchmaker_runs`). Agents never talk to each other.
+- **Evaluating matches** (2026-10-27): `match_eval.py` runs the code-only matcher
+  (`demand.propose_groups`) on the seed-7 town for two weeks, re-checks every rule, and
+  writes `evaluation/results/` (no API calls). Read `evaluation/MATCH_QUALITY_REPORT.md`
+  before changing `demand.fit`/`break_room`, and rerun it before and after any change.
+  `src/web/run-clawnly.js` copies `fit`/`breakRoom`/`tieOrder` -- change both together.
 - `lounge/clawnly-lounge.html` is a separate, shareable prototype of the same
   idea, published as a claude.ai Artifact. Read its `README.md` before
   republishing it: its saved state lives inside the published page.

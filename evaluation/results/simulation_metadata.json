@@ -1,0 +1,21 @@
+{
+ "what_a_match_is": "one group demand.propose_groups forms for one day (activity, day part, 2-5 emulated neighbors)",
+ "not_simulated": "the LLM steps of matchmaker.run_day (Opus plan, agent replies, resolve, final message): no API key or budget was authorized",
+ "git_commit": "340da1a0f5cfa46a1faec38bed70a4277dd31398",
+ "git_dirty": true,
+ "python": "3.15.2",
+ "seed": 7,
+ "town_size": 200,
+ "weeks": [
+  "2026-10-28",
+  "2026-07-15"
+ ],
+ "days_per_week": 7,
+ "group_min": 2,
+ "group_max": 5,
+ "activities": 37,
+ "api_calls": 0,
+ "generation_ms": 141,
+ "generated_at": "2026-10-28T01:07:47.987577+00:00",
+ "command": ".venv/bin/python src/match_eval.py evaluation/results"
+}

@@ -1,0 +1,101 @@
+[
+ {
+  "id": 1,
+  "what": "simulation smoke",
+  "folder": "run_20261029_023316_smoke",
+  "reserved_usd": 1.5,
+  "spent_usd": 0.094614,
+  "at": "2026-10-29T06:33:16.629649+00:00",
+  "settled": "2026-10-29T06:34:00.283470+00:00"
+ },
+ {
+  "id": 2,
+  "what": "audit claude-fable-5-1",
+  "folder": "run_20261029_023316_smoke",
+  "reserved_usd": 2.0,
+  "spent_usd": 0.62607,
+  "at": "2026-10-29T06:34:38.601506+00:00",
+  "settled": "2026-10-29T06:36:34.961591+00:00"
+ },
+ {
+  "id": 3,
+  "what": "simulation pilot",
+  "folder": "run_20261029_023732_pilot",
+  "reserved_usd": 4.0,
+  "spent_usd": 0.509644,
+  "at": "2026-10-29T06:37:32.212860+00:00",
+  "settled": "2026-10-29T06:41:01.435362+00:00"
+ },
+ {
+  "id": 4,
+  "what": "audit claude-fable-5-1",
+  "folder": "run_20261029_023732_pilot",
+  "reserved_usd": 3.0,
+  "spent_usd": 2.25627,
+  "at": "2026-10-29T06:42:27.322166+00:00",
+  "settled": "2026-10-29T06:48:36.375727+00:00"
+ },
+ {
+  "id": 5,
+  "what": "simulation town",
+  "folder": "run_20261029_025000_town",
+  "reserved_usd": 2.5,
+  "spent_usd": 1.076078,
+  "at": "2026-10-29T06:50:00.093330+00:00",
+  "settled": "2026-10-29T06:57:28.508851+00:00"
+ },
+ {
+  "id": 6,
+  "what": "audit claude-fable-5-1",
+  "folder": "run_20261029_025000_town",
+  "reserved_usd": 2.3,
+  "spent_usd": 1.97362,
+  "at": "2026-10-29T06:58:47.507170+00:00",
+  "settled": "2026-10-29T07:03:18.686258+00:00"
+ },
+ {
+  "id": 7,
+  "what": "simulation pilot",
+  "folder": "run_20261029_030412_pilot",
+  "reserved_usd": 0.9,
+  "spent_usd": 0.43068,
+  "at": "2026-10-29T07:04:12.167921+00:00",
+  "settled": "2026-10-29T07:07:21.190897+00:00"
+ },
+ {
+  "id": 8,
+  "what": "simulation town",
+  "folder": "run_20261029_030721_town",
+  "reserved_usd": 0.8,
+  "spent_usd": 0.349488,
+  "at": "2026-10-29T07:07:21.937951+00:00",
+  "settled": "2026-10-29T07:09:50.811544+00:00"
+ },
+ {
+  "id": 9,
+  "what": "probe",
+  "folder": "run_20261029_025000_town",
+  "reserved_usd": 0.25,
+  "spent_usd": 0.05151,
+  "at": "2026-10-29T07:11:04.410263+00:00",
+  "settled": "2026-10-29T07:11:40.712501+00:00"
+ },
+ {
+  "id": 10,
+  "what": "probe",
+  "folder": "run_20261029_025000_town",
+  "reserved_usd": 0.25,
+  "spent_usd": 0.05022,
+  "at": "2026-10-29T07:12:01.212023+00:00",
+  "settled": "2026-10-29T07:12:35.802760+00:00"
+ },
+ {
+  "id": 11,
+  "what": "audit claude-fable-5-1",
+  "folder": "run_20261029_030412_pilot",
+  "reserved_usd": 2.0,
+  "spent_usd": 1.21977,
+  "at": "2026-10-29T07:12:46.277048+00:00",
+  "settled": "2026-10-29T07:16:17.405706+00:00"
+ }
+]

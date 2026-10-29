@@ -1,0 +1,142 @@
+[
+ {
+  "seq": 560,
+  "person": "e117",
+  "prompt": "as run",
+  "answer": "yes",
+  "said": "Ava's free Saturday evening and loves watching sports with craft beer in a small group — 9:30pm end is reasonable, not a late night, so this is a yes."
+ },
+ {
+  "seq": 560,
+  "person": "e117",
+  "prompt": "as run",
+  "answer": "yes",
+  "said": "This works well for Ava—watching sports with craft beer fits her interests, Saturday evening is free, it's low-cost, and a small group isn't the late-night/crowd scene she avoids. 9:30pm end is a bit later but fine for a Saturday."
+ },
+ {
+  "seq": 560,
+  "person": "e117",
+  "prompt": "as run",
+  "answer": "yes",
+  "said": "Saturday evening is free for Ava, she loves craft beer and watching sports, and 9:30pm with a small group isn't the kind of late night she avoids. This sounds like a great fit."
+ },
+ {
+  "seq": 560,
+  "person": "e117",
+  "prompt": "as run",
+  "answer": "yes",
+  "said": "Ava's free Saturday evening and this is right up her alley—watching sports with craft beer in a small group sounds great. 9:30pm end is fine, not a late night for her."
+ },
+ {
+  "seq": 560,
+  "person": "e117",
+  "prompt": "as run",
+  "answer": "yes",
+  "said": "Ava's free Saturday evening and this fits well—watching the Kraken game with craft beer and a small group of fans is right up her alley. Ending at 9:30pm is fine, not an issue for her."
+ },
+ {
+  "seq": 560,
+  "person": "e117",
+  "prompt": "current code",
+  "answer": "counter",
+  "said": "Ava loves watching sports with craft beer and a small group sounds great, but 7-9:30pm skews toward late night which she avoids. Could we shift to an earlier start like 5-7pm instead?"
+ },
+ {
+  "seq": 560,
+  "person": "e117",
+  "prompt": "current code",
+  "answer": "counter",
+  "said": "Ava loves craft beer and watching sports, so this is a great match in theme, but she avoids late nights and 9:30pm is pushing it. If there's an earlier viewing option on Saturday afternoon, she'd be in."
+ },
+ {
+  "seq": 560,
+  "person": "e117",
+  "prompt": "current code",
+  "answer": "counter",
+  "said": "Ava's into watching sports and craft beer, so this is a great match otherwise, but 7-9:30pm runs later than she likes. Could we shift it earlier, like 5-7:30pm, to keep it from becoming a late night?"
+ },
+ {
+  "seq": 560,
+  "person": "e117",
+  "prompt": "current code",
+  "answer": "counter",
+  "said": "Ava's into watching sports and craft beer with a small group, but 7-9:30pm skews into late-night territory she avoids. Could we shift to an earlier start, like 5pm, for the same game-day vibe?"
+ },
+ {
+  "seq": 560,
+  "person": "e117",
+  "prompt": "current code",
+  "answer": "counter",
+  "said": "Ava's into watching sports and craft beer, so this is a great fit, but 7-9:30pm runs too late for her since she avoids late nights. Could we do an earlier slot, like 5-7pm, same Saturday?"
+ },
+ {
+  "seq": 562,
+  "person": "e001",
+  "prompt": "as run",
+  "answer": "yes",
+  "said": "Saturday evening is free for Nikhil, and watching the Kraken game with sports-loving neighbors at a low-cost spot sounds great. 9:30pm end is fine, not a late-night situation for him - count him in!"
+ },
+ {
+  "seq": 562,
+  "person": "e001",
+  "prompt": "as run",
+  "answer": "yes",
+  "said": "Saturday evening works well for Nikhil, and watching the Kraken game with neighbors who love sports fits him perfectly. 9:30pm is a reasonable end time, not a late night, so this is a yes."
+ },
+ {
+  "seq": 562,
+  "person": "e001",
+  "prompt": "as run",
+  "answer": "yes",
+  "said": "Saturday evening is free for Nikhil and watching sports with neighbors is right up his alley. 9:30pm end isn't a late night by his standard, so this works."
+ },
+ {
+  "seq": 562,
+  "person": "e001",
+  "prompt": "as run",
+  "answer": "yes",
+  "said": "Saturday evening works great for Nikhil, and watching the Kraken game with neighbors fits his love of sports perfectly. 9:30pm end is fine since it's not an especially early morning after."
+ },
+ {
+  "seq": 562,
+  "person": "e001",
+  "prompt": "as run",
+  "answer": "yes",
+  "said": "Saturday evening is free for Nikhil and he loves watching sports, so Kraken night at Black Diamond Grill works great. 9:30pm end is fine since it's not an early-morning-after situation and he's free all Saturday."
+ },
+ {
+  "seq": 562,
+  "person": "e001",
+  "prompt": "current code",
+  "answer": "no",
+  "said": "Nikhil's free Saturday evening, but 7-9:30pm runs into late-night territory he avoids, and it's a fixed time so there's no shifting it. He'd love a sports-watching meetup earlier in the evening or another day instead."
+ },
+ {
+  "seq": 562,
+  "person": "e001",
+  "prompt": "current code",
+  "answer": "no",
+  "said": "Nikhil loves watching sports, but 7-9:30pm runs too late into the night for him since he avoids late nights. If there's an earlier game or event ending by 9, he'd be glad to join."
+ },
+ {
+  "seq": 562,
+  "person": "e001",
+  "prompt": "current code",
+  "answer": "no",
+  "said": "Nikhil loves watching sports, but 7-9:30pm runs too late into the night for him since he avoids late nights. Would need an earlier start time to work."
+ },
+ {
+  "seq": 562,
+  "person": "e001",
+  "prompt": "current code",
+  "answer": "no",
+  "said": "Nikhil's free Saturday evening, but 7-9:30pm runs too late for him since he avoids late nights. If there's an earlier sports watch gathering or afternoon option that day, he'd be glad to join."
+ },
+ {
+  "seq": 562,
+  "person": "e001",
+  "prompt": "current code",
+  "answer": "no",
+  "said": "Nikhil's free Saturday evening, but 7-9:30pm runs too late into the night for him since he avoids late nights. If there's an earlier matchup or a game that wraps up by 9, he'd be glad to join."
+ }
+]

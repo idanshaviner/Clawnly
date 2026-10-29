@@ -13,6 +13,9 @@ import population
 from conftest import FakeClient, reset_db, run
 
 DAY = datetime.date(2026, 9, 27)
+# a time inside each day part, and a later one still inside it
+INSIDE = {"morning": "10am-12pm", "afternoon": "1-3pm", "evening": "6-8pm"}
+LATER = {"morning": "10:30am-12pm", "afternoon": "1:30-3:30pm", "evening": "6:30-8:30pm"}
 
 
 def town():
@@ -33,7 +36,7 @@ def two_group_plan(rooms):
             continue
         members = ids[:3]
         used.update(ids[:4])
-        groups.append({"activity": room["activity"], "part": room["part"], "time": "10am-12pm",
+        groups.append({"activity": room["activity"], "part": room["part"], "time": INSIDE[room["part"]],
                        "members": members, "alternates": [ids[3]], "why": "shared interests",
                        "proposals": {pid: "Hi, " + room["activity"] + " tomorrow?" for pid in members}})
         if len(groups) == 2:
@@ -227,7 +230,7 @@ def test_round_two_only_asks_members_or_alternates_and_never_a_yes_elsewhere():
 
     def resolve(system, content):
         return json.dumps({"thoughts": "swap in the alternate", "groups": [
-            {"id": "g1", "keep": True, "time": "11am-1pm", "ask": [
+            {"id": "g1", "keep": True, "time": LATER[g1["part"]], "ask": [
                 {"id": g1["alternates"][0], "message": "a spot opened"},
                 {"id": outsider, "message": "join?"},
                 {"id": g2["members"][0], "message": "switch groups?"},
@@ -238,15 +241,16 @@ def test_round_two_only_asks_members_or_alternates_and_never_a_yes_elsewhere():
     client = fake(plan, agent=agent, resolve=resolve)
     data = run(matchmaker.run_day(DAY, 5, people, client))
     group = data["groups"][0]
-    assert group["time"] == "11am-1pm"
+    assert group["time"] == LATER[g1["part"]]
     assert g1["alternates"][0] in group["final"]
     assert outsider not in group["final"]
     assert g2["members"][0] not in group["final"]
     checks = [e["text"] for e in data["log"] if e["kind"] == "check"]
     assert any("isn't in g1 or its alternates" in c for c in checks)
     assert any("already said yes to g2" in c for c in checks)
-    # 6 round-one asks + the one valid round-two ask
-    assert client.kinds().count("mm_agent") == 7
+    # 6 round-one asks + the one valid round-two ask + the 2 yeses code re-asks because the time moved
+    assert client.kinds().count("mm_agent") == 9
+    assert len([c for c in checks if c.startswith("Asking ") and "before it moved" in c]) == 2
 
 
 def test_a_counter_is_recorded_and_a_failed_agent_counts_as_no():
@@ -396,5 +400,116 @@ def test_the_plan_lists_each_person_once_and_stays_small():
     for room in rooms:
         for c in room["candidates"]:
             assert c["id"] in payload
-    # about a third of what it used to be (65,000 characters for this day before the trim)
-    assert len(matchmaker._plan_system(DAY, 10) + payload) < 25000
+    # under half of what it was before the trim (65,000 characters for this day). It grew from
+    # 25,000 when each keen person's liked tags and everyone's avoids were added: without them the
+    # hub called five beer fans "trivia-keen" (simulation_results/run_20261029_023732_pilot)
+    assert len(matchmaker._plan_system(DAY, 10) + payload) < 32000
+
+
+def test_the_plan_shows_why_each_keen_person_is_in_the_room_and_what_they_avoid():
+    people = town()
+    index = {p["id"]: p for p in people}
+    rooms = rooms_for(people)
+    payload = matchmaker._plan_payload(rooms, index)
+    room = rooms[0]
+    first = room["candidates"][0]
+    activity = catalog.get(room["activity"])
+    liked = [like["tag"].replace("_", " ") for like in index[first["id"]]["likes"] if like["tag"] in activity["tags"]]
+    assert first["id"] + ":" + str(first["score"]) + " [" + ", ".join(liked) + "]" in payload
+    avoider = next(p for p in people if p["avoid"] and p["id"] + " " in payload.split("PEOPLE:")[1])
+    line = [l for l in payload.split("PEOPLE:")[1].splitlines() if l.strip().startswith(avoider["id"] + " ")][0]
+    assert "avoids " + avoider["avoid"][0].replace("_", " ") in line
+
+
+def test_round_two_never_re_asks_a_yes_to_an_unchanged_time():
+    reset_db()
+    people = town()
+    plan = two_group_plan(rooms_for(people))
+    g1 = plan["groups"][0]
+
+    def resolve(system, content):
+        return json.dumps({"thoughts": "Confirm everyone.", "groups": [
+            {"id": "g1", "keep": True, "ask": [{"id": pid, "message": "Confirmed!"} for pid in g1["members"]]},
+            {"id": "g2", "keep": True, "ask": []}]})
+
+    client = fake(plan, resolve=resolve)
+    data = run(matchmaker.run_day(DAY, 5, people, client))
+    # 6 round-one asks and no confirmations: each yes stands, and the confirmation comes after the lock
+    assert client.kinds().count("mm_agent") == 6
+    skipped = [e["text"] for e in data["log"] if e["text"].startswith("Skipped asking")]
+    assert len(skipped) == 3
+    assert data["groups"][0]["status"] == "locked"
+
+
+def test_a_moved_time_still_re_asks_the_yeses():
+    reset_db()
+    people = town()
+    plan = two_group_plan(rooms_for(people))
+    g1 = plan["groups"][0]
+
+    def resolve(system, content):
+        return json.dumps({"thoughts": "Later.", "groups": [
+            {"id": "g1", "keep": True, "time": LATER[g1["part"]], "ask": [{"id": pid, "message": "A bit later?"} for pid in g1["members"]]},
+            {"id": "g2", "keep": True, "ask": []}]})
+
+    client = fake(plan, resolve=resolve)
+    run(matchmaker.run_day(DAY, 5, people, client))
+    assert client.kinds().count("mm_agent") == 9
+
+
+def test_the_message_writer_gets_what_the_group_really_shares():
+    people = town()
+    index = {p["id"]: p for p in people}
+    pair = [p for p in people if any(l["tag"] == "hiking" for l in p["likes"])][:2]
+    group = {"activity": "gorge", "time": "9am-12pm", "final": [pair[0]["id"], pair[1]["id"]]}
+    payload = matchmaker._message_payload(group, DAY, index)
+    assert "WHAT THEY SHARE" in payload
+    first = [p["name"].split(" ")[0] for p in pair]
+    assert "hiking: " + first[0] + ", " + first[1] in payload
+    assert "WHAT THEY SHARE lists them both" in matchmaker._message_system()
+
+
+def test_a_time_outside_the_day_part_is_refused_in_the_plan_and_in_round_two():
+    reset_db()
+    people = town()
+    plan = two_group_plan(rooms_for(people))
+    g1 = plan["groups"][0]
+    outside = {"morning": "7-9pm", "afternoon": "8-10am", "evening": "8-10am"}[g1["part"]]
+    g1["time"] = outside
+
+    def resolve(system, content):
+        return json.dumps({"thoughts": "Move it.", "groups": [{"id": "g1", "keep": True, "time": outside, "ask": []},
+                                                            {"id": "g2", "keep": True, "ask": []}]})
+
+    client = fake(plan, resolve=resolve)
+    data = run(matchmaker.run_day(DAY, 5, people, client))
+    group = data["groups"][0]
+    # calendars are checked per day part: the plan's time gives way to the part's hours, and stays there
+    assert group["time"] == matchmaker.PART_HOURS[g1["part"]]
+    checks = [e["text"] for e in data["log"] if e["kind"] == "check"]
+    assert any(c.startswith("Set g1 to its " + g1["part"]) for c in checks)
+    assert any(c.startswith("Kept g1 at") and "outside the " + g1["part"] in c for c in checks)
+    assert client.kinds().count("mm_agent") == 6
+
+
+def test_a_moved_time_the_hub_forgets_to_re_ask_is_re_asked_by_code():
+    reset_db()
+    people = town()
+    plan = two_group_plan(rooms_for(people))
+    g1 = plan["groups"][0]
+
+    def resolve(system, content):
+        return json.dumps({"thoughts": "Later.", "groups": [{"id": "g1", "keep": True, "time": LATER[g1["part"]], "ask": []},
+                                                            {"id": "g2", "keep": True, "ask": []}]})
+
+    client = fake(plan, resolve=resolve)
+    data = run(matchmaker.run_day(DAY, 5, people, client))
+    assert client.kinds().count("mm_agent") == 9
+    second = [m for m in data["groups"][0]["thread"] if m["from"] == "hub" and m["round"] == 2]
+    assert len(second) == 3
+    assert "has moved to " + LATER[g1["part"]] in second[0]["text"]
+
+
+def test_the_agent_holds_what_the_person_avoids_as_a_limit():
+    person = town()[0]
+    assert "is a limit they set, not a preference to trade off" in matchmaker._agent_system(person)

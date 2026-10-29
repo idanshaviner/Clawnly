@@ -54,3 +54,13 @@ def test_weekend_calendars_follow_the_archetype():
     for p in town():
         usual = population.ARCHETYPES[p["archetype"]]["weekend"]
         assert set(p["calendar"][saturday]) <= set(usual)
+
+
+def test_no_one_likes_the_same_thing_twice():
+    # a parent's leans and the kids' leans overlap; a repeated tag would count twice in demand.fit
+    town = population.generate(200, seed=7, start=datetime.date(2026, 10, 28))
+    for person in town:
+        tags = [like["tag"] for like in person["likes"]]
+        assert len(tags) == len(set(tags)), person["id"]
+    wei = next(p for p in town if p["id"] == "e124")
+    assert {"tag": "farmers_market", "weight": 2} in wei["likes"]

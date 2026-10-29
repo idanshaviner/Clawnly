@@ -55,6 +55,14 @@ name-blind pitches) are enforced in code, never trusted to the model.
   writes `evaluation/results/` (no API calls). Read `evaluation/MATCH_QUALITY_REPORT.md`
   before changing `demand.fit`/`break_room`, and rerun it before and after any change.
   `src/web/run-clawnly.js` copies `fit`/`breakRoom`/`tieOrder` -- change both together.
+- **End-to-end simulation of the live matchmaker:** `orchestration_sim.py` runs the real
+  `run_day` on the emulated town with every call, message and state change recorded, under a
+  spending ceiling, into `simulation_results/run_*/`. `orchestration_audit.py` adds rule checks
+  and an independent-model audit, whose findings must cite event numbers. Start with
+  `simulation_results/EXECUTIVE_SUMMARY.md`. Paid runs share a total cap through
+  `simulation_results/spend_ledger.json`. The matchmaker prompt fixes from that audit (what each
+  keen person likes, avoids in the plan, WHAT THEY SHARE in messages, the agent's limit line, the
+  `inside_part` guard) are in `matchmaker.py` only, not yet in `src/web/run-clawnly.js`.
 - `lounge/clawnly-lounge.html` is a separate, shareable prototype of the same
   idea, published as a claude.ai Artifact. Read its `README.md` before
   republishing it: its saved state lives inside the published page.

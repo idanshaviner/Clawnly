@@ -1,0 +1,708 @@
+[
+ {
+  "id": "e020",
+  "name": "Imani M.",
+  "profile_after": {
+   "id": "e020",
+   "name": "Imani M.",
+   "age": 52,
+   "neighborhood": "Black Diamond, WA",
+   "area": "Morgan Creek",
+   "archetype": "remote worker",
+   "kids_at_home": false,
+   "likes": [
+    {
+     "tag": "hiking",
+     "weight": 2
+    },
+    {
+     "tag": "kayaking",
+     "weight": 3
+    },
+    {
+     "tag": "yoga",
+     "weight": 2
+    },
+    {
+     "tag": "coffee",
+     "weight": 3
+    },
+    {
+     "tag": "history",
+     "weight": 3
+    }
+   ],
+   "dislikes": [
+    "mountain_biking",
+    "watch_sports",
+    "rc_planes"
+   ],
+   "avoid": [
+    "loud_places",
+    "long_drives"
+   ],
+   "budget": "low",
+   "calendar": {
+    "2026-10-28": [],
+    "2026-10-29": [
+     "morning",
+     "evening"
+    ],
+    "2026-10-30": [
+     "morning"
+    ],
+    "2026-10-31": [
+     "morning",
+     "afternoon"
+    ],
+    "2026-11-01": [
+     "afternoon"
+    ],
+    "2026-11-02": [
+     "morning",
+     "evening"
+    ],
+    "2026-11-03": [
+     "morning",
+     "evening"
+    ]
+   },
+   "emulated": true,
+   "brief": "Imani M. here. I really like hiking; I love kayaking; I really like yoga; I love coffee; I love history. Not into mountain biking, watch sports, rc planes. I avoid loud places, long drives. I'm 52, a remote worker in Morgan Creek, and my budget is low."
+  },
+  "profile_changed": false,
+  "memory": "none: each agent call gets only the profile and the one proposal in front of it, and nothing an agent says is written back to the profile or carried to its next call",
+  "answers": [
+   {
+    "seq": 33,
+    "day": "2026-10-31",
+    "group": "g2",
+    "round": 1,
+    "answer": "yes",
+    "counter": "",
+    "said": "This is a great fit—Imani loves hiking and history, it's free, Saturday afternoon is open, and a small neighbor group sounds low-key and not loud. Count her in!"
+   }
+  ],
+  "placed_in": [
+   {
+    "day": "2026-10-31",
+    "group": "g2",
+    "seq": 66
+   }
+  ]
+ },
+ {
+  "id": "e075",
+  "name": "Rosa G.",
+  "profile_after": {
+   "id": "e075",
+   "name": "Rosa G.",
+   "age": 43,
+   "neighborhood": "Black Diamond, WA",
+   "area": "Downtown",
+   "archetype": "commuter",
+   "kids_at_home": false,
+   "likes": [
+    {
+     "tag": "hiking",
+     "weight": 2
+    },
+    {
+     "tag": "craft_beer",
+     "weight": 3
+    },
+    {
+     "tag": "watch_sports",
+     "weight": 3
+    },
+    {
+     "tag": "golf",
+     "weight": 1
+    },
+    {
+     "tag": "yoga",
+     "weight": 2
+    },
+    {
+     "tag": "baseball",
+     "weight": 3
+    }
+   ],
+   "dislikes": [
+    "bmx"
+   ],
+   "avoid": [],
+   "budget": "low",
+   "calendar": {
+    "2026-10-28": [
+     "evening"
+    ],
+    "2026-10-29": [
+     "evening"
+    ],
+    "2026-10-30": [
+     "evening"
+    ],
+    "2026-10-31": [
+     "morning",
+     "afternoon",
+     "evening"
+    ],
+    "2026-11-01": [
+     "afternoon"
+    ],
+    "2026-11-02": [
+     "evening"
+    ],
+    "2026-11-03": []
+   },
+   "emulated": true,
+   "brief": "Rosa G. here. I really like hiking; I love craft beer; I love watch sports; I am up for golf; I really like yoga; I love baseball. Not into bmx. I'm 43, a commuter in Downtown, and my budget is low."
+  },
+  "profile_changed": false,
+  "memory": "none: each agent call gets only the profile and the one proposal in front of it, and nothing an agent says is written back to the profile or carried to its next call",
+  "answers": [
+   {
+    "seq": 51,
+    "day": "2026-10-31",
+    "group": "g3",
+    "round": 1,
+    "answer": "yes",
+    "counter": "",
+    "said": "Rosa's free Saturday evening and this is right up her alley—watching sports with craft beer and meeting neighbors sounds great. She's in!"
+   }
+  ],
+  "placed_in": [
+   {
+    "day": "2026-10-31",
+    "group": "g3",
+    "seq": 67
+   }
+  ]
+ },
+ {
+  "id": "e094",
+  "name": "Cody F.",
+  "profile_after": {
+   "id": "e094",
+   "name": "Cody F.",
+   "age": 25,
+   "neighborhood": "Black Diamond, WA",
+   "area": "Ten Trails",
+   "archetype": "commuter",
+   "kids_at_home": false,
+   "likes": [
+    {
+     "tag": "golf",
+     "weight": 3
+    },
+    {
+     "tag": "dining",
+     "weight": 3
+    },
+    {
+     "tag": "watch_sports",
+     "weight": 3
+    },
+    {
+     "tag": "hiking",
+     "weight": 2
+    }
+   ],
+   "dislikes": [
+    "mountain_biking"
+   ],
+   "avoid": [],
+   "budget": "any",
+   "calendar": {
+    "2026-10-28": [
+     "evening"
+    ],
+    "2026-10-29": [
+     "evening"
+    ],
+    "2026-10-30": [
+     "evening"
+    ],
+    "2026-10-31": [
+     "morning",
+     "afternoon",
+     "evening"
+    ],
+    "2026-11-01": [
+     "morning"
+    ],
+    "2026-11-02": [
+     "evening"
+    ],
+    "2026-11-03": []
+   },
+   "emulated": true,
+   "brief": "Cody F. here. I love golf; I love dining; I love watch sports; I really like hiking. Not into mountain biking. I'm 25, a commuter in Ten Trails, and my budget is any."
+  },
+  "profile_changed": false,
+  "memory": "none: each agent call gets only the profile and the one proposal in front of it, and nothing an agent says is written back to the profile or carried to its next call",
+  "answers": [
+   {
+    "seq": 48,
+    "day": "2026-10-31",
+    "group": "g3",
+    "round": 1,
+    "answer": "yes",
+    "counter": "",
+    "said": "Cody's free Saturday evening and loves watch sports plus dining, so Kraken hockey night at Black Diamond Grill is a great fit. Count him in!"
+   }
+  ],
+  "placed_in": [
+   {
+    "day": "2026-10-31",
+    "group": "g3",
+    "seq": 67
+   }
+  ]
+ },
+ {
+  "id": "e104",
+  "name": "Susan L.",
+  "profile_after": {
+   "id": "e104",
+   "name": "Susan L.",
+   "age": 54,
+   "neighborhood": "Black Diamond, WA",
+   "area": "Lake Sawyer",
+   "archetype": "remote worker",
+   "kids_at_home": false,
+   "likes": [
+    {
+     "tag": "hiking",
+     "weight": 3
+    },
+    {
+     "tag": "yoga",
+     "weight": 2
+    },
+    {
+     "tag": "photography",
+     "weight": 2
+    },
+    {
+     "tag": "baseball",
+     "weight": 2
+    },
+    {
+     "tag": "craft_beer",
+     "weight": 1
+    }
+   ],
+   "dislikes": [
+    "picnics",
+    "volunteering"
+   ],
+   "avoid": [],
+   "budget": "free",
+   "calendar": {
+    "2026-10-28": [
+     "evening"
+    ],
+    "2026-10-29": [
+     "morning"
+    ],
+    "2026-10-30": [
+     "morning",
+     "evening"
+    ],
+    "2026-10-31": [
+     "morning",
+     "afternoon"
+    ],
+    "2026-11-01": [
+     "morning",
+     "afternoon"
+    ],
+    "2026-11-02": [
+     "morning",
+     "evening"
+    ],
+    "2026-11-03": [
+     "evening"
+    ]
+   },
+   "emulated": true,
+   "brief": "Susan L. here. I love hiking; I really like yoga; I really like photography; I really like baseball; I am up for craft beer. Not into picnics, volunteering. I'm 54, a remote worker in Lake Sawyer, and my budget is free."
+  },
+  "profile_changed": false,
+  "memory": "none: each agent call gets only the profile and the one proposal in front of it, and nothing an agent says is written back to the profile or carried to its next call",
+  "answers": [
+   {
+    "seq": 28,
+    "day": "2026-10-31",
+    "group": "g1",
+    "round": 1,
+    "answer": "yes",
+    "counter": "",
+    "said": "Susan's free Saturday morning and loves hiking plus photography - this gorge hike with fall colors sounds perfect, and it's free. Count her in!"
+   }
+  ],
+  "placed_in": [
+   {
+    "day": "2026-10-31",
+    "group": "g1",
+    "seq": 65
+   }
+  ]
+ },
+ {
+  "id": "e124",
+  "name": "Wei T.",
+  "profile_after": {
+   "id": "e124",
+   "name": "Wei T.",
+   "age": 43,
+   "neighborhood": "Black Diamond, WA",
+   "area": "Morgan Creek",
+   "archetype": "parent at home",
+   "kids_at_home": true,
+   "likes": [
+    {
+     "tag": "farmers_market",
+     "weight": 2
+    },
+    {
+     "tag": "picnics",
+     "weight": 3
+    },
+    {
+     "tag": "farmers_market",
+     "weight": 1
+    },
+    {
+     "tag": "dog_walks",
+     "weight": 1
+    },
+    {
+     "tag": "hiking",
+     "weight": 2
+    },
+    {
+     "tag": "photography",
+     "weight": 3
+    }
+   ],
+   "dislikes": [
+    "board_games",
+    "golf",
+    "rc_planes"
+   ],
+   "avoid": [
+    "crowds",
+    "competitive"
+   ],
+   "budget": "low",
+   "calendar": {
+    "2026-10-28": [
+     "morning",
+     "afternoon"
+    ],
+    "2026-10-29": [
+     "afternoon"
+    ],
+    "2026-10-30": [
+     "afternoon"
+    ],
+    "2026-10-31": [
+     "morning",
+     "afternoon"
+    ],
+    "2026-11-01": [
+     "morning",
+     "afternoon"
+    ],
+    "2026-11-02": [
+     "morning"
+    ],
+    "2026-11-03": [
+     "morning",
+     "afternoon"
+    ]
+   },
+   "emulated": true,
+   "brief": "Wei T. here. I really like farmers market; I love picnics; I am up for farmers market; I am up for dog walks; I really like hiking; I love photography. Not into board games, golf, rc planes. I avoid crowds, competitive. I'm 43, a parent at home in Morgan Creek, with kids at home, and my budget is low."
+  },
+  "profile_changed": false,
+  "memory": "none: each agent call gets only the profile and the one proposal in front of it, and nothing an agent says is written back to the profile or carried to its next call",
+  "answers": [
+   {
+    "seq": 38,
+    "day": "2026-10-31",
+    "group": "g1",
+    "round": 1,
+    "answer": "yes",
+    "counter": "",
+    "said": "This sounds great - Saturday morning works perfectly, Wei loves hiking and photography, it's free, and a small group with a fellow photography enthusiast is just the right vibe. Count Wei in!"
+   }
+  ],
+  "placed_in": [
+   {
+    "day": "2026-10-31",
+    "group": "g1",
+    "seq": 65
+   }
+  ]
+ },
+ {
+  "id": "e143",
+  "name": "Carlos T.",
+  "profile_after": {
+   "id": "e143",
+   "name": "Carlos T.",
+   "age": 61,
+   "neighborhood": "Black Diamond, WA",
+   "area": "Morgan Creek",
+   "archetype": "retiree",
+   "kids_at_home": false,
+   "likes": [
+    {
+     "tag": "book_club",
+     "weight": 3
+    },
+    {
+     "tag": "history",
+     "weight": 2
+    },
+    {
+     "tag": "birding",
+     "weight": 3
+    },
+    {
+     "tag": "hiking",
+     "weight": 3
+    },
+    {
+     "tag": "farmers_market",
+     "weight": 3
+    }
+   ],
+   "dislikes": [
+    "kayaking",
+    "running",
+    "bmx"
+   ],
+   "avoid": [
+    "early_mornings",
+    "loud_places"
+   ],
+   "budget": "any",
+   "calendar": {
+    "2026-10-28": [
+     "morning",
+     "afternoon"
+    ],
+    "2026-10-29": [
+     "morning",
+     "afternoon"
+    ],
+    "2026-10-30": [
+     "afternoon"
+    ],
+    "2026-10-31": [
+     "morning",
+     "afternoon"
+    ],
+    "2026-11-01": [
+     "morning",
+     "afternoon"
+    ],
+    "2026-11-02": [
+     "morning"
+    ],
+    "2026-11-03": [
+     "afternoon"
+    ]
+   },
+   "emulated": true,
+   "brief": "Carlos T. here. I love book club; I really like history; I love birding; I love hiking; I love farmers market. Not into kayaking, running, bmx. I avoid early mornings, loud places. I'm 61, a retiree in Morgan Creek, and my budget is any."
+  },
+  "profile_changed": false,
+  "memory": "none: each agent call gets only the profile and the one proposal in front of it, and nothing an agent says is written back to the profile or carried to its next call",
+  "answers": [
+   {
+    "seq": 43,
+    "day": "2026-10-31",
+    "group": "g2",
+    "round": 1,
+    "answer": "yes",
+    "counter": "",
+    "said": "Carlos would love this — hiking, history, and a ghost town ruin all in one, during his free Saturday afternoon. Count him in!"
+   }
+  ],
+  "placed_in": [
+   {
+    "day": "2026-10-31",
+    "group": "g2",
+    "seq": 66
+   }
+  ]
+ },
+ {
+  "id": "e157",
+  "name": "Kevin B.",
+  "profile_after": {
+   "id": "e157",
+   "name": "Kevin B.",
+   "age": 61,
+   "neighborhood": "Black Diamond, WA",
+   "area": "Black Diamond Ridge",
+   "archetype": "commuter",
+   "kids_at_home": false,
+   "likes": [
+    {
+     "tag": "watch_sports",
+     "weight": 2
+    },
+    {
+     "tag": "running",
+     "weight": 3
+    },
+    {
+     "tag": "golf",
+     "weight": 3
+    },
+    {
+     "tag": "craft_beer",
+     "weight": 3
+    },
+    {
+     "tag": "tubing",
+     "weight": 1
+    },
+    {
+     "tag": "bmx",
+     "weight": 2
+    }
+   ],
+   "dislikes": [
+    "yoga"
+   ],
+   "avoid": [
+    "crowds"
+   ],
+   "budget": "low",
+   "calendar": {
+    "2026-10-28": [
+     "evening"
+    ],
+    "2026-10-29": [],
+    "2026-10-30": [],
+    "2026-10-31": [
+     "afternoon",
+     "evening"
+    ],
+    "2026-11-01": [
+     "afternoon",
+     "evening"
+    ],
+    "2026-11-02": [
+     "evening"
+    ],
+    "2026-11-03": []
+   },
+   "emulated": true,
+   "brief": "Kevin B. here. I really like watch sports; I love running; I love golf; I love craft beer; I am up for tubing; I really like bmx. Not into yoga. I avoid crowds. I'm 61, a commuter in Black Diamond Ridge, and my budget is low."
+  },
+  "profile_changed": false,
+  "memory": "none: each agent call gets only the profile and the one proposal in front of it, and nothing an agent says is written back to the profile or carried to its next call",
+  "answers": [
+   {
+    "seq": 57,
+    "day": "2026-10-31",
+    "group": "g3",
+    "round": 1,
+    "answer": "yes",
+    "counter": "",
+    "said": "Kevin's free Saturday evening and loves watching sports with craft beer on hand — count him in for Kraken hockey night at Black Diamond Grill, low cost and small group works great for him."
+   }
+  ],
+  "placed_in": [
+   {
+    "day": "2026-10-31",
+    "group": "g3",
+    "seq": 67
+   }
+  ]
+ },
+ {
+  "id": "e158",
+  "name": "Olivia A.",
+  "profile_after": {
+   "id": "e158",
+   "name": "Olivia A.",
+   "age": 52,
+   "neighborhood": "Black Diamond, WA",
+   "area": "Morgan Creek",
+   "archetype": "commuter",
+   "kids_at_home": false,
+   "likes": [
+    {
+     "tag": "craft_beer",
+     "weight": 3
+    },
+    {
+     "tag": "running",
+     "weight": 3
+    },
+    {
+     "tag": "dining",
+     "weight": 3
+    },
+    {
+     "tag": "volunteering",
+     "weight": 2
+    },
+    {
+     "tag": "live_music",
+     "weight": 1
+    }
+   ],
+   "dislikes": [
+    "tubing"
+   ],
+   "avoid": [
+    "competitive",
+    "early_mornings"
+   ],
+   "budget": "any",
+   "calendar": {
+    "2026-10-28": [
+     "evening"
+    ],
+    "2026-10-29": [],
+    "2026-10-30": [
+     "evening"
+    ],
+    "2026-10-31": [
+     "morning",
+     "evening"
+    ],
+    "2026-11-01": [],
+    "2026-11-02": [],
+    "2026-11-03": []
+   },
+   "emulated": true,
+   "brief": "Olivia A. here. I love craft beer; I love running; I love dining; I really like volunteering; I am up for live music. Not into tubing. I avoid competitive, early mornings. I'm 52, a commuter in Morgan Creek, and my budget is any."
+  },
+  "profile_changed": false,
+  "memory": "none: each agent call gets only the profile and the one proposal in front of it, and nothing an agent says is written back to the profile or carried to its next call",
+  "answers": [
+   {
+    "seq": 54,
+    "day": "2026-10-31",
+    "group": "g3",
+    "round": 1,
+    "answer": "no",
+    "counter": "",
+    "said": "Olivia's free Saturday evening, but watching a competitive sports game isn't her thing—she avoids competitive settings and this isn't really aligned with her interests in craft beer, running, dining, or volunteering. Thanks for thinking of her though!"
+   }
+  ],
+  "placed_in": []
+ }
+]

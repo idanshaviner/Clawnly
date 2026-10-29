@@ -94,6 +94,24 @@ def _weighted(rng, pairs):
     return pairs[len(pairs) - 1][0]
 
 
+def _merge_repeats(likes):
+    # a parent's leans and the kids' leans overlap, so a tag can be drawn twice: keep it once,
+    # at its higher weight. Done after every draw, so the rest of the seeded town is unchanged.
+    out = []
+    where = {}
+    i = 0
+    while i < len(likes):
+        tag = likes[i]["tag"]
+        if tag in where:
+            if likes[i]["weight"] > out[where[tag]]["weight"]:
+                out[where[tag]]["weight"] = likes[i]["weight"]
+        else:
+            where[tag] = len(out)
+            out.append(dict(likes[i]))
+        i += 1
+    return out
+
+
 def _pick(rng, items, how_many):
     # `how_many` distinct items, in random order
     pool = list(items)
@@ -231,6 +249,7 @@ def generate(count=200, seed=7, start=None, days=7):
         while i < len(like_tags):
             likes.append({"tag": like_tags[i], "weight": rng.choice([1, 2, 2, 3, 3])})
             i += 1
+        likes = _merge_repeats(likes)
         others = []
         j = 0
         while j < len(catalog.TAGS):

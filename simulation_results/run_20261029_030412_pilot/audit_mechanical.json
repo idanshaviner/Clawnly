@@ -1,0 +1,90 @@
+{
+ "findings": [],
+ "fairness": {
+  "by_kind": {
+   "all": {
+    "people": 30,
+    "in_a_room": 30,
+    "asked": 26,
+    "placed": 26,
+    "placements": 43
+   },
+   "archetype: shift worker": {
+    "people": 5,
+    "in_a_room": 5,
+    "asked": 4,
+    "placed": 4,
+    "placements": 6
+   },
+   "budget: low": {
+    "people": 13,
+    "in_a_room": 13,
+    "asked": 12,
+    "placed": 12,
+    "placements": 22
+   },
+   "kids at home": {
+    "people": 5,
+    "in_a_room": 5,
+    "asked": 5,
+    "placed": 5,
+    "placements": 7
+   },
+   "archetype: retiree": {
+    "people": 7,
+    "in_a_room": 7,
+    "asked": 5,
+    "placed": 5,
+    "placements": 8
+   },
+   "budget: any": {
+    "people": 14,
+    "in_a_room": 14,
+    "asked": 11,
+    "placed": 11,
+    "placements": 16
+   },
+   "archetype: parent at home": {
+    "people": 4,
+    "in_a_room": 4,
+    "asked": 4,
+    "placed": 4,
+    "placements": 6
+   },
+   "archetype: commuter": {
+    "people": 10,
+    "in_a_room": 10,
+    "asked": 9,
+    "placed": 9,
+    "placements": 17
+   },
+   "budget: free": {
+    "people": 3,
+    "in_a_room": 3,
+    "asked": 3,
+    "placed": 3,
+    "placements": 5
+   },
+   "archetype: remote worker": {
+    "people": 3,
+    "in_a_room": 3,
+    "asked": 3,
+    "placed": 3,
+    "placements": 5
+   },
+   "archetype: student": {
+    "people": 1,
+    "in_a_room": 1,
+    "asked": 1,
+    "placed": 1,
+    "placements": 1
+   }
+  },
+  "in_a_room_but_never_asked": [
+   "e008",
+   "e061",
+   "e074",
+   "e116"
+  ]
+ }
+}

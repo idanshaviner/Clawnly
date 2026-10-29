@@ -38,6 +38,9 @@ MATCHMAKER_MARKERS = [
     ("you are the personal agent of", "mm_agent"),
     ("finish the day's plan", "mm_resolve"),
     ("small group is confirmed", "mm_message"),
+    # the simulation audit (orchestration_audit.py), set through the same matchmaker dict
+    ("audit one negotiated group", "audit_group"),
+    ("audit the matchmaker's whole day", "audit_day"),
 ]
 
 

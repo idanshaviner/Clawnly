@@ -31,6 +31,7 @@ import orchestration_sim
 import asyncio
 import datetime
 import json
+import re
 import os
 import random
 import sys
@@ -349,7 +350,10 @@ def _check_group(group, by_id, rooms):
         i += 1
     i = 0
     while i < len(ids):
-        words = _words(_proposal_of(group, ids[i]))
+        proposal = _proposal_of(group, ids[i])
+        # a greeting addresses the recipient, even if a neighbor shares their first name
+        proposal = re.sub(r"^\s*" + re.escape(first_names[ids[i]]) + r"\s*[,!:]\s*", "", proposal, count=1)
+        words = _words(proposal)
         j = 0
         while j < len(ids):
             if j != i and first_names[ids[j]] in words:

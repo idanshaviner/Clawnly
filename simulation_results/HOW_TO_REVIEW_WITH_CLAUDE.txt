@@ -1,0 +1,37 @@
+HOW TO REVIEW THESE MATCHES TOGETHER
+
+1. Open MATCHES_FOR_REVIEW.txt and review_notes.csv.
+   The same match ID appears in both files. The CSV opens in Excel.
+   Add your verdict (Good / OK / Bad / Unsure) and a short note in the last two columns.
+   Please use the full match ID when discussing an example.
+
+2. To review with Claude, upload MATCHES_FOR_REVIEW.txt first.
+   It contains the original matchmaker reasons and agent answers for each decision.
+   For a closer look, upload the named run folder's run_dump.txt as well. It contains
+   the people's profiles before and after, every hub/agent message, code checks and
+   the daily plan. Work on one run at a time if the full collection is too large.
+
+3. Copy this prompt into your chat:
+
+   Help me review Clawnly's saved simulation decisions one match at a time.
+   Start with the first match ID in the uploaded review file.
+   For this match, explain in simple words:
+   - What activity was proposed, for whom, and when?
+   - What reason did the matchmaker actually give? Quote it briefly.
+   - What did each person's agent actually say? Who declined or countered?
+   - Do the saved profiles support the claimed shared interests?
+   - Are there conflicts with availability, budget, dislikes or avoid-lists?
+   - Is the group sensible collectively, or are people there for unrelated reasons?
+   - What evidence is missing, and what should a human decide?
+   Give a tentative verdict and explain why. Use the saved match ID and event numbers.
+   Clearly separate recorded evidence from your interpretation. Do not invent people,
+   messages, preferences or compatibility scores. If profiles are not in the uploaded
+   files, ask for that run's run_dump.txt before judging profile compatibility.
+   Stop after this match, ask for my notes, then wait for me before moving to the next.
+
+4. Save your notes in review_notes.csv (or a shared copy).
+   A model's opinion is a review aid, not proof the people would get along.
+   Keep before-fix and after-fix runs distinguishable. Repeated memberships are
+   flagged in the CSV so we can discuss whether the repeats make sense.
+
+No new presentation or review application is needed: these are ordinary text and CSV files.

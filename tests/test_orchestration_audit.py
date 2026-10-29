@@ -77,6 +77,37 @@ def checks(result):
     return [f["check"] for f in result["mechanical"]]
 
 
+def test_a_greeting_is_not_another_members_name_when_two_people_share_it(tmp_path):
+    reset_db()
+    people = cohort()
+    out = simulate(tmp_path, people, client_for(plan(people)))
+    loaded = audit.load(out)
+    group = loaded["groups"][0]
+    first = group["members"][0]["id"]
+    second = group["members"][1]["id"]
+    loaded["by_id"][first]["name"] = "Nora B."
+    loaded["by_id"][second]["name"] = "Nora P."
+    group["members"][0]["first_proposal"] = "Nora, want to join a walk?"
+    group["members"][1]["first_proposal"] = "Nora, want to join a walk?"
+    found = audit.mechanical(loaded)
+    names = []
+    i = 0
+    while i < len(found):
+        if found[i]["check"] == "proposal names another person":
+            names.append(found[i])
+        i += 1
+    assert names == []
+    group["members"][0]["first_proposal"] = "Nora, join the walk with Nora P.?"
+    found = audit.mechanical(loaded)
+    named = False
+    i = 0
+    while i < len(found):
+        if found[i]["check"] == "proposal names another person":
+            named = True
+        i += 1
+    assert named
+
+
 def test_a_clean_run_has_no_rule_findings_and_true_numbers(tmp_path):
     reset_db()
     people = cohort()

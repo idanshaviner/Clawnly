@@ -1,5 +1,36 @@
 # Orchestration simulations
 
+## Team request and expanded review (29 October 2026)
+
+Start with `REQUIREMENTS_STATUS.md` for the current verified count against the team's
+200-group target. `requirements_check.json` checks the source evidence and records
+failed and unfinished runs as well as successful ones.
+
+- `MATCHES_FOR_REVIEW.txt`: each saved group, its original matchmaker reason, and
+  every member's agent answers, one group at a time.
+- `review_notes.csv`: the same group IDs with blank verdict and notes columns, ready
+  for Excel or a shared spreadsheet. Rebuilding preserves notes already entered.
+- `HOW_TO_REVIEW_WITH_CLAUDE.txt`: a prompt for reviewing one group at a time using
+  its saved evidence. Profiles and full conversations are in each run's `run_dump.txt`.
+
+The check and exports run for free with:
+
+```bash
+.venv/bin/python src/simulation_review.py
+```
+
+The additional runs use the existing live matchmaker and log recorder. Idan approved
+up to $10 additional for completing the target; `completion_batch.json` fixes that
+allowance across restarts. `src/simulation_complete.py --run` continues the batch
+under that limit. Dates cycle through the seeded town's existing seven-day calendar;
+repeated dates are independent model reruns. Repeated activity/member combinations
+are flagged. Reviewers should compare earlier and later prompts separately.
+
+The reports, full-record book, and Excel workbook described below document the
+**original five-run baseline (67 groups)**. Use the expanded CSV/text files above
+for the current complete collection. Only 25 baseline groups have a separate saved
+AI audit; other groups have rule checks and remain open for human or fresh AI review.
+
 These are end-to-end runs of the real Run Clawnly matchmaker (`matchmaker.run_day`) on the
 emulated Black Diamond town. Each run gets its own folder, `run_YYYYMMDD_HHMMSS_<stage>/`. How the
 system works and what was confirmed before any paid run: `architecture_summary.md`.

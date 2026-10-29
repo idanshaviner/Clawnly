@@ -1,0 +1,50 @@
+CLAWNLY SIMULATIONS: FILES FOR THE TEAM REVIEW
+
+Open these first:
+
+1. REQUIREMENTS_STATUS.md
+   What was requested, what is verified, and how many completed groups are available.
+
+2. MATCHES_FOR_REVIEW.txt
+   Read the matches one at a time. Each entry gives the people, activity, time,
+   the matchmaker's original explanation and every agent's answer. Event numbers
+   connect the answers to the full logs. Separate AI audit opinions are labeled.
+
+3. review_notes.csv
+   Open in Excel or import into a shared spreadsheet. Put Good / OK / Bad / Unsure
+   in human_verdict and your comments in human_notes. Use the full match_id in
+   discussions. This file starts with blank notes for the team to fill in.
+
+4. HOW_TO_REVIEW_WITH_CLAUDE.txt
+   A prompt for checking one match at a time in an AI chat and pausing for your notes.
+
+For the full evidence, open that match's run folder:
+
+  run_dump.txt: everything in readable text, including people's before/after profiles,
+                planning, every hub/agent exchange, group decisions and checks.
+  full_simulation.jsonl: the original event stream, including model prompts and replies.
+  agents_initial.json / agents_final.json: the exact initial prompt and final profile.
+  groups_generated.json: all group decisions, members, answers and evidence references.
+  run_manifest.json / cost_report.json: what ran, model names, settings, counts and costs.
+  audit_mechanical.json: rule checks, which are different from a model's opinion.
+  audit_ai.json / audit_calls.jsonl: a separate AI audit, where one was run.
+
+How it works:
+Code finds people who are available, interested and within their constraints for an
+activity. The AI matchmaker proposes groups and asks each person's agent. An agent
+can say yes, decline, or suggest a change. Code locks a group when at least two people
+have agreed. The records keep the messages and the stated reasons for each decision.
+There is no separate event agent; events come from the activity catalog. People's
+agents talk to the matchmaker, rather than to one another.
+
+How to interpret it:
+These are synthetic neighbors, and repeated dates are independent model reruns.
+The records check whether each person's saved profile changed; agents currently
+have no persistent learning or memory between proposals. A completed group means
+the simulated matching decision finished, not that real people attended an activity.
+Failures and incomplete attempts are retained and do not count toward the target.
+
+The older executive summary and audit report describe the original five-run baseline.
+The expanded review count and evidence checks are in REQUIREMENTS_STATUS.md and
+requirements_check.json. The earlier live_match_review.xlsx covers only that baseline;
+use review_notes.csv for the expanded set.

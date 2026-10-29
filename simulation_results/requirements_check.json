@@ -1,0 +1,644 @@
+{
+  "target_groups": 200,
+  "completed_groups": 200,
+  "additional_groups_needed": 0,
+  "separate_ai_reviews": 25,
+  "human_verdicts_in_csv": 0,
+  "distinct_activity_memberships": 168,
+  "runs": [
+    {
+      "run": "run_20261029_023316_smoke",
+      "replies_from": "Claude (live Anthropic API)",
+      "people": 8,
+      "groups": 3,
+      "locked": 3,
+      "calls": 13,
+      "failed_calls": 0,
+      "answers": 8,
+      "separate_ai_audits": 3,
+      "source_sha256": {
+        "run_manifest.json": "ca15298f77b1a05d5bc3b7fda652bedb544629d765dbccd8f0b075b401bc1be8",
+        "full_simulation.jsonl": "adacccdc62ad922e2947831c936bc97547263e19bdce00c9a715df0d09c61471",
+        "agents_initial.json": "7a2326b36a8bc967cc7adc89bdba7763308050ac8ca8e4fee1ebe6fe9c0a1ee9",
+        "agents_final.json": "687157229eeafb26faba9f93bdb1ed995dbd6d2bedbe1f6db62b547123073e20",
+        "groups_generated.json": "06071921dc8681c81350fdb14fc512e218e0c366b8de8d11714d11c0174f83d4"
+      },
+      "errors": []
+    },
+    {
+      "run": "run_20261029_023732_pilot",
+      "replies_from": "Claude (live Anthropic API)",
+      "people": 30,
+      "groups": 12,
+      "locked": 12,
+      "calls": 85,
+      "failed_calls": 0,
+      "answers": 69,
+      "separate_ai_audits": 12,
+      "source_sha256": {
+        "run_manifest.json": "e903fee156e119ade8a2f6bd556472aaa404ff7759db08cf3906b3865d0eb8e9",
+        "full_simulation.jsonl": "833c92b8e0c851b6dd3f06db90c6f525124dacd191bde137d8f41c8c58f5a7f7",
+        "agents_initial.json": "34cbf5a65f9159a28b010291494872a583cb1f72bb09d4025c1008a48dddac81",
+        "agents_final.json": "e26e4c2a581368f7b67b56118ba4ca94ac2412f7f4b291e227c32aa1aaed611c",
+        "groups_generated.json": "84b7e66e15dd06bad5189a4b04f16e33b8a2133d7bbd696ca643e5229d7ee18a"
+      },
+      "errors": []
+    },
+    {
+      "run": "run_20261029_025000_town",
+      "replies_from": "Claude (live Anthropic API)",
+      "people": 200,
+      "groups": 30,
+      "locked": 30,
+      "calls": 172,
+      "failed_calls": 0,
+      "answers": 136,
+      "separate_ai_audits": 2,
+      "source_sha256": {
+        "run_manifest.json": "fae36378607a0139904a7577e9a22179df96bdc7b3bd41ff663f008cec995c29",
+        "full_simulation.jsonl": "32d22c8a6dbab33bcfb04c86dc7ae1220b882b9389045b4ce5f4fd5905365fbe",
+        "agents_initial.json": "df6a1c10c168f09f7b20046385b2480db4701b5eddda37b7dcc7e83b5a75c965",
+        "agents_final.json": "5e5bee9a866dc717376cb392c2b9e4a73eb518240de39e2e111f6183afe60005",
+        "groups_generated.json": "69daad0df2efaa01fd027fd2952998cd9b1aacbebaae08f914aef33223a5b6e2"
+      },
+      "errors": []
+    },
+    {
+      "run": "run_20261029_030412_pilot",
+      "replies_from": "Claude (live Anthropic API)",
+      "people": 30,
+      "groups": 12,
+      "locked": 12,
+      "calls": 59,
+      "failed_calls": 0,
+      "answers": 43,
+      "separate_ai_audits": 8,
+      "source_sha256": {
+        "run_manifest.json": "7cbe2c74094f6aa1714d521bfa35e25bb58a86bd0833f774d45b6146d9b8fa94",
+        "full_simulation.jsonl": "171a6944fbc24b4a7fcfb258861899aeb0d3173c0ca5501c1027a1190760a68d",
+        "agents_initial.json": "d61e903469c58b860a7cde1a1677d7d098fd8413c7f0f7beeccc3cd2b5bce731",
+        "agents_final.json": "e70c6a521364573a516b4ffb63fc9588a0acc6847b4d855c16b709a5f3f24d8e",
+        "groups_generated.json": "1221eff584cf2c8d71b674dd7235334277919e2d17537bc93a5ef57401b10ae8"
+      },
+      "errors": []
+    },
+    {
+      "run": "run_20261029_030721_town",
+      "replies_from": "Claude (live Anthropic API)",
+      "people": 200,
+      "groups": 10,
+      "locked": 10,
+      "calls": 52,
+      "failed_calls": 0,
+      "answers": 40,
+      "separate_ai_audits": 0,
+      "source_sha256": {
+        "run_manifest.json": "a8a42d749a3157eeaed6b1b4d81bc06a0c7ef76acfe56341941ff74aa19389eb",
+        "full_simulation.jsonl": "b40e8afc245a037257633e4f33cf32658c08de00f43572958d215d0f82dc9a41",
+        "agents_initial.json": "9fcfdfd33ed55ea880cc8035f5960166f193d989071cd530cc4ffb7e644f1725",
+        "agents_final.json": "59c9e06914a9d510c3f13dfa2b509262b31f99228000ff002c48864e6455f972",
+        "groups_generated.json": "6c38d0158642e1bc9cb476a2742199371a2793d93fa2bfc4c81ff2165c63a9b4"
+      },
+      "errors": []
+    },
+    {
+      "run": "run_20261029_110553_review",
+      "replies_from": "Claude (live Anthropic API)",
+      "people": 200,
+      "groups": 0,
+      "locked": 0,
+      "calls": 1,
+      "failed_calls": 1,
+      "answers": 0,
+      "separate_ai_audits": 0,
+      "source_sha256": {
+        "run_manifest.json": "d21ddb30cd1b6eedf368e91dcf981d9a69789ebdc96e36e170f99f3981870019",
+        "full_simulation.jsonl": "c8e59bb5186fad9f8427d0dd8222a7c151aac896f6c476b6c0937680939f9287",
+        "agents_initial.json": "99e4363553303f15a17c8f39bc7099a090a32ad60c6212d7952c4a8ca53d1743",
+        "agents_final.json": "b1015f8079c5d55ee6f907604d8cb2880aa77f92462a815dedd631d6ea4b76d1",
+        "groups_generated.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "errors": []
+    },
+    {
+      "run": "run_20261029_110603_review",
+      "replies_from": "Claude (live Anthropic API)",
+      "people": 200,
+      "groups": 0,
+      "locked": 0,
+      "calls": 1,
+      "failed_calls": 1,
+      "answers": 0,
+      "separate_ai_audits": 0,
+      "source_sha256": {
+        "run_manifest.json": "fafdbde34f4d90b4d695c70d5d5fe5e829fd5df34b2f8a5164653451d524200e",
+        "full_simulation.jsonl": "3c43c4c139ed815fc93c9e9da0de5bed668736988f4648486f95cbd09dcaf313",
+        "agents_initial.json": "99e4363553303f15a17c8f39bc7099a090a32ad60c6212d7952c4a8ca53d1743",
+        "agents_final.json": "b1015f8079c5d55ee6f907604d8cb2880aa77f92462a815dedd631d6ea4b76d1",
+        "groups_generated.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "errors": []
+    },
+    {
+      "run": "run_20261029_110613_review",
+      "replies_from": "Claude (live Anthropic API)",
+      "people": 200,
+      "groups": 0,
+      "locked": 0,
+      "calls": 1,
+      "failed_calls": 1,
+      "answers": 0,
+      "separate_ai_audits": 0,
+      "source_sha256": {
+        "run_manifest.json": "9855fd2f6ed33e5392c2c41779512d53425e75fb1db28c547ea2018c87a2808b",
+        "full_simulation.jsonl": "69c50e39e8f675aac1cfdeec1b299bbbf2c9f31129194efc76f76a199e0f00e9",
+        "agents_initial.json": "99e4363553303f15a17c8f39bc7099a090a32ad60c6212d7952c4a8ca53d1743",
+        "agents_final.json": "b1015f8079c5d55ee6f907604d8cb2880aa77f92462a815dedd631d6ea4b76d1",
+        "groups_generated.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "errors": []
+    },
+    {
+      "run": "run_20261029_110624_review",
+      "replies_from": "Claude (live Anthropic API)",
+      "people": 200,
+      "groups": 0,
+      "locked": 0,
+      "calls": 1,
+      "failed_calls": 1,
+      "answers": 0,
+      "separate_ai_audits": 0,
+      "source_sha256": {
+        "run_manifest.json": "f841f069532ca7e1fddb10a4f2f7085268a5f733c4efb9211b01a446219d868f",
+        "full_simulation.jsonl": "047b3e33755964266370d0e70bfcb6fad1c171f3f689e5280b905bd01e6112cb",
+        "agents_initial.json": "99e4363553303f15a17c8f39bc7099a090a32ad60c6212d7952c4a8ca53d1743",
+        "agents_final.json": "b1015f8079c5d55ee6f907604d8cb2880aa77f92462a815dedd631d6ea4b76d1",
+        "groups_generated.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "errors": []
+    },
+    {
+      "run": "run_20261029_110634_review",
+      "replies_from": "Claude (live Anthropic API)",
+      "people": 200,
+      "groups": 0,
+      "locked": 0,
+      "calls": 1,
+      "failed_calls": 1,
+      "answers": 0,
+      "separate_ai_audits": 0,
+      "source_sha256": {
+        "run_manifest.json": "52b562119fbd9484ede092c4c807a368f0adbfc1777ee43be8dab5f7429035d9",
+        "full_simulation.jsonl": "d511f00357c474abd7b488ff6737a2836a2c15462531a007f8c474b7a2e35b8f",
+        "agents_initial.json": "99e4363553303f15a17c8f39bc7099a090a32ad60c6212d7952c4a8ca53d1743",
+        "agents_final.json": "b1015f8079c5d55ee6f907604d8cb2880aa77f92462a815dedd631d6ea4b76d1",
+        "groups_generated.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "errors": []
+    },
+    {
+      "run": "run_20261029_110644_review",
+      "replies_from": "Claude (live Anthropic API)",
+      "people": 200,
+      "groups": 0,
+      "locked": 0,
+      "calls": 1,
+      "failed_calls": 1,
+      "answers": 0,
+      "separate_ai_audits": 0,
+      "source_sha256": {
+        "run_manifest.json": "5d21404063934bcc09f90dc23b719b38a401fd2e086b5aebeec3af09d7e01fe9",
+        "full_simulation.jsonl": "82e2bd32cc191c0cff957682d40b7a659964399eb32871dd91fcf111abf2ee2a",
+        "agents_initial.json": "99e4363553303f15a17c8f39bc7099a090a32ad60c6212d7952c4a8ca53d1743",
+        "agents_final.json": "b1015f8079c5d55ee6f907604d8cb2880aa77f92462a815dedd631d6ea4b76d1",
+        "groups_generated.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "errors": []
+    },
+    {
+      "run": "run_20261029_110654_review",
+      "replies_from": "Claude (live Anthropic API)",
+      "people": 200,
+      "groups": 0,
+      "locked": 0,
+      "calls": 1,
+      "failed_calls": 1,
+      "answers": 0,
+      "separate_ai_audits": 0,
+      "source_sha256": {
+        "run_manifest.json": "effc282d3a611e656cb76b292c74332a4ebf06db96d6dde73fee69d63af5cb2d",
+        "full_simulation.jsonl": "a88bec2bce267d1e819a45753de42d2767015aeb5aa75d55f8fae28d669827ab",
+        "agents_initial.json": "99e4363553303f15a17c8f39bc7099a090a32ad60c6212d7952c4a8ca53d1743",
+        "agents_final.json": "b1015f8079c5d55ee6f907604d8cb2880aa77f92462a815dedd631d6ea4b76d1",
+        "groups_generated.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "errors": []
+    },
+    {
+      "run": "run_20261029_110705_review",
+      "replies_from": "Claude (live Anthropic API)",
+      "people": 200,
+      "groups": 0,
+      "locked": 0,
+      "calls": 1,
+      "failed_calls": 1,
+      "answers": 0,
+      "separate_ai_audits": 0,
+      "source_sha256": {
+        "run_manifest.json": "59be5cb5a02870519c66ef74701543fd4150d2e2572671e82d97c47e27b6a702",
+        "full_simulation.jsonl": "758129cbe2aea74a3bf1276b248bdef6351848f4e76443fd34d6ae6db7acbec1",
+        "agents_initial.json": "99e4363553303f15a17c8f39bc7099a090a32ad60c6212d7952c4a8ca53d1743",
+        "agents_final.json": "b1015f8079c5d55ee6f907604d8cb2880aa77f92462a815dedd631d6ea4b76d1",
+        "groups_generated.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "errors": []
+    },
+    {
+      "run": "run_20261029_110715_review",
+      "replies_from": "Claude (live Anthropic API)",
+      "people": 200,
+      "groups": 0,
+      "locked": 0,
+      "calls": 1,
+      "failed_calls": 1,
+      "answers": 0,
+      "separate_ai_audits": 0,
+      "source_sha256": {
+        "run_manifest.json": "dd29a5b417ee3123a98364deac6ec8eac96c9a967a5e0441ebb6403d83c9d327",
+        "full_simulation.jsonl": "eabf5a16321649d76010e10f9fecfce7081e97d44a5d8584010ae79314818607",
+        "agents_initial.json": "99e4363553303f15a17c8f39bc7099a090a32ad60c6212d7952c4a8ca53d1743",
+        "agents_final.json": "b1015f8079c5d55ee6f907604d8cb2880aa77f92462a815dedd631d6ea4b76d1",
+        "groups_generated.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "errors": []
+    },
+    {
+      "run": "run_20261029_110725_review",
+      "replies_from": "Claude (live Anthropic API)",
+      "people": 200,
+      "groups": 0,
+      "locked": 0,
+      "calls": 1,
+      "failed_calls": 1,
+      "answers": 0,
+      "separate_ai_audits": 0,
+      "source_sha256": {
+        "run_manifest.json": "e653a0be9a8f14f7d2a7951807156a7bfc9f1cdc43f94cc0c3726b365cdcc0b1",
+        "full_simulation.jsonl": "fcb68a5bc3d32784891fea4a170bd5d75a68ace1dabf63cd48db687530281a7f",
+        "agents_initial.json": "99e4363553303f15a17c8f39bc7099a090a32ad60c6212d7952c4a8ca53d1743",
+        "agents_final.json": "b1015f8079c5d55ee6f907604d8cb2880aa77f92462a815dedd631d6ea4b76d1",
+        "groups_generated.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "errors": []
+    },
+    {
+      "run": "run_20261029_110736_review",
+      "replies_from": "Claude (live Anthropic API)",
+      "people": 200,
+      "groups": 0,
+      "locked": 0,
+      "calls": 1,
+      "failed_calls": 1,
+      "answers": 0,
+      "separate_ai_audits": 0,
+      "source_sha256": {
+        "run_manifest.json": "bd356f46b42f6d751cedb46b56cf3af03d5ffd9dccd2886fb5070e7f56e21c31",
+        "full_simulation.jsonl": "94e48b42895da6db5000a2a9eff64142387e5e99afd43271f9a66007634d8fbc",
+        "agents_initial.json": "99e4363553303f15a17c8f39bc7099a090a32ad60c6212d7952c4a8ca53d1743",
+        "agents_final.json": "b1015f8079c5d55ee6f907604d8cb2880aa77f92462a815dedd631d6ea4b76d1",
+        "groups_generated.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "errors": []
+    },
+    {
+      "run": "run_20261029_110746_review",
+      "replies_from": "Claude (live Anthropic API)",
+      "people": 200,
+      "groups": 0,
+      "locked": 0,
+      "calls": 1,
+      "failed_calls": 1,
+      "answers": 0,
+      "separate_ai_audits": 0,
+      "source_sha256": {
+        "run_manifest.json": "24701ded4137a954df8d308b7c67a53baeee6d79cacb1ee6fd15bd377a7e56d9",
+        "full_simulation.jsonl": "36d9d8c1b547bb8e989268f357da6eed05ef160fd189f2e58ca629d0748150e5",
+        "agents_initial.json": "99e4363553303f15a17c8f39bc7099a090a32ad60c6212d7952c4a8ca53d1743",
+        "agents_final.json": "b1015f8079c5d55ee6f907604d8cb2880aa77f92462a815dedd631d6ea4b76d1",
+        "groups_generated.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "errors": []
+    },
+    {
+      "run": "run_20261029_110756_review",
+      "replies_from": "Claude (live Anthropic API)",
+      "people": 200,
+      "groups": 0,
+      "locked": 0,
+      "calls": 1,
+      "failed_calls": 1,
+      "answers": 0,
+      "separate_ai_audits": 0,
+      "source_sha256": {
+        "run_manifest.json": "d0ae527b8c63251e932eb8c5eeb33122165ad6be2330f5e4f0e67a5fbfa287e9",
+        "full_simulation.jsonl": "289d733f83a8590622d8252d3be7d423d0607b3abbe9ac2e0da731327f435b2d",
+        "agents_initial.json": "99e4363553303f15a17c8f39bc7099a090a32ad60c6212d7952c4a8ca53d1743",
+        "agents_final.json": "b1015f8079c5d55ee6f907604d8cb2880aa77f92462a815dedd631d6ea4b76d1",
+        "groups_generated.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "errors": []
+    },
+    {
+      "run": "run_20261029_110807_review",
+      "replies_from": "Claude (live Anthropic API)",
+      "people": 200,
+      "groups": 0,
+      "locked": 0,
+      "calls": 1,
+      "failed_calls": 1,
+      "answers": 0,
+      "separate_ai_audits": 0,
+      "source_sha256": {
+        "run_manifest.json": "1338d17a9d3d5b75ad10112772605f4208ef6fe10d1566373ba371a1e658dafb",
+        "full_simulation.jsonl": "26b281f7729b72523d5502f27e6a09201c997ad866542dae80496e5bc5363898",
+        "agents_initial.json": "99e4363553303f15a17c8f39bc7099a090a32ad60c6212d7952c4a8ca53d1743",
+        "agents_final.json": "b1015f8079c5d55ee6f907604d8cb2880aa77f92462a815dedd631d6ea4b76d1",
+        "groups_generated.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "errors": []
+    },
+    {
+      "run": "run_20261029_110853_review",
+      "replies_from": "Claude (live Anthropic API)",
+      "people": 200,
+      "groups": 10,
+      "locked": 10,
+      "calls": 48,
+      "failed_calls": 0,
+      "answers": 36,
+      "separate_ai_audits": 0,
+      "source_sha256": {
+        "run_manifest.json": "3642713375f827e7640bc21c3a1386a2e14dc877d05f223c07588ea431062e8e",
+        "full_simulation.jsonl": "0065d09e811e23f524e79775a77fc9d88f761a7af37ad8476be2199a07ceb4d1",
+        "agents_initial.json": "99e4363553303f15a17c8f39bc7099a090a32ad60c6212d7952c4a8ca53d1743",
+        "agents_final.json": "8e70acddbda27d1b29ca44c4cea673aacbe34616df8f09ad61ac5c1bbdc01a50",
+        "groups_generated.json": "44d65bd376e6f4c324a72dfe1386b1fff0668b2441633d2c0f1640a1942e77c8"
+      },
+      "errors": []
+    },
+    {
+      "run": "run_20261029_111058_review",
+      "replies_from": "Claude (live Anthropic API)",
+      "people": 200,
+      "groups": 10,
+      "locked": 10,
+      "calls": 52,
+      "failed_calls": 0,
+      "answers": 40,
+      "separate_ai_audits": 0,
+      "source_sha256": {
+        "run_manifest.json": "71d2df81a43f1143062f0a3fca56643289a6e3263e36762533f3912182b760c3",
+        "full_simulation.jsonl": "fd15bb158e98fc043fa838eae34335b28d2436d7fd440fd2e25e5c034d4f5b33",
+        "agents_initial.json": "99e4363553303f15a17c8f39bc7099a090a32ad60c6212d7952c4a8ca53d1743",
+        "agents_final.json": "3299923c19aecffed62598856852460f2d989570c79675cb5e837d496d5560e4",
+        "groups_generated.json": "7dc56471a3685d4b194739449cbc815d0d37c585f848f5b8ed8bb3b43433abe6"
+      },
+      "errors": []
+    },
+    {
+      "run": "run_20261029_111310_review",
+      "replies_from": "Claude (live Anthropic API)",
+      "people": 200,
+      "groups": 10,
+      "locked": 10,
+      "calls": 52,
+      "failed_calls": 0,
+      "answers": 40,
+      "separate_ai_audits": 0,
+      "source_sha256": {
+        "run_manifest.json": "f46a6e5f84e136da28615d0876c4e2fc381593bf112cd2406225ed49ca260fe9",
+        "full_simulation.jsonl": "27d7cd8fdfe84ce37903384bc7ef4db88e89b7ae1c98263ec10531da70cd07dd",
+        "agents_initial.json": "99e4363553303f15a17c8f39bc7099a090a32ad60c6212d7952c4a8ca53d1743",
+        "agents_final.json": "72db33139e089b788c5a962b7273037152b52d45a62d1a7974a06bd23d2dd0bf",
+        "groups_generated.json": "d03a97f34adb53517b9eb8ca811e97b989a7a7c6fe4007663a2ac1b2c2f4aa70"
+      },
+      "errors": []
+    },
+    {
+      "run": "run_20261029_111627_review",
+      "replies_from": "Claude (live Anthropic API)",
+      "people": 200,
+      "groups": 10,
+      "locked": 10,
+      "calls": 50,
+      "failed_calls": 0,
+      "answers": 38,
+      "separate_ai_audits": 0,
+      "source_sha256": {
+        "run_manifest.json": "e0369538d5e3ca68055ea0dfaa78c3ab3687f22bb77159081bfcd630f0142e7b",
+        "full_simulation.jsonl": "d33a03692502e28d095e1ae2138eadb75f9402e1f28e51ed07b27c6d81beb3f8",
+        "agents_initial.json": "99e4363553303f15a17c8f39bc7099a090a32ad60c6212d7952c4a8ca53d1743",
+        "agents_final.json": "e19ba61acafa08631f60b82a617fb94e6f7548a0dd5444fc8aeefa78c520eca8",
+        "groups_generated.json": "ee22142c64c8f85d315cced2c2d90af0e6f1e78f4ccf49ea030fb8f99a2ee84c"
+      },
+      "errors": []
+    },
+    {
+      "run": "run_20261029_111851_review",
+      "replies_from": "Claude (live Anthropic API)",
+      "people": 200,
+      "groups": 10,
+      "locked": 10,
+      "calls": 53,
+      "failed_calls": 0,
+      "answers": 41,
+      "separate_ai_audits": 0,
+      "source_sha256": {
+        "run_manifest.json": "de3138ed04d0168d2ac5ecc7d16e1706468dbc3933625881d3f07cfdd5c7888d",
+        "full_simulation.jsonl": "66a41d3c2d7d17491a1bf43ebbf828049753e1752dd2238d2262040206fbc2e1",
+        "agents_initial.json": "99e4363553303f15a17c8f39bc7099a090a32ad60c6212d7952c4a8ca53d1743",
+        "agents_final.json": "54659afa6a44402a87209faa90bc25b781f3a39bed2bf1b30a9263472b48fe58",
+        "groups_generated.json": "f6646467cc0ba5169ba8365a490fbdcfdf45e09b5d5c7d2c340b069f04189a18"
+      },
+      "errors": []
+    },
+    {
+      "run": "run_20261029_112131_review",
+      "replies_from": "Claude (live Anthropic API)",
+      "people": 200,
+      "groups": 10,
+      "locked": 10,
+      "calls": 54,
+      "failed_calls": 0,
+      "answers": 42,
+      "separate_ai_audits": 0,
+      "source_sha256": {
+        "run_manifest.json": "b9df68c70088487a0fca68dd13aed29bab13fd56eebb8b825436a3b3f9e6cbc0",
+        "full_simulation.jsonl": "26fe3d32522a73c9869b20bd67df29c3d8e93c0e69036576aea7a9d63927d570",
+        "agents_initial.json": "99e4363553303f15a17c8f39bc7099a090a32ad60c6212d7952c4a8ca53d1743",
+        "agents_final.json": "5d7291bb3cb866d45bff23e71122f3a4d08579b6d42188020aa0d2c2ccb658ad",
+        "groups_generated.json": "7e2c35bf31175f4b5a39a41371d6711fa4e86f63ffb843bf89ff12f848af32f4"
+      },
+      "errors": []
+    },
+    {
+      "run": "run_20261029_112416_review",
+      "replies_from": "Claude (live Anthropic API)",
+      "people": 200,
+      "groups": 10,
+      "locked": 10,
+      "calls": 54,
+      "failed_calls": 0,
+      "answers": 42,
+      "separate_ai_audits": 0,
+      "source_sha256": {
+        "run_manifest.json": "d0d151d681ee5f759d0b1707e8da2f506f16a3b28ae601b1a9dc3cea54e6ea9d",
+        "full_simulation.jsonl": "b01a3ed5661d0cab369877cf23975be88c8e953a2fc84baf25fe8114c9ecef5c",
+        "agents_initial.json": "99e4363553303f15a17c8f39bc7099a090a32ad60c6212d7952c4a8ca53d1743",
+        "agents_final.json": "d53a9ab54a1897b9d19f31edb31c2a2cc0eabb5b814309480d4de70891fb3fee",
+        "groups_generated.json": "a256fb9d20b60922523bc2efacea251dc8945f2e30bf624962f785a77a87125d"
+      },
+      "errors": []
+    },
+    {
+      "run": "run_20261029_112636_review",
+      "replies_from": "Claude (live Anthropic API)",
+      "people": 200,
+      "groups": 10,
+      "locked": 10,
+      "calls": 51,
+      "failed_calls": 0,
+      "answers": 39,
+      "separate_ai_audits": 0,
+      "source_sha256": {
+        "run_manifest.json": "17555d245bc9b7810b47e1094c20e66e3e44baf7d6c66a2d68d70c95b74ad0f9",
+        "full_simulation.jsonl": "b089f5eff9445d2c81c508eb5fa275492deb4509cd3349ed9ef5fbec3e389ea1",
+        "agents_initial.json": "99e4363553303f15a17c8f39bc7099a090a32ad60c6212d7952c4a8ca53d1743",
+        "agents_final.json": "b489d73e35052f1152694f4cbc3bc640310fe9fa34a8fa593fffda2989f40856",
+        "groups_generated.json": "d390102a31c72d86fd666022dbf8f903229239248384a40cdfe9563d8712f5f5"
+      },
+      "errors": []
+    },
+    {
+      "run": "run_20261029_112845_review",
+      "replies_from": "Claude (live Anthropic API)",
+      "people": 200,
+      "groups": 10,
+      "locked": 10,
+      "calls": 53,
+      "failed_calls": 0,
+      "answers": 41,
+      "separate_ai_audits": 0,
+      "source_sha256": {
+        "run_manifest.json": "388ab4c6d7e5057e0a073f8a10d2e227ecbfbfdb3b324c02d95a20f29ad3d18a",
+        "full_simulation.jsonl": "6e52327ac0b5dbb1a75ccc1636a69958249135de0aa7dc9cd854579bfbd5637c",
+        "agents_initial.json": "99e4363553303f15a17c8f39bc7099a090a32ad60c6212d7952c4a8ca53d1743",
+        "agents_final.json": "d292132a20b78c30fdd23a282c850b3887dfc3f2d6184ac170fdddf1a07fe30e",
+        "groups_generated.json": "3732458cf7b32bc6acd415a3c2196877f70c0562d3c3e370e4db6a3d4736ecea"
+      },
+      "errors": []
+    },
+    {
+      "run": "run_20261029_113102_review",
+      "replies_from": "Claude (live Anthropic API)",
+      "people": 200,
+      "groups": 10,
+      "locked": 10,
+      "calls": 52,
+      "failed_calls": 0,
+      "answers": 40,
+      "separate_ai_audits": 0,
+      "source_sha256": {
+        "run_manifest.json": "28d8f33eb5bcf7eff87e5a0d942b3707385ec5846cfad574fffd4a88693ad8e1",
+        "full_simulation.jsonl": "5f5c2bb5e3e731b5d1992a97de958cb45346ed0455b616a01163e22f7fffc2af",
+        "agents_initial.json": "99e4363553303f15a17c8f39bc7099a090a32ad60c6212d7952c4a8ca53d1743",
+        "agents_final.json": "37548bbb969a730051b1d91e2c1c3220d3219c839772fb42a245ca67af9e6366",
+        "groups_generated.json": "0f1a7bcc98452a70d588598dee38c270187d75960419b089f46087fa50790be7"
+      },
+      "errors": []
+    },
+    {
+      "run": "run_20261029_113329_review",
+      "replies_from": "Claude (live Anthropic API)",
+      "people": 200,
+      "groups": 10,
+      "locked": 10,
+      "calls": 52,
+      "failed_calls": 0,
+      "answers": 40,
+      "separate_ai_audits": 0,
+      "source_sha256": {
+        "run_manifest.json": "69ed8c6c7288d9c076062f3e1793d0c489e08ad57996a32503ceecfbe786c7e7",
+        "full_simulation.jsonl": "e1fec1c03bf841bdf4594a4748f9bb5988155d763ab5061663f39fbd5dddb5e5",
+        "agents_initial.json": "99e4363553303f15a17c8f39bc7099a090a32ad60c6212d7952c4a8ca53d1743",
+        "agents_final.json": "4071b168ea99c27242abb5461ce004e33eedcc3565c4e067d3f703d14ca028f9",
+        "groups_generated.json": "c261b10f22275eb1b2f74b158e026ba15c3bd6339e507bb1962468e682da4775"
+      },
+      "errors": []
+    },
+    {
+      "run": "run_20261029_113549_review",
+      "replies_from": "Claude (live Anthropic API)",
+      "people": 200,
+      "groups": 10,
+      "locked": 10,
+      "calls": 50,
+      "failed_calls": 0,
+      "answers": 38,
+      "separate_ai_audits": 0,
+      "source_sha256": {
+        "run_manifest.json": "6e747e734f71ac7a1e9ca5a4b91c27a1bb16939d27c0fbd8a52727b50e6a56c0",
+        "full_simulation.jsonl": "d5a428bc8635f03037c52f90ea1af075880efad2cf5ae08208b8554c2f2ee3b2",
+        "agents_initial.json": "99e4363553303f15a17c8f39bc7099a090a32ad60c6212d7952c4a8ca53d1743",
+        "agents_final.json": "e8174061ad31cddcb50ef214feefed7fc9a9508b80be250577a373411186e0f6",
+        "groups_generated.json": "8a563c1d4cdeac9f32c3c7be339a8ad10be4fa9dab0c07b7a365088adf968daf"
+      },
+      "errors": []
+    },
+    {
+      "run": "run_20261029_113804_review",
+      "replies_from": "Claude (live Anthropic API)",
+      "people": 200,
+      "groups": 10,
+      "locked": 10,
+      "calls": 54,
+      "failed_calls": 0,
+      "answers": 42,
+      "separate_ai_audits": 0,
+      "source_sha256": {
+        "run_manifest.json": "da675c82dcf320e1a39845cc69a1301c1bab723aae9a2ed6b3aadb09ce72b077",
+        "full_simulation.jsonl": "b226353efdd43600a3bd7b1909f1c596f36962f5bae6dfa2d2d53455c9e7b3c0",
+        "agents_initial.json": "99e4363553303f15a17c8f39bc7099a090a32ad60c6212d7952c4a8ca53d1743",
+        "agents_final.json": "dab0a5587d048cdde2b64822235e76dea01cea3892c80618d51e338a0d082ab7",
+        "groups_generated.json": "61904c8fa9b0daa13b8390fbe1dc43ffa48c2c9a969e0b14d852bdf006fa06d7"
+      },
+      "errors": []
+    },
+    {
+      "run": "run_20261029_114027_review",
+      "replies_from": "Claude (live Anthropic API)",
+      "people": 200,
+      "groups": 3,
+      "locked": 3,
+      "calls": 21,
+      "failed_calls": 0,
+      "answers": 16,
+      "separate_ai_audits": 0,
+      "source_sha256": {
+        "run_manifest.json": "93299f6745b6b4f7031998327ce59243a2e76c6a98f7f769ae440ddd63aae6f2",
+        "full_simulation.jsonl": "bf6690c05e16935979f8943a5ea36b0e2c75166f53b6b68f53548f8cae301c73",
+        "agents_initial.json": "99e4363553303f15a17c8f39bc7099a090a32ad60c6212d7952c4a8ca53d1743",
+        "agents_final.json": "93c0aa6bc1b26804351a5765d04e8861b99a90ce9f60889a521a495bb6034ac4",
+        "groups_generated.json": "7408bad1c34a63bcbc2f7bc14643302a63ae9692dc07df2d5169802fc471a07d"
+      },
+      "errors": []
+    }
+  ],
+  "evidence_errors": 0,
+  "logged_simulation_calls": 1091,
+  "failed_simulation_calls": 14,
+  "agent_replies": 831,
+  "incomplete_run_folders": [
+    "run_20261029_110817_review"
+  ]
+}

@@ -1,5 +1,8 @@
 # Run Clawnly with real AI: what we ran, what we found, what's fixed
 
+> Original five-run baseline: 67 groups. See `REQUIREMENTS_STATUS.md` for the expanded
+> collection and its current count against the 200-group review target.
+
 2026-10-29. Details are in `AUDIT_REPORT.md`, and every claim there cites the logged event behind it.
 
 ## What we ran
@@ -14,9 +17,9 @@
   - all 200 for three days
   - then the pilot and one town day again after the fixes
 - **Totals:** 67 groups, 296 invitations and 381 Claude calls, every one logged verbatim.
-- **Every group was reviewed two ways:**
-  - rule checks in code
-  - an independent model, Claude Fable 5.1, which played no part in the runs. It judged 25 groups and 4 full days from the logs alone.
+- **Every group received rule checks in code.**
+- **25 groups also received a separate AI review** from Claude Fable 5.1, which played
+  no part in the runs. It judged those groups and 4 full days from the logs alone.
 - **Spent $8.64 of the $10 cap:**
   - $2.46 on the simulations
   - $6.08 on the audit

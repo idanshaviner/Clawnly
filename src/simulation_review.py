@@ -22,6 +22,19 @@ FIELDS = ["match_id", "run", "day", "activity", "time", "status", "members",
           "human_verdict", "human_notes"]
 
 
+def run_folders(root):
+    # accept older exports while new runs stay out of the reviewer's way
+    folders = sorted(root.glob("run_*"))
+    folders.extend(sorted((root / "runs").glob("run_*")))
+    return folders
+
+
+def metadata_path(root, name):
+    if (root / "metadata").is_dir():
+        return root / "metadata" / name
+    return root / name
+
+
 def read(path):
     return json.loads(path.read_text(encoding="utf-8"))
 
@@ -176,12 +189,19 @@ def inspect_run(folder):
 
 
 def build(root=ROOT):
-    folders = sorted(root.glob("run_*/run_manifest.json"))
+    folders = run_folders(root)
     rows = []
     runs = []
     i = 0
     while i < len(folders):
-        found, checked = inspect_run(folders[i].parent)
+        if not (folders[i] / "run_manifest.json").exists():
+            i += 1
+            continue
+        found, checked = inspect_run(folders[i])
+        j = 0
+        while j < len(found):
+            found[j]["source"] = str(folders[i].relative_to(root) / "run_dump.txt")
+            j += 1
         rows.extend(found)
         runs.append(checked)
         i += 1
@@ -235,34 +255,14 @@ def build(root=ROOT):
         totals["agent_replies"] += runs[i]["answers"]
         i += 1
     totals["incomplete_run_folders"] = []
-    all_folders = sorted(root.glob("run_*"))
+    all_folders = run_folders(root)
     i = 0
     while i < len(all_folders):
         folder = all_folders[i]
         if folder.is_dir() and not (folder / "run_manifest.json").exists():
             totals["incomplete_run_folders"].append(folder.name)
         i += 1
-    (root / "requirements_check.json").write_text(json.dumps(totals, indent=2) + "\n", encoding="utf-8")
-    text = ["CLAWNLY: REVIEW THE SAVED AI MATCHES ONE BY ONE", "",
-            str(locked) + " completed groups; target " + str(TARGET) + ".",
-            "Reasons and agent answers below are copied from saved run records.",
-            "A separate AI audit is available only where explicitly marked.",
-            "Write your verdict and notes in review_notes.csv, or alongside each record below.",
-            "Use the named run_dump.txt for profiles, hub messages and the full conversation.", ""]
-    i = 0
-    while i < len(rows):
-        row = rows[i]
-        text.extend(["=" * 80, "MATCH " + str(i + 1) + ": " + row["match_id"],
-                     row["activity"] + " | " + row["day"] + " | " + row["time"] + " | " + row["status"],
-                     "PEOPLE: " + row["members"], "", "WHY THE HUB CHOSE IT (verbatim):",
-                     row["hub_reason_verbatim"], "", "CONVERSATION (verbatim, in event order):",
-                     row["conversation_verbatim"],
-                     "", "AI REVIEW: " + row["ai_review_status"], row["ai_verdict"] + " " + row["ai_summary"],
-                     "SAME ACTIVITY AND MEMBERS ALSO IN: " + row["same_activity_and_members_seen_in"],
-                     "", "YOUR VERDICT: " + row["human_verdict"], "YOUR NOTES: " + row["human_notes"],
-                     "FULL RECORD: " + row["source"], ""])
-        i += 1
-    (root / "MATCHES_FOR_REVIEW.txt").write_text("\n".join(text), encoding="utf-8")
+    metadata_path(root, "requirements_check.json").write_text(json.dumps(totals, indent=2) + "\n", encoding="utf-8")
     checks = ["# Does this meet the team's request?", "",
               "A match here means one completed activity group. People and invitations are counted separately.", "",
               "| Requirement | Verified status |", "|---|---|",
@@ -276,11 +276,11 @@ def build(root=ROOT):
               "| Independent AI assessment | " + str(reviewed) + " groups have saved separate AI audits. Others remain open for review. |",
               "| Human review completed | " + str(completed) + " verdicts in this CSV; shared or other local files were not checked. |",
               "", "## Files to use", "",
-              "- MATCHES_FOR_REVIEW.txt: read every group in order, including the original reason and answers.",
+              "- Clawnly_Match_Review.html: the finished reader with embedded profiles and conversations.",
+              "- ALL_RUNS_DUMP.txt: the complete plain-text record for all runs.",
               "- review_notes.csv: open in Excel and add a verdict and notes per row.",
-              "- run_*/run_dump.txt: the full supporting profiles and conversations, suitable for an AI chat.",
-              "- requirements_check.json: evidence checks and SHA-256 fingerprints of source files.", "",
-              "The existing live_match_review.xlsx covers the original 67 groups; use the CSV for the expanded set.",
+              "- runs/run_*/run_dump.txt: the full supporting profiles and conversations, suitable for an AI chat.",
+              "- metadata/requirements_check.json: evidence checks and SHA-256 fingerprints of source files.", "",
               "The earlier evaluation/results set contains code-proposed groups and is a separate experiment.", "",
               "## Read the results correctly", "",
               "Evidence consistency errors: " + str(totals["evidence_errors"]) + ". Recorded failed simulation calls: "
@@ -291,25 +291,26 @@ def build(root=ROOT):
               "may use different prompts; each original manifest and record is preserved.", "",
               "Distinct activity/member combinations so far: " + str(len(combinations))
               + ". The CSV flags repeated combinations for comparison.", "",
-              "Failed runs and incomplete folders remain visible in requirements_check.json. The simulator stores",
+              "Failed runs and incomplete folders remain visible in metadata/requirements_check.json. The simulator stores",
               "prompts and replies returned by the API; available thinking summaries are not the model's full hidden reasoning.", "",
               "## Rebuild for free", "", "```bash", ".venv/bin/python src/simulation_review.py", "```", "",
               "This reads saved evidence without API calls and preserves CSV notes by match ID.", ""]
-    (root / "REQUIREMENTS_STATUS.md").write_text("\n".join(checks), encoding="utf-8")
+    report = root / "REQUIREMENTS_STATUS.md"
+    if (root / "reports").is_dir():
+        report = root / "reports" / "REQUIREMENTS_STATUS.md"
+    report.write_text("\n".join(checks), encoding="utf-8")
     return totals
 
 
 def package(root=ROOT):
-    names = ["START_HERE.txt", "REQUIREMENTS_STATUS.md", "MATCHES_FOR_REVIEW.txt", "review_notes.csv",
-             "HOW_TO_REVIEW_WITH_CLAUDE.txt", "requirements_check.json", "completion_batch.json",
-             "spend_ledger.json", "COMPLETION_LOG.md", "AUDIT_REPORT.md", "EXECUTIVE_SUMMARY.md"]
+    names = ["README.md", "Clawnly_Match_Review.html", "ALL_RUNS_DUMP.txt", "review_notes.csv"]
     files = []
     i = 0
     while i < len(names):
         if (root / names[i]).exists():
             files.append(root / names[i])
         i += 1
-    folders = sorted(root.glob("run_*"))
+    folders = [root / "runs", root / "reports", root / "metadata"]
     i = 0
     while i < len(folders):
         if folders[i].is_dir():
@@ -319,15 +320,44 @@ def package(root=ROOT):
     with zipfile.ZipFile(destination, "w", compression=zipfile.ZIP_DEFLATED) as archive:
         i = 0
         while i < len(files):
-            if files[i].is_file():
+            if files[i].is_file() and not files[i].name.startswith("simulation.db"):
                 archive.write(files[i], str(files[i].relative_to(root)))
             i += 1
     return destination
+
+
+def write_dump(root=ROOT):
+    import run_dump
+    folders = run_folders(root)
+    ready = []
+    interrupted = []
+    i = 0
+    while i < len(folders):
+        if (folders[i] / "run_manifest.json").exists():
+            ready.append(str(folders[i]))
+        else:
+            interrupted.append(folders[i])
+        i += 1
+    path = root / "ALL_RUNS_DUMP.txt"
+    run_dump.write_all(str(path), ready)
+    with path.open("a", encoding="utf-8") as stream:
+        stream.write("\n\nINTERRUPTED ATTEMPTS NOT COUNTED AS MATCHES\n")
+        i = 0
+        while i < len(interrupted):
+            stream.write("\n" + interrupted[i].name + "\n")
+            note = interrupted[i] / "INTERRUPTED.txt"
+            if note.exists():
+                stream.write(note.read_text(encoding="utf-8"))
+            i += 1
+    return path
 
 
 if __name__ == "__main__":
     result = build()
     print(str(result["completed_groups"]) + " completed groups; " + str(result["additional_groups_needed"])
           + " more needed; " + str(result["separate_ai_reviews"]) + " separate AI reviews.")
+    write_dump()
+    import readable_review
+    print("Readable review: " + str(readable_review.build()))
     if sys.argv[1:] == ["--package"]:
         print("Review package: " + str(package()))

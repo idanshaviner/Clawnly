@@ -19,7 +19,7 @@ Two kinds of check, kept apart:
     conversation. Code drops any finding that cites an event the packet didn't contain,
     so the auditor can't lean on evidence it never saw.
 
-    .venv/bin/python src/orchestration_audit.py simulation_results/run_... [--ai] [--sample N]
+    .venv/bin/python src/orchestration_audit.py simulation_results/runs/run_... [--ai] [--sample N]
         [--auditor MODEL] [--ceiling DOLLARS] [--no-days]
     .venv/bin/python src/orchestration_audit.py compare <run before> <run after> [day]
     .venv/bin/python src/orchestration_audit.py probe <run> <agent call seq,seq> <times>

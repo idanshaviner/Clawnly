@@ -82,6 +82,8 @@ def _and(items):
 
 def gather(root):
     # (runs that made groups, runs that didn't), in folder order
+    if os.path.isdir(os.path.join(root, "runs")):
+        root = os.path.join(root, "runs")
     names = []
     if os.path.isdir(root):
         names = sorted(os.listdir(root))

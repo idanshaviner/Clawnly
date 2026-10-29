@@ -402,7 +402,7 @@ def test_the_plan_lists_each_person_once_and_stays_small():
             assert c["id"] in payload
     # under half of what it was before the trim (65,000 characters for this day). It grew from
     # 25,000 when each keen person's liked tags and everyone's avoids were added: without them the
-    # hub called five beer fans "trivia-keen" (simulation_results/run_20261029_023732_pilot)
+    # hub called five beer fans "trivia-keen" (simulation_results/runs/run_20261029_023732_pilot)
     assert len(matchmaker._plan_system(DAY, 10) + payload) < 32000
 
 

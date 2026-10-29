@@ -57,7 +57,7 @@ name-blind pitches) are enforced in code, never trusted to the model.
   `src/web/run-clawnly.js` copies `fit`/`breakRoom`/`tieOrder` -- change both together.
 - **End-to-end simulation of the live matchmaker:** `orchestration_sim.py` runs the real
   `run_day` on the emulated town with every call, message and state change recorded, under a
-  spending ceiling, into `simulation_results/run_*/`. `orchestration_audit.py` adds rule checks
+  spending ceiling, into `simulation_results/runs/run_*/`. `orchestration_audit.py` adds rule checks
   and an independent-model audit, whose findings must cite event numbers. Start with
   `simulation_results/EXECUTIVE_SUMMARY.md`. `run_dump.py` writes each run as one plain-text
   `run_dump.txt` (prompts, every message, groups, timeline) to read or hand to any AI. Paid runs share a total cap through

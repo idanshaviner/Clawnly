@@ -67,4 +67,16 @@ preservation of human notes, stopping failed batches, budget persistence across 
 and the duplicate-first-name audit case. All 200 exported IDs are unique; archive
 integrity and the export's absence of credential-shaped strings were checked.
 
-The current changes remain local on `match-eval-tiebreak`; nothing was pushed.
+At the original completion checkpoint the changes were local on `match-eval-tiebreak`.
+See the current README for the published branch and file locations.
+
+
+## Folder cleanup
+
+The canonical files are now `../Clawnly_Match_Review.html` and `../ALL_RUNS_DUMP.txt`.
+The earlier file names in this historical log describe the initial export; duplicate
+summaries, guides, the 67-group workbook, presentation page and ZIP were subsequently removed.
+The 34 original run folders are under `../runs/`; all 449 files inside them were verified
+unchanged by SHA-256. Collection metadata and the spending ledger are under `../metadata/`.
+The manual-notes CSV remains at the top level. The free rebuild command regenerates
+only the current outputs and checks, and supports older flat run folders as well.

@@ -8,7 +8,7 @@ from pathlib import Path
 import simulation_review as review
 
 
-SOURCE = Path(__file__).resolve().parent.parent / "simulation_results" / "run_20261029_023316_smoke"
+SOURCE = Path(__file__).resolve().parent.parent / "simulation_results" / "runs" / "run_20261029_023316_smoke"
 
 
 def test_saved_run_has_consistent_profiles_and_traceable_replies():
@@ -53,3 +53,22 @@ def test_rebuilding_keeps_human_verdicts_and_notes(tmp_path):
     with path.open(encoding="utf-8-sig", newline="") as stream:
         saved = list(csv.DictReader(stream))
     assert saved[0]["human_notes"] == rows[0]["human_notes"]
+
+
+def test_organized_layout_rebuilds_without_recreating_duplicate_summaries(tmp_path):
+    (tmp_path / "runs").mkdir()
+    (tmp_path / "metadata").mkdir()
+    (tmp_path / "reports").mkdir()
+    shutil.copytree(SOURCE, tmp_path / "runs" / SOURCE.name)
+    result = review.build(tmp_path)
+    assert result["completed_groups"] == 3
+    assert (tmp_path / "metadata" / "requirements_check.json").exists()
+    assert (tmp_path / "reports" / "REQUIREMENTS_STATUS.md").exists()
+    assert not (tmp_path / "MATCHES_FOR_REVIEW.txt").exists()
+    assert not (tmp_path / "requirements_check.json").exists()
+    with (tmp_path / "review_notes.csv").open(encoding="utf-8-sig", newline="") as stream:
+        rows = list(csv.DictReader(stream))
+    assert rows[0]["source"].startswith("runs/" + SOURCE.name)
+    dump = review.write_dump(tmp_path).read_text()
+    assert "3 groups locked" in dump
+    assert "Green River Gorge hike" in dump

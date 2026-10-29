@@ -18,7 +18,7 @@ import orchestration_audit
 import simulation_review
 
 
-STATE = simulation_review.ROOT / "completion_batch.json"
+STATE = simulation_review.metadata_path(simulation_review.ROOT, "completion_batch.json")
 
 
 async def complete():
@@ -52,7 +52,7 @@ async def complete():
             day = (datetime.date.fromisoformat(sim.WEEK_START)
                    + datetime.timedelta(days=state["attempts"] % 7)).isoformat()
             state["attempts"] += 1
-            folder = simulation_review.ROOT / ("run_" + sim._stamp() + "_review")
+            folder = simulation_review.ROOT / "runs" / ("run_" + sim._stamp() + "_review")
             groups = min(10, missing)
             save(state)
             entry = sim.ledger_reserve("simulation review completion", folder.name, ceiling)

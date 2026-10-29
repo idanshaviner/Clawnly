@@ -1,0 +1,506 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clawnly match review</title>
+<style>
+:root{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#202724;background:#f6f7f5;font-size:16px;line-height:1.55}*{box-sizing:border-box}body{margin:0}button,input,select,textarea{font:inherit}button{cursor:pointer}button:disabled{opacity:.4;cursor:default}button,select,input{border:1px solid #ccd3ce;border-radius:6px;background:white;padding:9px 12px}button:hover{background:#edf2ee}button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{outline:3px solid #668c79;outline-offset:2px}.top{background:white;border-bottom:1px solid #dce2dc;padding:16px 24px;display:flex;gap:20px;align-items:center;justify-content:space-between}.brand{font-size:20px;font-weight:700}.muted{color:#59655e;font-size:14px}.actions{display:flex;gap:8px;align-items:center}.primary{background:#244e3c;color:white;border-color:#244e3c}.primary:hover{background:#173e2c}.layout{display:grid;grid-template-columns:270px minmax(0,1fr)}aside{padding:20px 16px;position:sticky;top:0;height:100vh;overflow:auto;border-right:1px solid #dce2dc}aside label{display:block;font-size:13px;font-weight:650;margin-bottom:6px}aside input,aside select{width:100%;margin-bottom:14px}.index{display:grid;gap:5px;margin-top:12px}.index button{text-align:left;display:grid;grid-template-columns:30px 1fr;gap:8px;border-color:transparent;background:transparent;padding:9px 8px;font-size:14px;line-height:1.4}.index button[aria-current="true"]{background:#e1ebe4;border-color:#a9bfb0}.index button small{display:block;color:#667269;font-size:12px;margin-top:3px}.number{font-variant-numeric:tabular-nums;color:#6b776e}.paper{max-width:1040px;width:100%;padding:30px 48px 64px;margin:auto;background:white;min-height:100vh}.nav{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:25px}.nav strong{font-size:14px}.eyebrow{font-size:13px;letter-spacing:.06em;color:#526157;text-transform:uppercase;margin:0 0 7px}h1{font-size:31px;line-height:1.2;letter-spacing:-.02em;margin:0 0 12px;color:#17241c}h2{font-size:20px;margin:30px 0 12px;line-height:1.35}h3{font-size:17px;margin:0 0 5px}.meta{color:#536158;margin:0 0 22px}.reason{font-size:18px;line-height:1.65;margin:0;white-space:pre-wrap}.people{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}.person{padding:15px 0;border-top:1px solid #dce3dc}.person p{margin:7px 0;font-size:14px}.person strong{font-weight:650}.tag{display:inline-block;font-size:12px;padding:3px 9px;border:1px solid #c8d6cb;border-radius:20px;background:#eef5ef;margin-left:8px;font-weight:500}.tag.no{color:#7c3930;background:#fff1ed;border-color:#eccfc7}.facts{margin:8px 0}.facts dt{display:inline;font-weight:650}.facts dd{display:inline;margin:0}.facts dd::after{content:"";display:block;margin-bottom:6px}.review{margin-top:32px;padding-top:22px;border-top:2px solid #dce5dd}.review label{display:block;font-weight:650;margin:12px 0 6px}.review textarea{width:100%;min-height:120px;resize:vertical;padding:12px;border:1px solid #b9c9bd;border-radius:6px;background:#fffef6}.review select{min-width:180px;background:#fffef6}.review h2{margin-top:0}.notice{margin:13px 0;color:#536158;font-size:14px}.questions{margin:0;padding-left:21px}.questions li{margin:7px 0}details{border-top:1px solid #dde3dd;padding:15px 0}summary{font-weight:650;cursor:pointer}details p{margin:10px 0}.message{margin:18px 0;padding-left:14px;border-left:2px solid #d8e2da}.message .speaker{font-size:13px;font-weight:650;color:#4e6255}.message p{white-space:pre-wrap;margin:7px 0}.message.agent{border-left-color:#99b5a2}pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px;line-height:1.5;background:#f5f7f4;padding:16px;border-radius:5px;max-height:600px;overflow:auto}.source{font-size:12px;color:#68736b;overflow-wrap:anywhere;margin-top:28px}.save-state{font-size:12px;color:#59665c}.legend{font-size:13px;line-height:1.6;margin:20px 0;padding-top:16px;border-top:1px solid #dce2dc}.legend strong{display:block;font-size:14px;margin-bottom:5px}.empty{padding:40px 0}ul{padding-left:22px}.profile-prompt{font-size:12px}#view{scroll-margin-top:20px}
+@media(max-width:900px){.layout{grid-template-columns:215px minmax(0,1fr)}.paper{padding:25px}.top{padding:14px 18px}.people{grid-template-columns:1fr}h1{font-size:27px}}
+@media(max-width:620px){.top{align-items:flex-start;flex-direction:column;gap:10px}.layout{display:block}aside{position:static;height:auto;border-right:0;border-bottom:1px solid #dce2dc;padding:16px}.index{max-height:190px;overflow:auto}.legend{display:none}.paper{padding:22px 18px}.nav button{padding:8px}.top .muted{font-size:12px}}
+@media print{.top,aside,.nav,.actions,.save-state{display:none}.layout{display:block}.paper{padding:0;max-width:none}.review textarea{min-height:100px}details[open]{break-inside:auto}.person,.message{break-inside:avoid}body{background:white}h1{font-size:25px}}
+</style></head><body>
+<header class="top"><div><div class="brand">Clawnly match review</div><div class="muted" id="totals"></div></div><div class="actions"><span id="save-state" class="save-state" aria-live="polite">Ready to review</span><button class="primary" id="save-copy">Save reviewed copy</button></div></header>
+<div class="layout"><aside><label for="search">Find a match</label><input id="search" type="search" placeholder="Activity, person or match ID"><label for="filter">Show</label><select id="filter"><option value="all">All matches</option><option value="unreviewed">Not yet reviewed</option><option value="reviewed">Reviewed</option><option value="flags">Saved rule findings</option><option value="audited">Separate AI review available</option><option value="repeat">Repeated activity and members</option></select><div class="muted" id="progress" aria-live="polite"></div><nav class="index" id="index" aria-label="Matches"></nav><div class="legend"><strong>How to review</strong>Read the reason and profiles. Check the agents’ answers. Open the full conversation if anything seems questionable. Add your verdict and notes.<p>Notes stay in this browser when storage is available. <b>Save reviewed copy</b> puts your notes into this same HTML file for sharing or reopening elsewhere.</p><p>These are synthetic neighbors. Repeated dates are independent reruns. A formed group is a simulated decision, not a confirmed real-world meeting.</p></div></aside><main class="paper"><div class="nav"><button id="previous">← Previous</button><strong id="position"></strong><button id="next">Next →</button></div><article id="view"></article></main></div>
+<script id="review-data" type="application/json">__REVIEW_DATA__</script>
+<script id="review-state" type="application/json">__REVIEW_STATE__</script>
+<script>
+"use strict";
+const data=JSON.parse(document.getElementById("review-data").textContent);
+let state=JSON.parse(document.getElementById("review-state").textContent);
+const storageKey="clawnly-review-"+data.version;
+let selected=state.cursor||1;
+let visible=[];
+function put(tag,text,parent,cls){
+  const n=document.createElement(tag);
+  if(text!==null){
+    n.textContent=text;
+  }
+  if(cls){
+    n.className=cls;
+  }
+  if(parent){
+    parent.append(n);
+  }
+  return n;
+}
+function words(text){
+  return String(text||"").replaceAll("_"," ");
+}
+function joinTags(tags){
+  if(!tags.length){
+    return "None listed";
+  }
+  return tags.join(", ");
+}
+function likes(person){
+  const list=[];
+  let i=0;
+  while(i<person.likes.length){
+    const item=person.likes[i];
+    let label="open to ";
+    if(item.weight===3){
+      label="loves ";
+    }
+    else if(item.weight===2){
+      label="really likes ";
+    }
+    list.push(label+words(item.tag));
+    i+=1;
+  }
+  return list.join("; ");
+}
+function budget(value){
+  const labels={
+    free:"Free only",low:"Free or low cost",any:"Any cost"
+  }
+  ;
+  return labels[value]||value;
+}
+function cost(value){
+  const labels={
+    free:"Free",low:"Low cost",mid:"Moderate cost"
+  }
+  ;
+  return labels[value]||value;
+}
+function date(value){
+  return new Intl.DateTimeFormat("en",{
+    weekday:"long",day:"numeric",month:"long",year:"numeric",timeZone:"UTC"
+  }
+  ).format(new Date(value+"T12:00:00Z"));
+}
+function note(match){
+  return state.notes[match.id]||{
+    verdict:"",text:"",updated:0
+  }
+  ;
+}
+try{
+  const cache=JSON.parse(localStorage.getItem(storageKey)||"null");
+  if(cache&&cache.notes){
+    const ids=Object.keys(cache.notes);
+    let i=0;
+    while(i<ids.length){
+      const id=ids[i];
+      if(!state.notes[id]||(cache.notes[id].updated||0)>(state.notes[id].updated||0)){
+        state.notes[id]=cache.notes[id];
+      }
+      i+=1;
+    }
+  }
+}
+catch(error){
+}
+function persist(){
+  state.cursor=selected;
+  try{
+    localStorage.setItem(storageKey,JSON.stringify(state));
+    document.getElementById("save-state").textContent="Saved in this browser · save a copy to share";
+  }
+  catch(error){
+    document.getElementById("save-state").textContent="Use Save reviewed copy to keep your notes";
+  }
+}
+function matchesFilter(match){
+  const query=document.getElementById("search").value.toLowerCase().trim();
+  const filter=document.getElementById("filter").value;
+  const saved=note(match);
+  if(filter==="unreviewed"&&saved.verdict){
+    return false;
+  }
+  if(filter==="reviewed"&&!saved.verdict){
+    return false;
+  }
+  if(filter==="flags"&&!match.findings.length){
+    return false;
+  }
+  if(filter==="audited"&&!match.audit){
+    return false;
+  }
+  if(filter==="repeat"&&!match.repeat_of){
+    return false;
+  }
+  let text=match.number+" "+match.id+" "+match.group.activity_name;
+  const people=data.runs[match.run].people;
+  let i=0;
+  while(i<match.group.members.length){
+    text+=" "+people[match.group.members[i].id].name;
+    i+=1;
+  }
+  return text.toLowerCase().includes(query);
+}
+function rebuildIndex(){
+  visible=[];
+  const nav=document.getElementById("index");
+  nav.replaceChildren();
+  let reviewed=0;
+  let i=0;
+  while(i<data.matches.length){
+    const match=data.matches[i];
+    if(note(match).verdict){
+      reviewed+=1;
+    }
+    if(matchesFilter(match)){
+      visible.push(match);
+      const button=put("button",null,nav);
+      button.setAttribute("aria-current",String(match.number===selected));
+      put("span",String(match.number),button,"number");
+      const label=put("span",match.group.activity_name,button);
+      let status="Not reviewed";
+      if(note(match).verdict){
+        status=note(match).verdict;
+      }
+      put("small",match.group.day+" · "+status,label);
+      button.addEventListener("click",function(){
+        selected=match.number;
+        render();
+      }
+      );
+    }
+    i+=1;
+  }
+  document.getElementById("progress").textContent=reviewed+" of "+data.matches.length+" reviewed · "+visible.length+" shown";
+}
+function details(title,parent){
+  const section=put("details",null,parent);
+  put("summary",title,section);
+  return section;
+}
+function fact(parent,label,value){
+  const p=put("p",null,parent);
+  put("strong",label+" ",p);
+  put("span",value,p);
+}
+function personBlock(member,match,parent){
+  const run=data.runs[match.run];
+  const person=run.people[member.id];
+  const group=match.group;
+  const card=put("section",null,parent,"person");
+  const title=put("h3",person.name+", "+person.age,card);
+  let label="Not in final group";
+  let cls="tag no";
+  if(group.final_members.includes(member.id)){
+    label="Joined";
+    cls="tag";
+  }
+  put("span",label,title,cls);
+  put("p",person.archetype+" · "+person.area,card,"muted");
+  if(person.kids_at_home){
+    put("p","Children at home",card,"muted");
+  }
+  fact(card,"Likes",likes(person));
+  fact(card,"Dislikes",words(joinTags(person.dislikes)));
+  fact(card,"Avoids",words(joinTags(person.avoid)));
+  fact(card,"Budget",budget(person.budget));
+  let free=person.calendar[group.day]||[];
+  fact(card,"Free that day",joinTags(free));
+  let a=0;
+  while(a<member.answers.length){
+    const answer=member.answers[a];
+    const p=put("p",null,card);
+    put("strong","Round "+answer.round+" · "+answer.answer.toUpperCase()+" ",p);
+    put("span",answer.said,p);
+    if(answer.counter){
+      put("p","Suggested change: "+answer.counter,card);
+    }
+    a+=1;
+  }
+  if(member.code_checks_at_final_time.length){
+    fact(card,"Checks at final time",member.code_checks_at_final_time.join(" "));
+  }
+  const after=run.after[member.id];
+  let profileStatus="Profile unchanged after the run";
+  if(after.profile_changed){
+    profileStatus="Profile changed after the run — inspect the snapshots below";
+  }
+  put("p",profileStatus,card,"muted");
+}
+function shared(match){
+  const people=data.runs[match.run].people;
+  const ids=match.group.final_members;
+  if(!ids.length){
+    return [];
+  }
+  const common=[];
+  const first=people[ids[0]].likes;
+  let i=0;
+  while(i<first.length){
+    const tag=first[i].tag;
+    let every=true;
+    let j=1;
+    while(j<ids.length){
+      let has=false;
+      let k=0;
+      while(k<people[ids[j]].likes.length){
+        if(people[ids[j]].likes[k].tag===tag){
+          has=true;
+        }
+        k+=1;
+      }
+      if(!has){
+        every=false;
+      }
+      j+=1;
+    }
+    if(every){
+      common.push(words(tag));
+    }
+    i+=1;
+  }
+  return common;
+}
+function render(){
+  rebuildIndex();
+  let match=data.matches[selected-1];
+  if(!visible.length){
+    document.getElementById("view").replaceChildren();
+    put("p","No matches fit this search or filter.",document.getElementById("view"),"empty");
+    document.getElementById("position").textContent="No matches shown";
+    document.getElementById("previous").disabled=true;
+    document.getElementById("next").disabled=true;
+    return;
+  }
+  let index=visible.indexOf(match);
+  if(index<0){
+    match=visible[0];
+    selected=match.number;
+    index=0;
+    rebuildIndex();
+  }
+  const group=match.group;
+  const run=data.runs[match.run];
+  const view=document.getElementById("view");
+  view.replaceChildren();
+  document.getElementById("position").textContent="Match "+match.number+" of "+data.matches.length;
+  document.getElementById("previous").disabled=index===0;
+  document.getElementById("next").disabled=index===visible.length-1;
+  put("p","Match "+match.number+" · "+group.final_members.length+" people joined",view,"eyebrow");
+  put("h1",group.activity_name,view);
+  put("p",date(group.day)+" · "+group.time_final+" · "+cost(group.cost),view,"meta");
+  put("p",group.where,view,"muted");
+  put("h2","Why this group was chosen",view);
+  put("p",group.why_hub_chose_it,view,"reason");
+  put("p","Original matchmaker explanation, copied verbatim. Check it against the profiles below.",view,"notice");
+  const common=shared(match);
+  let commonText="No single listed interest is shared by everyone in the final group.";
+  if(common.length){
+    commonText="Everyone in the final group lists: "+common.join(", ")+".";
+  }
+  put("p",commonText,view);
+  if(match.repeat_of){
+    const p=put("p","Same activity and people as match "+match.repeat_of+". This is a separate recorded decision.",view,"notice");
+    const b=put("button","View match "+match.repeat_of,p);
+    b.addEventListener("click",function(){
+      document.getElementById("filter").value="all";
+      document.getElementById("search").value="";
+      selected=match.repeat_of;
+      render();
+    }
+    );
+  }
+  put("h2","People and their agents’ answers",view);
+  const people=put("div",null,view,"people");
+  let i=0;
+  while(i<group.members.length){
+    personBlock(group.members[i],match,people);
+    i+=1;
+  }
+  put("h2","What to evaluate",view);
+  const questions=put("ul",null,view,"questions");
+  put("li","Does the reason fit what these people actually like, need and avoid?",questions);
+  put("li","Do the activity, timing and cost work for everyone who joined?",questions);
+  put("li","Would this group work together, or are people joining for unrelated reasons?",questions);
+  if(match.findings.length){
+    put("h3","Saved rule findings",view);
+    i=0;
+    while(i<match.findings.length){
+      const finding=match.findings[i];
+      put("p",finding.check+": "+finding.what,view);
+      i+=1;
+    }
+  }
+  else{
+    put("p","No group-specific findings in the saved rule audit. This does not establish social compatibility.",view,"notice");
+  }
+  const conversation=details("Full conversation · "+match.conversation.length+" messages",view);
+  i=0;
+  while(i<match.conversation.length){
+    const event=match.conversation[i];
+    let who="Matchmaker → "+run.people[event.person].name;
+    let cls="message";
+    if(event.type==="agent_to_hub"){
+      who=run.people[event.person].name+"’s agent → Matchmaker";
+      cls="message agent";
+    }
+    const block=put("div",null,conversation,cls);
+    put("div",who+" · round "+event.round+" · event "+event.seq,block,"speaker");
+    let message=event.text;
+    if(event.answer){
+      message=event.answer.toUpperCase()+" — "+message;
+    }
+    put("p",message,block);
+    if(event.counter){
+      put("p","Counteroffer: "+event.counter,block);
+    }
+    i+=1;
+  }
+  const finalMessages=details("Final messages sent to the people",view);
+  const ids=Object.keys(group.final_messages||{
+  }
+  );
+  i=0;
+  while(i<ids.length){
+    const block=put("div",null,finalMessages,"message");
+    put("div",run.people[ids[i]].name,block,"speaker");
+    put("p",group.final_messages[ids[i]],block);
+    i+=1;
+  }
+  if(!ids.length){
+    put("p","No final messages are saved for this group.",finalMessages);
+  }
+  const audit=details("Existing independent AI review",view);
+  if(match.audit){
+    put("p","Verdict: "+match.audit.verdict,audit);
+    put("p",match.audit.summary,audit);
+    put("p","This is an existing auditor’s opinion, separate from the matchmaker’s reason and your own verdict.",audit,"notice");
+  }
+  else{
+    put("p","No separate AI audit is saved for this match. The original matchmaker reason and all agent replies are available above.",audit);
+  }
+  const raw=details("Exact profiles and model inputs and outputs",view);
+  let loaded=false;
+  raw.addEventListener("toggle",function(){
+    if(!raw.open||loaded){
+      return;
+    }
+    loaded=true;
+    let k=0;
+    while(k<group.members.length){
+      const pid=group.members[k].id;
+      const profile=details(run.people[pid].name+" · exact agent prompt and before and after snapshots",raw);
+      put("pre",run.people[pid].agent_system_prompt,profile,"profile-prompt");
+      put("pre",JSON.stringify({
+        before:run.people[pid],after:run.after[pid]
+      }
+      ,null,2),profile);
+      k+=1;
+    }
+    k=0;
+    while(k<match.raw_calls.length){
+      const call=run.calls[String(match.raw_calls[k])];
+      if(call){
+        const d=details("Event "+call.seq+" · "+words(call.purpose)+" · "+call.model,raw);
+        put("pre",JSON.stringify(call,null,2),d);
+      }
+      k+=1;
+    }
+  }
+  );
+  const form=put("section",null,view,"review");
+  put("h2","Your review",form);
+  const label=put("label","Verdict",form);
+  label.htmlFor="verdict";
+  const verdict=put("select",null,form);
+  verdict.id="verdict";
+  const options=["","Good","OK","Bad","Unsure"];
+  i=0;
+  while(i<options.length){
+    const option=put("option",options[i],verdict);
+    option.value=options[i];
+    if(!options[i]){
+      option.textContent="Choose a verdict";
+    }
+    i+=1;
+  }
+  const saved=note(match);
+  if(saved.verdict&&!options.includes(saved.verdict)){
+    const option=put("option",saved.verdict,verdict);
+    option.value=saved.verdict;
+  }
+  verdict.value=saved.verdict;
+  const notesLabel=put("label","Notes and questions for the team",form);
+  notesLabel.htmlFor="notes";
+  const notes=put("textarea",null,form);
+  notes.id="notes";
+  notes.placeholder="What makes sense? What is questionable? What would you change?";
+  notes.value=saved.text;
+  function saveNote(){
+    state.notes[match.id]={
+      verdict:verdict.value,text:notes.value,updated:Date.now()
+    }
+    ;
+    persist();
+    rebuildIndex();
+    const index=visible.indexOf(match);
+    document.getElementById("previous").disabled=index<=0;
+    document.getElementById("next").disabled=index===visible.length-1;
+    if(index<0){
+      document.getElementById("next").disabled=visible.length===0;
+    }
+  }
+  verdict.addEventListener("change",saveNote);
+  notes.addEventListener("input",saveNote);
+  put("p","Use Save reviewed copy at the top to keep your notes inside this same file.",form,"notice");
+  put("p","Source ID: "+match.id+" · original plan event "+group.evidence.plan_call_seq+" · final status event "+group.evidence.status_seq,view,"source");
+  state.cursor=selected;
+  window.scrollTo(0,0);
+}
+function move(direction){
+  let i=0;
+  while(i<visible.length){
+    if(visible[i].number===selected){
+      const next=visible[i+direction];
+      if(next){
+        selected=next.number;
+        render();
+      }
+      return;
+    }
+    i+=1;
+  }
+  if(visible.length){
+    selected=visible[0].number;
+    render();
+  }
+}
+document.getElementById("previous").addEventListener("click",function(){
+  move(-1);
+}
+);
+document.getElementById("next").addEventListener("click",function(){
+  move(1);
+}
+);
+document.getElementById("search").addEventListener("input",render);
+document.getElementById("filter").addEventListener("change",render);
+document.getElementById("save-copy").addEventListener("click",function(){
+  state.cursor=selected;
+  document.getElementById("review-state").textContent=JSON.stringify(state).replaceAll("<","\\u003c");
+  const page="<!doctype html>\n"+document.documentElement.outerHTML;
+  const blob=new Blob([page],{
+    type:"text/html;charset=utf-8"
+  }
+  );
+  const url=URL.createObjectURL(blob);
+  const link=document.createElement("a");
+  link.href=url;
+  link.download="Clawnly_Match_Review_with_notes.html";
+  link.click();
+  setTimeout(function(){
+    URL.revokeObjectURL(url);
+  }
+  ,30000);
+  document.getElementById("save-state").textContent="Reviewed copy downloaded with your notes";
+}
+);
+document.getElementById("totals").textContent=data.matches.length+" recorded decisions · "+data.distinct+" different activity and member combinations";
+render();
+</script></body></html>

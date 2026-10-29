@@ -15,12 +15,12 @@ A match here means one completed activity group. People and invitations are coun
 
 ## Files to use
 
-- MATCHES_FOR_REVIEW.txt: read every group in order, including the original reason and answers.
+- Clawnly_Match_Review.html: the finished reader with embedded profiles and conversations.
+- ALL_RUNS_DUMP.txt: the complete plain-text record for all runs.
 - review_notes.csv: open in Excel and add a verdict and notes per row.
-- run_*/run_dump.txt: the full supporting profiles and conversations, suitable for an AI chat.
-- requirements_check.json: evidence checks and SHA-256 fingerprints of source files.
+- runs/run_*/run_dump.txt: the full supporting profiles and conversations, suitable for an AI chat.
+- metadata/requirements_check.json: evidence checks and SHA-256 fingerprints of source files.
 
-The existing live_match_review.xlsx covers the original 67 groups; use the CSV for the expanded set.
 The earlier evaluation/results set contains code-proposed groups and is a separate experiment.
 
 ## Read the results correctly
@@ -33,7 +33,7 @@ may use different prompts; each original manifest and record is preserved.
 
 Distinct activity/member combinations so far: 168. The CSV flags repeated combinations for comparison.
 
-Failed runs and incomplete folders remain visible in requirements_check.json. The simulator stores
+Failed runs and incomplete folders remain visible in metadata/requirements_check.json. The simulator stores
 prompts and replies returned by the API; available thinking summaries are not the model's full hidden reasoning.
 
 ## Rebuild for free

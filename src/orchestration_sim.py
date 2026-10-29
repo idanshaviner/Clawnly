@@ -34,7 +34,7 @@ import os
 _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 RESULTS = os.path.join(_ROOT, "simulation_results")
 # its ai_calls go to a simulation database, never the app's clawnly.db (tests set their own first)
-os.environ.setdefault("CLAWNLY_DB_PATH", os.path.join(RESULTS, "simulation.db"))
+os.environ.setdefault("CLAWNLY_DB_PATH", os.path.join(RESULTS, "metadata", "simulation.db"))
 
 import asyncio
 import copy
@@ -584,7 +584,7 @@ def _write_outputs(out_dir, events, people, days, max_groups, stage, live, ceili
     _dump(os.path.join(out_dir, "groups_generated.json"), groups)
     costs = cost_report(events, ceiling)
     _dump(os.path.join(out_dir, "cost_report.json"), costs)
-    summary = os.path.join(RESULTS, "architecture_summary.md")
+    summary = os.path.join(RESULTS, "reports", "architecture_summary.md")
     if os.path.exists(summary):
         shutil.copyfile(summary, os.path.join(out_dir, "architecture_summary.md"))
     ids = []
@@ -1087,7 +1087,7 @@ def _stamp():
 
 # what all simulations and audits together may spend (authorized by Idan, 2026-10-29)
 TOTAL_CAP = 10.00
-LEDGER = os.path.join(RESULTS, "spend_ledger.json")
+LEDGER = os.path.join(RESULTS, "metadata", "spend_ledger.json")
 
 
 def ledger(path=LEDGER):
@@ -1176,7 +1176,7 @@ def main(argv):
     # the SDK's own silent retries are off, so every retry is ours and is logged
     client = anthropic.AsyncAnthropic(api_key=key, base_url="https://api.anthropic.com", timeout=300.0, max_retries=0)
     people = cohort(town(), datetime.date.fromisoformat(STAGES[argv[2]]["days"][0]), stage["people"])
-    out_dir = os.path.join(RESULTS, "run_" + _stamp() + "_" + argv[2])
+    out_dir = os.path.join(RESULTS, "runs", "run_" + _stamp() + "_" + argv[2])
     entry = ledger_reserve("simulation " + argv[2], os.path.basename(out_dir), ceiling)
     manifest = asyncio.run(simulate(people, stage["days"], stage["groups"], client, out_dir, ceiling, argv[2],
                                     live=True, thinking_summaries=summaries, command=" ".join(argv)))

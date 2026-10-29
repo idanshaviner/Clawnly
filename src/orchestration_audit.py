@@ -44,6 +44,7 @@ import db
 import demand
 import match_eval
 import matchmaker
+import run_dump
 from llm_io import extract_json, join_text
 
 
@@ -1292,6 +1293,8 @@ def audit(run_dir, client=None, use_ai=False, model=AUDITOR, effort=AUDIT_EFFORT
     orchestration_sim._dump(os.path.join(run_dir, "metrics.json"), numbers)
     with open(os.path.join(run_dir, "audit_report.md"), "w", encoding="utf-8") as f:
         f.write(orchestration_sim.scrub(report(run, mech, ai, numbers, fair)))
+    # the one-file dump now carries what the checks found, at its end
+    run_dump.write(run_dir)
     return {"mechanical": mech, "ai": ai, "metrics": numbers, "fairness": fair}
 
 

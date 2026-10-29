@@ -18,6 +18,7 @@ folder under simulation_results/:
                          the event numbers that decided it
   cost_report.json       tokens and dollars per call, per model and in total
   days/<date>.json       the run dict exactly as run_day returned it
+  run_dump.txt           all of the above as one readable text file (run_dump.py)
 
 Nothing is mocked here: `run` needs a real Anthropic key, and it stops before any
 call that could push spending past the ceiling. Tests pass their own fake client,
@@ -55,6 +56,7 @@ import demand
 import match_eval
 import matchmaker
 import population
+import run_dump
 from llm_io import extract_json, join_text
 
 
@@ -614,6 +616,8 @@ def _write_outputs(out_dir, events, people, days, max_groups, stage, live, ceili
                         "platform": platform.platform(), "db": db.DB_PATH},
     }
     _dump(os.path.join(out_dir, "run_manifest.json"), manifest)
+    # the whole run as one text file, for reading or for any AI chat
+    run_dump.write(out_dir)
     return manifest
 
 

@@ -20,6 +20,38 @@ system works and what was confirmed before any paid run: `architecture_summary.m
 | `run_20261029_030412_pilot` | the same 30 people and days | after fixes |
 | `run_20261029_030721_town` | 200 people, Sat 31 Oct | after fixes |
 
+## Everything in one text file, for reading or for any AI chat
+
+No dashboard or tooling is needed. Each run folder has `run_dump.txt`: the whole run as plain
+text, written for a person scrolling it and for an AI chat it's pasted or uploaded into.
+
+1. Every emulated person's personality prompt (exactly what their agent got) before, and after:
+   the profile, checked unchanged, plus every answer they gave and where they were placed.
+2. Every message between the hub and each agent, with what code showed the agent, plus each day's
+   plan input, the hub's reasoning, the resolve step and the final messages.
+3. Every group: activity, time, members, the hub's reason, shared likes, every answer, and the
+   code checks at the final time.
+4. The timeline: every event, one line each.
+5. What our checks found, last, so a fresh review can skip it.
+
+Every line carries its event number `[#n]`, which also points into `full_transcript.txt`.
+
+| File | Size |
+|---|---|
+| `run_20261029_023316_smoke/run_dump.txt` | ~13k tokens |
+| `run_20261029_023732_pilot/run_dump.txt` | ~58k tokens |
+| `run_20261029_025000_town/run_dump.txt` | ~154k tokens (fits a 200k chat on its own) |
+| `run_20261029_030412_pilot/run_dump.txt` | ~46k tokens |
+| `run_20261029_030721_town/run_dump.txt` | ~83k tokens |
+| `ALL_RUNS_DUMP.txt` (all five) | ~353k tokens (needs a 1M-context model, or a chat project that searches files) |
+
+New runs and audits write `run_dump.txt` automatically. To rebuild:
+
+```bash
+.venv/bin/python src/run_dump.py simulation_results/run_<stamp>_<stage>
+.venv/bin/python src/run_dump.py --all simulation_results/ALL_RUNS_DUMP.txt simulation_results/run_*
+```
+
 ## Reproduce
 
 Requirements:

@@ -59,7 +59,8 @@ name-blind pitches) are enforced in code, never trusted to the model.
   `run_day` on the emulated town with every call, message and state change recorded, under a
   spending ceiling, into `simulation_results/run_*/`. `orchestration_audit.py` adds rule checks
   and an independent-model audit, whose findings must cite event numbers. Start with
-  `simulation_results/EXECUTIVE_SUMMARY.md`. Paid runs share a total cap through
+  `simulation_results/EXECUTIVE_SUMMARY.md`. `run_dump.py` writes each run as one plain-text
+  `run_dump.txt` (prompts, every message, groups, timeline) to read or hand to any AI. Paid runs share a total cap through
   `simulation_results/spend_ledger.json`. The matchmaker prompt fixes from that audit (what each
   keen person likes, avoids in the plan, WHAT THEY SHARE in messages, the agent's limit line, the
   `inside_part` guard) are in `matchmaker.py` only, not yet in `src/web/run-clawnly.js`.

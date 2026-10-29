@@ -111,3 +111,28 @@ def test_several_runs_go_into_one_file_behind_an_index(tmp_path):
     assert text.startswith("CLAWNLY ORCHESTRATION RUNS: 2 runs in one file")
     assert "END OF run_one" in text
     assert "END OF run_two" in text
+
+
+def test_the_combined_record_has_the_reports_then_each_person_once_then_every_run(tmp_path):
+    reset_db()
+    people = cohort()
+    first = simulate(tmp_path, people, client_for(plan(people)), name="run_a")
+    second = simulate(tmp_path, people, client_for(plan(people, groups=1)), name="run_b")
+    (tmp_path / "EXECUTIVE_SUMMARY.md").write_text("# Title\n\n## What we ran\n\nFive runs.\n")
+    text = run_dump.book([first, second], str(tmp_path))
+    parts = ["## Part 1. The short answer", "## Part 4. How to evaluate", "## Part 5. The runs at a glance",
+             "## Part 6. The people", "## Part 7.1. Run T1", "## Part 7.2. Run T2", "## Part 8."]
+    positions = [text.index(p) for p in parts]
+    assert positions == sorted(positions)
+    # a report's headings sit one level under the part, and its own title is dropped
+    assert "### What we ran" in text and "# Title" not in text
+    assert "(AUDIT_REPORT.md isn't there yet.)" in text
+    # each person appears once, with what happened to them in both runs
+    for person in people:
+        assert text.count("#### " + person["id"] + " ") == 1
+    asked = {e["person"] for e in events_of(first) if e["type"] == "agent_to_hub"}
+    someone = sorted(asked)[0]
+    entry = text.split("#### " + someone + " ")[1].split("####")[0]
+    assert "T1 #" in entry and "T2" in entry
+    # the agent prompt's shared wording is printed once for the identical runs
+    assert text.count("Wording used in runs T1, T2") == 1

@@ -20,6 +20,26 @@ system works and what was confirmed before any paid run: `architecture_summary.m
 | `run_20261029_030412_pilot` | the same 30 people and days | after fixes |
 | `run_20261029_030721_town` | 200 people, Sat 31 Oct | after fixes |
 
+## Start here
+
+- **`RUN_CLAWNLY_FULL_RECORD.md`:** everything in one readable file, about 199k tokens. It has:
+  - the short answer
+  - how the system works
+  - the audit's findings
+  - a guide to evaluating it yourself
+  - every person once, across all runs
+  - every run's conversations and groups
+
+  To rebuild it:
+  `.venv/bin/python src/run_dump.py --book simulation_results/RUN_CLAWNLY_FULL_RECORD.md simulation_results/run_*`
+- **`live_match_review.xlsx`:** review the 67 live matches one by one.
+  - The Matches tab has one row per group: who's in it, the matchmaker's reason, every agent's answer and reason
+    (verbatim), the rule checks, Claude's read, and your verdict and notes.
+  - The Answers tab has one row per invitation (296).
+  - Claude's read comes from the Fable 5.1 audit for 25 groups and from rules for the other 42. On the groups both
+    read, the rules agree with Fable 10 times out of 25 and are the stricter of the two.
+- **`REPORT.html`:** a one-page visual summary.
+
 ## Everything in one text file, for reading or for any AI chat
 
 No dashboard or tooling is needed. Each run folder has `run_dump.txt`: the whole run as plain

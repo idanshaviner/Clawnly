@@ -19,6 +19,10 @@ full_transcript.txt, so anything here can be traced to the verbatim record.
 
     .venv/bin/python src/run_dump.py simulation_results/run_...            one run
     .venv/bin/python src/run_dump.py --all simulation_results/ALL_RUNS_DUMP.txt simulation_results/run_...
+    .venv/bin/python src/run_dump.py --book simulation_results/RUN_CLAWNLY_FULL_RECORD.md simulation_results/run_...
+
+The --book form is the combined record: the reports (summary, how it works, the audit), a guide
+to evaluating it, each person once across all runs, then every run's conversations and groups.
 """
 
 import datetime
@@ -262,10 +266,17 @@ def _people(lines, initial, events, groups, final):
 
 # ----- 3. the conversations --------------------------------------------------------------------
 
-def _plan_lines(lines, call, people):
+def _plan_lines(lines, call, people, compact=False):
     plan = extract_json((call.get("response") or {}).get("text") or "")
-    lines.append("  WHAT THE HUB SAW WHEN PLANNING (its exact input, built by code) " + _ref(call["seq"]))
-    lines.append(_indent(call["request"]["messages"][-1]["content"], "    "))
+    seen = call["request"]["messages"][-1]["content"]
+    if compact and "\nPEOPLE:" in seen:
+        # the combined record prints each person's line once, in its people part, not once per day
+        lines.append("  WHAT THE HUB SAW WHEN PLANNING (its exact input, built by code) " + _ref(call["seq"]) + ". Its PEOPLE")
+        lines.append("  lines are left out here: each person's appears in the people part, under 'what the hub saw'.")
+        lines.append(_indent(seen[:seen.index("\nPEOPLE:")], "    "))
+    else:
+        lines.append("  WHAT THE HUB SAW WHEN PLANNING (its exact input, built by code) " + _ref(call["seq"]))
+        lines.append(_indent(seen, "    "))
     lines.append("")
     reasoning = _thinking(call)
     if reasoning:
@@ -353,8 +364,9 @@ def _code_found(call):
     return text[nl + 1:].strip()
 
 
-def _conversations(lines, events, groups, people, days):
-    _banner(lines, "2. CONVERSATIONS: every message between the hub and each agent, day by day")
+def _conversations(lines, events, groups, people, days, compact=False):
+    if not compact:
+        _banner(lines, "2. CONVERSATIONS: every message between the hub and each agent, day by day")
     calls = _of(events, "model_call")
     d = 0
     while d < len(days):
@@ -389,7 +401,7 @@ def _conversations(lines, events, groups, people, days):
                 resolve_call = calls[i]
             i += 1
         if plan_call is not None:
-            _plan_lines(lines, plan_call, people)
+            _plan_lines(lines, plan_call, people, compact)
             lines.append("")
         g = 0
         while g < len(groups):
@@ -492,8 +504,9 @@ def _shared(ids, people):
     return out
 
 
-def _groups(lines, groups, people):
-    _banner(lines, "3. GROUPS: each group, who is in it, why, and how every person answered")
+def _groups(lines, groups, people, compact=False):
+    if not compact:
+        _banner(lines, "3. GROUPS: each group, who is in it, why, and how every person answered")
     g = 0
     while g < len(groups):
         group = groups[g]
@@ -527,7 +540,10 @@ def _groups(lines, groups, people):
         lines.append("  Likes the final members share: " + ("; ".join(shared) or "none"))
         lines.append("  Overlap of likes (0-1): " + str(group["signals"]["shared_likes_overlap"]) + " | age spread: " +
                      str(group["signals"]["age_spread"]) + " years")
-        lines.append("  Everyone asked, and how they answered:")
+        if compact:
+            lines.append("  Everyone asked, and how they answered (each reply in full is under CONVERSATIONS):")
+        else:
+            lines.append("  Everyone asked, and how they answered:")
         m = 0
         while m < len(group["members"]):
             member = group["members"][m]
@@ -539,8 +555,12 @@ def _groups(lines, groups, people):
                 extra = ""
                 if ans["counter"]:
                     extra = " (counter: " + ans["counter"] + ")"
+                said = ' "' + ans["said"] + '"'
+                if compact:
+                    # the combined record already has every reply in full, in the conversations
+                    said = ""
                 lines.append("    " + _ref(ans["reply_seq"]) + " " + _name(people, member["id"]) + ", round " + str(ans["round"]) +
-                             " at " + str(ans["group_time_at_ask"]) + ": " + ans["answer"].upper() + extra + ' "' + ans["said"] + '"')
+                             " at " + str(ans["group_time_at_ask"]) + ": " + ans["answer"].upper() + extra + said)
             checks = member["code_checks_at_final_time"]
             if len(checks) > 0:
                 lines.append("        code checks at the final time: " + " ".join(checks))
@@ -639,8 +659,9 @@ def _timeline(lines, events, people):
 
 # ----- 6. what our checks found ------------------------------------------------------------------
 
-def _checks(lines, run_dir):
-    _banner(lines, "5. WHAT OUR CHECKS FOUND (read last; skip it if you want a fresh, independent review)")
+def _checks(lines, run_dir, compact=False):
+    if not compact:
+        _banner(lines, "5. WHAT OUR CHECKS FOUND (read last; skip it if you want a fresh, independent review)")
     mech = _read(run_dir, "audit_mechanical.json")
     ai = _read(run_dir, "audit_ai.json")
     if mech is None and ai is None:
@@ -754,7 +775,434 @@ def write_all(out_path, run_dirs):
     return out_path
 
 
+# ----- the combined record: the reports and every run in one readable file ------------------------
+
+STAGE_LETTER = {"smoke": "S", "pilot": "P", "town": "T"}
+STAGE_WORDS = {"smoke": "smoke test", "pilot": "pilot", "town": "whole town"}
+
+
+def _aliases(manifests):
+    # S, P1, P2, T1, T2...: a letter per stage, numbered when a stage ran more than once
+    counts = {}
+    i = 0
+    while i < len(manifests):
+        stage = manifests[i]["stage"]
+        counts[stage] = counts.get(stage, 0) + 1
+        i += 1
+    seen = {}
+    out = []
+    i = 0
+    while i < len(manifests):
+        stage = manifests[i]["stage"]
+        seen[stage] = seen.get(stage, 0) + 1
+        letter = STAGE_LETTER.get(stage, stage[:1].upper())
+        if counts[stage] > 1:
+            letter = letter + str(seen[stage])
+        out.append(letter)
+        i += 1
+    return out
+
+
+def _load_run(run_dir, alias):
+    manifest = _read(run_dir, "run_manifest.json")
+    initial = _read(run_dir, "agents_initial.json")
+    people = {}
+    i = 0
+    while i < len(initial):
+        people[initial[i]["id"]] = initial[i]
+        i += 1
+    final = {}
+    after = _read(run_dir, "agents_final.json") or []
+    i = 0
+    while i < len(after):
+        final[after[i]["id"]] = after[i]
+        i += 1
+    return {"alias": alias, "dir": run_dir, "manifest": manifest, "initial": initial, "people": people,
+            "final": final, "events": _events(run_dir), "groups": _read(run_dir, "groups_generated.json")}
+
+
+def _demote(markdown, levels):
+    # a report's own headings sit under the record's part headings; its title line goes
+    out = []
+    rows = markdown.splitlines()
+    i = 0
+    while i < len(rows):
+        row = rows[i]
+        i += 1
+        if i == 1 and row.startswith("# "):
+            continue
+        if row.startswith("#"):
+            row = "#" * levels + row
+        out.append(row)
+    return "\n".join(out).strip()
+
+
+def _fence(lines, text):
+    lines.append("```text")
+    lines.append(text.rstrip("\n"))
+    lines.append("```")
+
+
+def _distinct(runs, value_of):
+    # [(value, [aliases])] in first-seen order, so a difference between runs shows up once
+    values = []
+    owners = []
+    i = 0
+    while i < len(runs):
+        value = value_of(runs[i])
+        i += 1
+        if value is None:
+            continue
+        k = 0
+        found = -1
+        while k < len(values):
+            if values[k] == value:
+                found = k
+            k += 1
+        if found == -1:
+            values.append(value)
+            owners.append([runs[i - 1]["alias"]])
+        else:
+            owners[found].append(runs[i - 1]["alias"])
+    out = []
+    k = 0
+    while k < len(values):
+        out.append((values[k], owners[k]))
+        k += 1
+    return out
+
+
+def _book_intro(lines, runs):
+    lines.append("# Run Clawnly with real AI: the full record")
+    lines.append("")
+    lines.append("This one file holds everything from the live tests of Clawnly's AI matchmaker on 29 Oct 2026: the plain answer,")
+    lines.append("how the system works, what the audit found, a guide to checking it yourself, and then the raw evidence:")
+    lines.append("every person's personality, every message between the matchmaker and each person's AI agent, and every group.")
+    lines.append("")
+    lines.append("**To understand it**, read Parts 1 to 3. **To evaluate it yourself**, start with Part 4. For a review that isn't")
+    lines.append("steered by our conclusions, skip Parts 1 and 3 and work from Parts 5 to 7.")
+    lines.append("")
+    lines.append("**How to cite.** Every event has a run and a number: **T1 #560** is event 560 of run T1. Run letters are in Part 5.")
+    lines.append("Inside a run's part, `[#560]` means that run's event 560. The same numbers are `seq` in each run's")
+    lines.append("`full_simulation.jsonl` and `[000560]` in its `full_transcript.txt`, which hold every prompt and reply verbatim.")
+    lines.append("")
+    lines.append("## Contents")
+    lines.append("")
+    lines.append("- Part 1. The short answer")
+    lines.append("- Part 2. How Run Clawnly works")
+    lines.append("- Part 3. What the audit found")
+    lines.append("- Part 4. How to evaluate this yourself")
+    lines.append("- Part 5. The runs at a glance")
+    lines.append("- Part 6. The people: every personality, and what happened to each person in every run")
+    i = 0
+    while i < len(runs):
+        lines.append("- Part 7." + str(i + 1) + ". Run " + runs[i]["alias"] + ": " + _run_title(runs[i]))
+        i += 1
+    lines.append("- Part 8. Where the raw records are")
+
+
+def _run_title(run):
+    manifest = run["manifest"]
+    days = []
+    i = 0
+    while i < len(manifest["days"]):
+        days.append(matchmaker.day_label(datetime.date.fromisoformat(manifest["days"][i])))
+        i += 1
+    # the agent's limit line came with the audit fixes, so the run's own prompt says which code it ran
+    when = "before the fixes"
+    if "is a limit they set" in run["initial"][0]["agent_system_prompt"]:
+        when = "after the fixes"
+    return STAGE_WORDS.get(manifest["stage"], manifest["stage"]) + ", " + str(manifest["people"]) + " people, " + \
+        ", ".join(days) + ", " + when
+
+
+def _guide(lines):
+    lines.append("## Part 4. How to evaluate this yourself")
+    lines.append("")
+    lines.append("Paste or upload this file into any AI chat, or read it, and work through the questions. Ask for event numbers")
+    lines.append("with every answer, and check a few against Part 7.")
+    lines.append("")
+    lines.append("**One group** (Part 7, under GROUPS, and the group's messages under CONVERSATIONS)")
+    lines.append("- What is this group, and does it make sense for these people? Do they share more than the activity?")
+    lines.append("- Was anyone placed who doesn't care about the main activity? Was a better-fitting person left out?")
+    lines.append("- Does the hub's stated reason match the members' profiles? Do the final messages claim only true things?")
+    lines.append("")
+    lines.append("**One person** (Part 6)")
+    lines.append("- What is this person like, from the prompt their agent got?")
+    lines.append("- Did their agent stay true to it in every answer, across days and runs? Did it invent anything about them?")
+    lines.append("- Did they get a fair chance to be invited?")
+    lines.append("")
+    lines.append("**The matchmaker** (Part 7, the plan and resolve steps)")
+    lines.append("- Did the plan follow what it was shown? Did it handle declines and counter-offers well?")
+    lines.append("- Did it spread invitations across people, or keep choosing the same ones?")
+    lines.append("")
+    lines.append("**The rules** (code enforces these; check they held)")
+    lines.append("- Nobody placed while busy, over budget, into something they dislike or avoid, twice in a day, or at a time")
+    lines.append("  they didn't agree to. A group locks only with 2 or more yes.")
+    lines.append("")
+    lines.append("**Before and after the fixes**: compare P1 with P2 (the same 30 people and days) and T1 with T2 (Saturday).")
+
+
+def _glance(lines, runs):
+    lines.append("## Part 5. The runs at a glance")
+    lines.append("")
+    lines.append("All five runs use the same seeded town of 200 emulated Black Diamond neighbors; the smaller runs use a subset.")
+    lines.append("The people, calendars and activity pools are identical every run. Only the models' replies vary.")
+    lines.append("")
+    lines.append("| Run | Folder | Stage | People | Days | Groups locked | Invitations | Yes / no / counter | Cost |")
+    lines.append("|---|---|---|---|---|---|---|---|---|")
+    i = 0
+    while i < len(runs):
+        run = runs[i]
+        i += 1
+        m = run["manifest"]
+        replies = _of(run["events"], "agent_to_hub")
+        tally = {"yes": 0, "no": 0, "counter": 0}
+        k = 0
+        while k < len(replies):
+            tally[replies[k]["answer"]] = tally.get(replies[k]["answer"], 0) + 1
+            k += 1
+        lines.append("| " + run["alias"] + " | `" + m["sim_id"] + "` | " + _run_title(run).split(",")[0] + " | " + str(m["people"]) +
+                     " | " + ", ".join(m["days"]) + " | " + str(m["groups_locked"]) + " / " + str(m["groups_proposed"]) + " | " +
+                     str(len(_of(run["events"], "hub_to_agent"))) + " | " + str(tally["yes"]) + " / " + str(tally["no"]) + " / " +
+                     str(tally["counter"]) + " | $" + str(round(m["spent_usd"], 2)) + " |")
+
+
+def _people_book(lines, runs):
+    lines.append("## Part 6. The people")
+    lines.append("")
+    lines.append("Each emulated person once: what their agent was told (their personality prompt), what the matchmaker saw")
+    lines.append("about them, and then what happened to them in every run they were part of.")
+    lines.append("")
+    lines.append("**Before and after.** Nothing in Clawnly writes to a profile, and each agent call starts with no memory, so a")
+    lines.append("person's profile after a run is the one they started with. Code checked that for every person in every run;")
+    lines.append("any exception is marked. What an agent says is conversation, not a saved change.")
+    lines.append("")
+    lines.append("### The agent prompt, in full")
+    lines.append("")
+    lines.append("Every agent got the same wording around its own person's profile. The wording changed once, with the fixes.")
+    lines.append("Placeholders stand for the person's name and profile.")
+    lines.append("")
+    versions = _distinct(runs, lambda run: _shape(run["initial"][0]["agent_system_prompt"], run["initial"][0]))
+    v = 0
+    while v < len(versions):
+        lines.append("**Wording used in runs " + ", ".join(versions[v][1]) + ":**")
+        lines.append("")
+        _fence(lines, versions[v][0])
+        lines.append("")
+        v += 1
+    if len(versions) == 2:
+        old = versions[0][0].splitlines()
+        new = versions[1][0].splitlines()
+        added = []
+        k = 0
+        while k < len(new):
+            if new[k] not in old:
+                added.append(new[k])
+            k += 1
+        lines.append("The difference: runs " + ", ".join(versions[1][1]) + " add the line")
+        k = 0
+        while k < len(added):
+            lines.append("> " + added[k])
+            k += 1
+        lines.append("")
+    ids = []
+    known = {}
+    i = 0
+    while i < len(runs):
+        k = 0
+        while k < len(runs[i]["initial"]):
+            pid = runs[i]["initial"][k]["id"]
+            if pid not in known:
+                known[pid] = True
+                ids.append(pid)
+            k += 1
+        i += 1
+    ids.sort()
+    lines.append("### Every person (" + str(len(ids)) + ")")
+    lines.append("")
+    i = 0
+    while i < len(ids):
+        _person_book(lines, ids[i], runs)
+        i += 1
+
+
+def _person_book(lines, pid, runs):
+    mine = []
+    i = 0
+    while i < len(runs):
+        if pid in runs[i]["people"]:
+            mine.append(runs[i])
+        i += 1
+    p = mine[0]["people"][pid]
+    kids = "no kids at home"
+    if p["kids_at_home"]:
+        kids = "kids at home"
+    lines.append("#### " + pid + " " + p["name"] + " · " + str(p["age"]) + " · " + p["archetype"] + " · " + p["area"] + " · " + kids +
+                 " · budget " + p["budget"])
+    lines.append("")
+    body = []
+    profiles = _distinct(mine, lambda run: _told_block(run["people"][pid]["agent_system_prompt"]))
+    k = 0
+    while k < len(profiles):
+        label = "What their agent was told"
+        if len(profiles) > 1:
+            label = label + " in runs " + ", ".join(profiles[k][1])
+        body.append(label + ":")
+        body.append(_indent(profiles[k][0], "  "))
+        k += 1
+    hub = _distinct(mine, lambda run: run["people"][pid]["what_the_hub_sees"])
+    if len(hub) == 2 and hub[1][0].startswith(hub[0][0]):
+        # after the fixes the hub's line only gained what the person avoids
+        body.append("What the matchmaker saw, runs " + ", ".join(hub[1][1]) + ": " + hub[1][0])
+        body.append("  (runs " + ", ".join(hub[0][1]) + ": the same, without '" + hub[1][0][len(hub[0][0]):].strip("; ") + "')")
+    else:
+        k = 0
+        while k < len(hub):
+            body.append("What the matchmaker saw, runs " + ", ".join(hub[k][1]) + ": " + hub[k][0])
+            k += 1
+    k = 0
+    while k < len(mine):
+        run = mine[k]
+        k += 1
+        changed = run["final"].get(pid, {}).get("profile_changed")
+        mark = ""
+        if changed is not False:
+            mark = " (profile CHANGED or unchecked)"
+        replies = []
+        events = run["events"]
+        e = 0
+        while e < len(events):
+            if events[e]["type"] == "agent_to_hub" and events[e]["person"] == pid:
+                replies.append(events[e])
+            e += 1
+        if len(replies) == 0:
+            body.append(run["alias"] + ": in the run, never asked" + mark)
+            continue
+        body.append(run["alias"] + ":" + mark)
+        r = 0
+        while r < len(replies):
+            x = replies[r]
+            r += 1
+            extra = ""
+            if x["counter"]:
+                extra = " (counter: " + x["counter"] + ")"
+            body.append("  " + run["alias"] + " #" + str(x["seq"]) + " " + x["day"] + " " + x["group"] + " round " + str(x["round"]) + ": " +
+                        x["answer"].upper() + extra + ' "' + x["text"] + '"')
+        placed = 0
+        g = 0
+        while g < len(run["groups"]):
+            group = run["groups"][g]
+            g += 1
+            if group["status"] == "locked" and pid in group["final_members"]:
+                placed += 1
+                body.append("  placed: " + group["group"] + " " + group["activity_name"] + ", " + group["time_final"] +
+                            " (" + run["alias"] + " #" + str(group["evidence"]["status_seq"]) + ")")
+        if placed == 0:
+            body.append("  placed: nowhere")
+    _fence(lines, "\n".join(body))
+    lines.append("")
+
+
+def _run_book(lines, number, run):
+    m = run["manifest"]
+    lines.append("## Part 7." + str(number) + ". Run " + run["alias"] + ": " + _run_title(run))
+    lines.append("")
+    lines.append("Folder `" + m["sim_id"] + "`. " + str(m["groups_locked"]) + " of " + str(m["groups_proposed"]) + " groups locked, $" +
+                 str(round(m["spent_usd"], 2)) + ". Event numbers below are this run's, so `[#n]` here is **" + run["alias"] + " #n**.")
+    lines.append("Replies came from: " + m["replies_from"] + ".")
+    lines.append("")
+    lines.append("### Conversations, day by day")
+    lines.append("")
+    body = []
+    _conversations(body, run["events"], run["groups"], run["people"], m["days"], True)
+    _fence(lines, "\n".join(body))
+    lines.append("")
+    lines.append("### Groups, with their logic")
+    lines.append("")
+    body = []
+    _groups(body, run["groups"], run["people"], True)
+    _fence(lines, "\n".join(body))
+    lines.append("")
+    lines.append("### What our checks found for this run")
+    lines.append("")
+    body = []
+    _checks(body, run["dir"], True)
+    _fence(lines, "\n".join(body))
+    lines.append("")
+
+
+def _records(lines, runs):
+    lines.append("## Part 8. Where the raw records are")
+    lines.append("")
+    lines.append("Everything above is drawn from these files in `simulation_results/`, which keep every prompt and reply verbatim.")
+    lines.append("")
+    lines.append("| Run | Folder | Verbatim log | Readable transcript | One-run text |")
+    lines.append("|---|---|---|---|---|")
+    i = 0
+    while i < len(runs):
+        lines.append("| " + runs[i]["alias"] + " | `" + runs[i]["manifest"]["sim_id"] + "` | `full_simulation.jsonl` | "
+                     "`full_transcript.txt` | `run_dump.txt` |")
+        i += 1
+    lines.append("")
+    lines.append("Also there: `AUDIT_REPORT.md`, `EXECUTIVE_SUMMARY.md`, `architecture_summary.md`, `README.md` (how to reproduce),")
+    lines.append("`spend_ledger.json` (every paid step) and `REPORT.html` (a one-page visual summary).")
+
+
+def book(run_dirs, docs_dir):
+    # the reports and every run, deduplicated where runs share people, as one Markdown text
+    manifests = []
+    i = 0
+    while i < len(run_dirs):
+        manifests.append(_read(run_dirs[i], "run_manifest.json"))
+        i += 1
+    aliases = _aliases(manifests)
+    runs = []
+    i = 0
+    while i < len(run_dirs):
+        runs.append(_load_run(run_dirs[i], aliases[i]))
+        i += 1
+    lines = []
+    _book_intro(lines, runs)
+    parts = [["Part 1. The short answer", "EXECUTIVE_SUMMARY.md"], ["Part 2. How Run Clawnly works", "architecture_summary.md"],
+             ["Part 3. What the audit found", "AUDIT_REPORT.md"]]
+    k = 0
+    while k < len(parts):
+        lines.append("")
+        lines.append("## " + parts[k][0])
+        lines.append("")
+        path = os.path.join(docs_dir, parts[k][1])
+        if os.path.exists(path):
+            with open(path, encoding="utf-8") as f:
+                lines.append(_demote(f.read(), 1))
+        else:
+            lines.append("(" + parts[k][1] + " isn't there yet.)")
+        k += 1
+    lines.append("")
+    _guide(lines)
+    lines.append("")
+    _glance(lines, runs)
+    lines.append("")
+    _people_book(lines, runs)
+    i = 0
+    while i < len(runs):
+        _run_book(lines, i + 1, runs[i])
+        i += 1
+    _records(lines, runs)
+    return "\n".join(lines) + "\n"
+
+
+def write_book(out_path, run_dirs, docs_dir):
+    with open(out_path, "w", encoding="utf-8") as f:
+        f.write(book(run_dirs, docs_dir))
+    return out_path
+
+
 def main(argv):
+    if len(argv) >= 4 and argv[1] == "--book":
+        # --book <out file> <run folder> ...: the reports next to the out file, then every run
+        print(write_book(argv[2], argv[3:], os.path.dirname(os.path.abspath(argv[2]))))
+        return 0
     if len(argv) < 2:
         print("usage: run_dump.py <run folder> [<run folder> ...] | --all <out file> <run folder> ...")
         return 2

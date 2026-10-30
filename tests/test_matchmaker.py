@@ -45,7 +45,7 @@ def two_group_plan(rooms):
 
 
 def says(answer, counter=""):
-    return lambda system, content: json.dumps({"answer": answer, "counter": counter, "say": "noted"})
+    return lambda system, content: json.dumps({"answer": answer, "reason": "loves it", "counter": counter, "say": "noted"})
 
 
 def keep_all(system, content):
@@ -191,10 +191,10 @@ def test_a_group_with_one_yes_is_dropped_by_code():
 
     def agent(system, content):
         if ("personal agent of " + names[lone] + ".") in system:
-            return json.dumps({"answer": "yes", "say": "in"})
+            return json.dumps({"answer": "yes", "reason": "loves it", "say": "in"})
         if any(("personal agent of " + names[m] + ".") in system for m in plan["groups"][0]["members"]):
             return json.dumps({"answer": "no", "say": "busy"})
-        return json.dumps({"answer": "yes", "say": "in"})
+        return json.dumps({"answer": "yes", "reason": "loves it", "say": "in"})
 
     data = run(matchmaker.run_day(DAY, 5, people, fake(plan, agent=agent)))
     assert data["groups"][0]["status"] == "dropped"
@@ -226,7 +226,7 @@ def test_round_two_only_asks_members_or_alternates_and_never_a_yes_elsewhere():
     def agent(system, content):
         if ("personal agent of " + names[no_one] + ".") in system:
             return json.dumps({"answer": "no", "say": "can't"})
-        return json.dumps({"answer": "yes", "say": "in"})
+        return json.dumps({"answer": "yes", "reason": "loves it", "say": "in"})
 
     def resolve(system, content):
         return json.dumps({"thoughts": "swap in the alternate", "groups": [
@@ -266,7 +266,7 @@ def test_a_counter_is_recorded_and_a_failed_agent_counts_as_no():
             raise RuntimeError("overloaded")
         if ("personal agent of " + names[countering] + ".") in system:
             return json.dumps({"answer": "counter", "counter": "after 11", "say": "later works"})
-        return json.dumps({"answer": "yes", "say": "in"})
+        return json.dumps({"answer": "yes", "reason": "loves it", "say": "in"})
 
     data = run(matchmaker.run_day(DAY, 5, people, fake(plan, agent=agent)))
     member = [m for m in data["groups"][0]["members"] if m["id"] == countering][0]
@@ -396,8 +396,10 @@ def test_the_plan_lists_each_person_once_and_stays_small():
     payload = matchmaker._plan_payload(rooms, index)
     profiled = [line.split()[0] for line in payload.split("PEOPLE:")[1].splitlines() if line.strip()]
     assert len(profiled) == len(set(profiled))
-    # every room still names everyone in it, so nobody is left out of the plan
+    # every room that can form a group still names everyone in it, so nobody is left out of the plan
     for room in rooms:
+        if len(matchmaker.split_room(room, index)[0]) < 2:
+            continue
         for c in room["candidates"]:
             assert c["id"] in payload
     # under half of what it was before the trim (65,000 characters for this day). It grew from
@@ -513,3 +515,159 @@ def test_a_moved_time_the_hub_forgets_to_re_ask_is_re_asked_by_code():
 def test_the_agent_holds_what_the_person_avoids_as_a_limit():
     person = town()[0]
     assert "is a limit they set, not a preference to trade off" in matchmaker._agent_system(person)
+
+
+# ----- the team's fixes after the 200 live groups -------------------------------------
+
+def strong_ids(room, index):
+    return [c["id"] for c in matchmaker.split_room(room, index)[0]]
+
+
+def evening_room(people, index):
+    # an evening room with a movable time, no late-night trait, and three people who really want it
+    for room in rooms_for(people):
+        activity = catalog.get(room["activity"])
+        if room["part"] != "evening" or matchmaker.fixed_time(activity, "evening") is not None:
+            continue
+        if "late_nights" in activity["traits"] or len(strong_ids(room, index)) < 3:
+            continue
+        return room
+    return None
+
+
+def test_code_refuses_a_yes_that_runs_into_what_the_person_avoids():
+    # Nikhil's case: his agent said yes to hockey until 9:30pm although he avoids late nights
+    reset_db()
+    people = town()
+    index = {p["id"]: p for p in people}
+    room = evening_room(people, index)
+    ids = strong_ids(room, index)[:3]
+    index[ids[0]]["avoid"] = ["late_nights"]
+    plan = {"thoughts": "One late game.", "groups": [{"activity": room["activity"], "part": "evening", "time": "7-9:30pm",
+                                                      "members": ids, "alternates": [], "proposals": {}}]}
+    data = run(matchmaker.run_day(DAY, 5, people, fake(plan)))
+    group = data["groups"][0]
+    late = [m for m in group["members"] if m["id"] == ids[0]][0]
+    assert late["state"] == "no"
+    assert "avoids late nights" in late["refused"]
+    assert group["status"] == "locked" and ids[0] not in group["final"] and len(group["final"]) == 2
+    first = index[ids[0]]["name"].split(" ")[0]
+    assert any(e["kind"] == "check" and e["text"].startswith("Refused " + first + "'s yes to g1: It runs to 9pm or later")
+               for e in data["log"])
+    # the agent's own words stay on record next to code's decision
+    agent = [m for m in group["thread"] if m["from"] == "agent" and m["by"] == ids[0]][0]
+    assert agent["answer"] == "yes"
+    assert any(m["from"] == "system" and m["text"].startswith("Code turned " + first + "'s yes into a no") for m in group["thread"])
+
+
+def test_a_yes_without_a_reason_from_the_profile_counts_as_no():
+    reset_db()
+    people = town()
+    plan = two_group_plan(rooms_for(people))
+    vague = plan["groups"][0]["members"][0]
+    names = {p["id"]: p["name"] for p in people}
+
+    def agent(system, content):
+        if ("personal agent of " + names[vague] + ".") in system:
+            return json.dumps({"answer": "yes", "reason": "  ", "say": "sure, why not"})
+        return json.dumps({"answer": "yes", "reason": "loves it", "say": "in"})
+
+    client = fake(plan, agent=agent)
+    data = run(matchmaker.run_day(DAY, 5, people, client))
+    assert vague not in data["groups"][0]["final"]
+    assert any("gave no reason from" in e["text"] for e in data["log"] if e["kind"] == "check")
+    # the matchmaker sees why, so it can call an alternate
+    resolve = [kwargs["messages"][0]["content"] for kind, kwargs in client.calls if kind == "mm_resolve"][0]
+    assert vague + " " + names[vague] + ": no (code refused their agent's yes: the agent gave no reason" in resolve
+
+
+def test_the_matchmaker_sees_when_code_refused_a_yes():
+    group = {"id": "g1", "activity": "gorge", "part": "morning", "time": "9am-12pm", "alternates": [],
+             "members": [{"id": "e001", "state": "no", "counter": "", "refused": "the agent gave no reason from Ann's profile."}]}
+    payload = matchmaker._resolve_payload([group], {"e001": {"name": "Ann B."}})
+    assert "e001 Ann B.: no (code refused their agent's yes: the agent gave no reason" in payload
+
+
+def test_the_agent_needs_a_strong_reason_to_say_yes():
+    system = matchmaker._agent_system(town()[0])
+    assert "only with a strong reason from the profile" in system
+    assert "Being only up for it (a mild interest) is not a strong reason" in system
+    assert '"reason": "for a yes: the strong reason, from the profile"' in system
+    assert "A mild interest is a fair reason to pass" not in system
+
+
+def test_only_people_with_a_strong_interest_can_be_members():
+    # Donna and Valeria were only "up for" it, and their agents said yes anyway
+    people = town()
+    index = {p["id"]: p for p in people}
+    rooms = rooms_for(people)
+    room = [r for r in rooms if len(strong_ids(r, index)) >= 2 and matchmaker.split_room(r, index)[1]][0]
+    strong = strong_ids(room, index)[:2]
+    mild = matchmaker.split_room(room, index)[1][0]["id"]
+    assert matchmaker.keenness(index[mild], catalog.get(room["activity"])) == 1
+    raw = {"groups": [{"activity": room["activity"], "part": room["part"], "members": strong + [mild], "alternates": []}]}
+    groups, rejected = matchmaker.check_plan(raw, rooms, 5, index)
+    assert [m["id"] for m in groups[0]["members"]] == strong
+    assert groups[0]["alternates"] == [mild]
+    assert any(index[mild]["name"] + " is only up for" in r and "an alternate, not a member" in r for r in rejected)
+    # two mild people alone can't make a group
+    others = [c["id"] for c in matchmaker.split_room(room, index)[1]]
+    if len(others) >= 2:
+        groups, rejected = matchmaker.check_plan({"groups": [{"activity": room["activity"], "part": room["part"],
+                                                               "members": others[:2]}]}, rooms, 5, index)
+        assert groups == [] and any("fewer than 2 valid people" in r for r in rejected)
+
+
+def test_the_plan_lists_mild_people_as_alternates_only():
+    people = town()
+    index = {p["id"]: p for p in people}
+    rooms = rooms_for(people)
+    payload = matchmaker._plan_payload(rooms, index)
+    assert "Members need a strong interest" in matchmaker._plan_system(DAY, 10)
+    room = [r for r in rooms if len(strong_ids(r, index)) >= 2 and matchmaker.split_room(r, index)[1]][0]
+    activity = catalog.get(room["activity"])
+    block = payload.split("[" + activity["id"] + " | " + room["part"] + "]")[1].split("\n[")[0]
+    mild = [c["id"] for c in matchmaker.split_room(room, index)[1]]
+    assert "  mild, alternates only: " + " ".join(mild) in block
+    keenest = [line for line in block.splitlines() if line.startswith("  keenest: ")][0]
+    assert not any(pid + ":" in keenest for pid in mild)
+    # a room without two people who really want it can't form a group, so the plan doesn't show it
+    weak = [r for r in rooms if len(strong_ids(r, index)) < 2]
+    for r in weak:
+        assert "[" + r["activity"] + " | " + r["part"] + "]" not in payload
+
+
+def test_people_with_fewer_plans_this_week_come_first():
+    # Wei T. was placed 22 times across the runs while 60 neighbors were never placed
+    people = town()
+    index = {p["id"]: p for p in people}
+    rooms = rooms_for(people)
+    room = [r for r in rooms if len(strong_ids(r, index)) > matchmaker.PROFILES_PER_ROOM][0]
+    busy = strong_ids(room, index)[0]
+    plans = {busy: 2}
+    matchmaker._fewest_plans_first(rooms, plans)
+    assert strong_ids(room, index)[-1] == busy
+    payload = matchmaker._plan_payload(rooms, index, plans)
+    activity = catalog.get(room["activity"])
+    block = payload.split("[" + activity["id"] + " | " + room["part"] + "]")[1].split("\n[")[0]
+    keenest = [line for line in block.splitlines() if line.startswith("  keenest: ")][0]
+    assert busy + ":" not in keenest
+    assert "Favor people with fewer plans this week" in matchmaker._plan_system(DAY, 10)
+
+
+def test_a_day_says_who_already_has_a_plan_and_shows_it_to_the_matchmaker():
+    reset_db()
+    people = town()
+    index = {p["id"]: p for p in people}
+    rooms = rooms_for(people)
+    # someone from a small room stays listed whatever the order; in a big one a plan moves them out of view
+    small = [r for r in rooms if 2 <= len(strong_ids(r, index)) <= matchmaker.PROFILES_PER_ROOM][0]
+    top = strong_ids(small, index)[0]
+    client = fake(two_group_plan(rooms))
+    data = run(matchmaker.run_day(DAY, 5, people, client, plans={top: 1, "nobody": 3}))
+    assert any(e["text"].startswith("Neighbors who already have a plan this week: 1.") for e in data["log"])
+    plan_payload = [kwargs["messages"][0]["content"] for kind, kwargs in client.calls if kind == "mm_plan"][0]
+    line = [l for l in plan_payload.split("PEOPLE:")[1].splitlines() if l.strip().startswith(top + " ")]
+    assert len(line) == 1 and line[0].endswith("; plans this week: 1")
+    assert plan_payload.count("plans this week:") == 1
+    assert data["breakRoom"]["usable"] <= data["breakRoom"]["slots"]

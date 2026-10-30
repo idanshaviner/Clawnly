@@ -70,6 +70,9 @@ STAGES = {
     "smoke": {"people": 8, "days": ["2026-10-31"], "groups": 3, "ceiling": 1.50},
     "pilot": {"people": 30, "days": ["2026-10-28", "2026-10-31"], "groups": 6, "ceiling": 4.00},
     "town": {"people": 200, "days": ["2026-10-28", "2026-10-31", "2026-11-01"], "groups": 10, "ceiling": 8.00},
+    # the same neighbors, busier and pickier, three days in a row so plans carry over (the team's fix 5)
+    "retest": {"people": 200, "days": ["2026-10-30", "2026-10-31", "2026-11-01"], "groups": 10, "ceiling": 8.00,
+               "busier": True, "pickier": True},
 }
 # how many of a break room's keenest people a small cohort takes, room by room
 COHORT_PER_ROOM = 4
@@ -408,8 +411,13 @@ class RecordingClient:
 
 # ----- who takes part ------------------------------------------------------------------
 
-def town():
-    return population.generate(TOWN_SIZE, seed=SEED, start=datetime.date.fromisoformat(WEEK_START))
+def town(busier=False, pickier=False):
+    return population.generate(TOWN_SIZE, seed=SEED, start=datetime.date.fromisoformat(WEEK_START),
+                               busier=busier, pickier=pickier)
+
+
+def town_for(stage):
+    return town(stage.get("busier", False), stage.get("pickier", False))
 
 
 def cohort(people, day, size):
@@ -478,11 +486,25 @@ def _harvest(rec, data):
             if entry.get("from") == "agent":
                 rec.add("agent_to_hub", t=entry["t"], frm=entry["by"], to="hub", person=entry["by"],
                         group=groups[g]["id"], round=entry["round"], answer=entry["answer"],
-                        counter=entry["counter"], text=entry["text"])
+                        reason=entry.get("reason", ""), counter=entry["counter"], text=entry["text"])
             if entry.get("from") == "system":
                 rec.add("system_note", t=entry["t"], frm="system", group=groups[g]["id"], round=entry["round"],
                         text=entry["text"])
             m += 1
+        g += 1
+
+
+def _count_plans(plans, data):
+    # everyone in a locked group now has one more plan this week
+    groups = data.get("groups") or []
+    g = 0
+    while g < len(groups):
+        if groups[g]["status"] == "locked":
+            final = groups[g].get("final") or []
+            i = 0
+            while i < len(final):
+                plans[final[i]] = plans.get(final[i], 0) + 1
+                i += 1
         g += 1
 
 
@@ -514,6 +536,8 @@ async def simulate(people, days, max_groups, client, out_dir, ceiling=None, stag
                 agent_system_prompt=matchmaker._agent_system(people[i]))
         i += 1
     day_results = []
+    # plans carry over from day to day, so the matchmaker can favor people with fewer
+    plans = {}
     d = 0
     while d < len(days):
         day = datetime.date.fromisoformat(days[d])
@@ -525,10 +549,12 @@ async def simulate(people, days, max_groups, client, out_dir, ceiling=None, stag
             day_results.append({"day": rec.day, "status": "skipped (ceiling)"})
             continue
         rec.add("day_start", text="Planning " + matchmaker.day_label(day) + " for " + str(len(people)) +
-                " neighbors, up to " + str(max_groups) + " groups.")
+                " neighbors, up to " + str(max_groups) + " groups. " + str(len(plans)) +
+                " of them already have a plan this week.", plans_before=dict(plans))
         before_rows = _ai_call_max_id()
-        data = await matchmaker.run_day(day, max_groups, people, recording, on_progress=rec.progress)
+        data = await matchmaker.run_day(day, max_groups, people, recording, on_progress=rec.progress, plans=dict(plans))
         _harvest(rec, data)
+        _count_plans(plans, data)
         with open(os.path.join(out_dir, "days", rec.day + ".json"), "w", encoding="utf-8") as f:
             f.write(scrub(json.dumps(data, indent=1)))
         # three separate records of the calls: the run dict, this harness, and db.ai_calls
@@ -939,8 +965,10 @@ def transcript(events, live):
             lines.append(_indent(e["text"]))
         elif kind == "agent_to_hub":
             extra = ""
+            if e.get("reason"):
+                extra = " | reason: " + e["reason"]
             if e["counter"]:
-                extra = " | counter: " + e["counter"]
+                extra = extra + " | counter: " + e["counter"]
             lines.append(head + e["frm"] + " -> HUB (" + e["group"] + ", round " + str(e["round"]) + "): " +
                          e["answer"].upper() + extra)
             lines.append(_indent(e["text"]))
@@ -1056,14 +1084,13 @@ def estimate(people, days, max_groups):
 
 
 def _print_estimates():
-    people = town()
     names = list(STAGES.keys())
     total_low = 0.0
     total_high = 0.0
     i = 0
     while i < len(names):
         stage = STAGES[names[i]]
-        group = cohort(people, datetime.date.fromisoformat(stage["days"][0]), stage["people"])
+        group = cohort(town_for(stage), datetime.date.fromisoformat(stage["days"][0]), stage["people"])
         est = estimate(group, stage["days"], stage["groups"])
         total_low += est["usd_low"]
         total_high += est["usd_high"]
@@ -1076,7 +1103,7 @@ def _print_estimates():
             print("    " + json.dumps(est["days"][j]))
             j += 1
         i += 1
-    print("all three stages: $" + str(round(total_low, 2)) + " to $" + str(round(total_high, 2)))
+    print("all stages: $" + str(round(total_low, 2)) + " to $" + str(round(total_high, 2)))
 
 
 def _stamp():
@@ -1142,7 +1169,7 @@ def ledger_settle(entry_id, spent, path=LEDGER):
 
 def main(argv):
     if len(argv) < 2 or argv[1] not in ["estimate", "run"]:
-        print("usage: orchestration_sim.py estimate | run <smoke|pilot|town> [--ceiling DOLLARS] [--days D1,D2] [--no-thinking-summaries]")
+        print("usage: orchestration_sim.py estimate | run <smoke|pilot|town|retest> [--ceiling DOLLARS] [--days D1,D2] [--no-thinking-summaries] [--total-cap DOLLARS]")
         return 2
     if argv[1] == "estimate":
         _print_estimates()
@@ -1153,6 +1180,7 @@ def main(argv):
     stage = dict(STAGES[argv[2]])
     ceiling = stage["ceiling"]
     summaries = True
+    total_cap = TOTAL_CAP
     i = 3
     while i < len(argv):
         if argv[i] == "--ceiling" and i + 1 < len(argv):
@@ -1164,18 +1192,22 @@ def main(argv):
             i += 1
         elif argv[i] == "--no-thinking-summaries":
             summaries = False
+        elif argv[i] == "--total-cap" and i + 1 < len(argv):
+            # a new total only Idan can authorize; it stays on the command line in the manifest
+            total_cap = float(argv[i + 1])
+            i += 1
         i += 1
     key = config.resolve_api_key()
     if not key:
         print("No Anthropic API key (ANTHROPIC_API_KEY or .env). Nothing was run and nothing was spent.")
         return 1
-    ceiling = budget_for(ceiling)
+    ceiling = budget_for(ceiling, total_cap)
     if ceiling <= 0:
-        print("The $" + str(TOTAL_CAP) + " total cap is used up (" + LEDGER + "). Nothing was run.")
+        print("The $" + str(total_cap) + " total cap is used up (" + LEDGER + "). Nothing was run.")
         return 1
     # the SDK's own silent retries are off, so every retry is ours and is logged
     client = anthropic.AsyncAnthropic(api_key=key, base_url="https://api.anthropic.com", timeout=300.0, max_retries=0)
-    people = cohort(town(), datetime.date.fromisoformat(STAGES[argv[2]]["days"][0]), stage["people"])
+    people = cohort(town_for(stage), datetime.date.fromisoformat(STAGES[argv[2]]["days"][0]), stage["people"])
     out_dir = os.path.join(RESULTS, "runs", "run_" + _stamp() + "_" + argv[2])
     entry = ledger_reserve("simulation " + argv[2], os.path.basename(out_dir), ceiling)
     manifest = asyncio.run(simulate(people, stage["days"], stage["groups"], client, out_dir, ceiling, argv[2],

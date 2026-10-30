@@ -45,7 +45,7 @@ def plan_from_rooms(people, day=DAY, groups=2, size=3):
 
 
 def agent_says(answer, counter=""):
-    return lambda system, content: json.dumps({"answer": answer, "counter": counter, "say": "noted"})
+    return lambda system, content: json.dumps({"answer": answer, "reason": "loves it", "counter": counter, "say": "noted"})
 
 
 def keep(system, content):
@@ -188,7 +188,7 @@ def test_state_changes_record_before_and_after(tmp_path):
     def agent(system, content):
         if people_by_name[system.split("\n")[0][len("You are the personal agent of "):].split(". You know")[0]] == first:
             return json.dumps({"answer": "no", "counter": "", "say": "not keen"})
-        return json.dumps({"answer": "yes", "counter": "", "say": "in"})
+        return json.dumps({"answer": "yes", "reason": "loves it", "counter": "", "say": "in"})
 
     people_by_name = {p["name"]: p["id"] for p in people}
     out, _ = simulate(tmp_path, people, fake(plan, agent=agent))
@@ -349,6 +349,45 @@ def test_run_refuses_when_the_total_cap_is_used_up(tmp_path, monkeypatch, capsys
     sim.ledger_settle(sim.ledger_reserve("earlier", "run_x", 10.0, path), 10.0, path)
     monkeypatch.setattr(sim, "LEDGER", path)
     monkeypatch.setattr(sim.config, "resolve_api_key", lambda: "sk-test-not-real")
-    monkeypatch.setattr(sim, "budget_for", lambda ceiling: sim.TOTAL_CAP - sim.ledger_spent(path))
+    monkeypatch.setattr(sim, "budget_for", lambda ceiling, total_cap: total_cap - sim.ledger_spent(path))
     assert sim.main(["orchestration_sim.py", "run", "smoke"]) == 1
     assert "total cap is used up" in capsys.readouterr().out
+    # a higher cap has to be given on the command line; the retest is refused without one too
+    assert sim.main(["orchestration_sim.py", "run", "retest"]) == 1
+    assert "$10.0 total cap is used up" in capsys.readouterr().out
+
+
+def test_plans_carry_over_from_day_to_day_so_the_matchmaker_can_favor_fewer(tmp_path):
+    reset_db()
+    people = people_for()
+    days = [DAY, "2026-11-01"]
+    plans = [plan_from_rooms(people, day=d) for d in days]
+    asked = []
+
+    def plan_for_the_day(system, content):
+        asked.append(content)
+        return json.dumps(plans[len(asked) - 1])
+
+    client = FakeClient(matchmaker={"mm_plan": plan_for_the_day, "mm_agent": agent_says("yes"),
+                                    "mm_resolve": keep, "mm_message": message_for_final})
+    out, manifest = simulate(tmp_path, people, client, days=days)
+    starts = [e for e in read_jsonl(os.path.join(out, "full_simulation.jsonl")) if e["type"] == "day_start"]
+    assert starts[0]["plans_before"] == {}
+    first_day = [pid for g in plans[0]["groups"] for pid in g["members"]]
+    assert starts[1]["plans_before"] == {pid: 1 for pid in first_day}
+    assert str(len(first_day)) + " of them already have a plan this week" in starts[1]["text"]
+    # the second day's plan shows the matchmaker who already has one
+    assert "plans this week:" not in asked[0]
+    assert "plans this week: 1" in asked[1]
+
+
+def test_the_retest_town_is_the_same_neighbors_busier_and_pickier():
+    stage = sim.STAGES["retest"]
+    assert stage["busier"] and stage["pickier"] and stage["people"] == sim.TOWN_SIZE
+    # consecutive days, so plans carry over
+    first = datetime.date.fromisoformat(stage["days"][0])
+    assert stage["days"] == [(first + datetime.timedelta(days=i)).isoformat() for i in range(len(stage["days"]))]
+    plain = sim.town()
+    harder = sim.town_for(stage)
+    assert [p["name"] for p in harder] == [p["name"] for p in plain]
+    assert sim.town_for(sim.STAGES["town"]) == plain

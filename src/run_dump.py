@@ -443,8 +443,10 @@ def _group_conversation(lines, group, day_events, calls, people):
                              _code_found(call).replace("\n", " ").replace("  ", " "))
         elif kind == "agent_to_hub":
             extra = ""
+            if e.get("reason"):
+                extra = " | reason: " + e["reason"]
             if e["counter"]:
-                extra = " | counter: " + e["counter"]
+                extra = extra + " | counter: " + e["counter"]
             lines.append("    " + _ref(e["seq"]) + " " + _name(people, e["person"]) + "'s agent -> HUB: " + e["answer"].upper() + extra)
             lines.append('        "' + e["text"] + '"')
         elif kind == "system_note":

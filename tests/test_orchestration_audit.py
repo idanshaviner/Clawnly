@@ -42,7 +42,7 @@ def plan(people, groups=2, size=3, time_for=None):
 
 
 def yes(system, content):
-    return json.dumps({"answer": "yes", "counter": "", "say": "in"})
+    return json.dumps({"answer": "yes", "reason": "loves it", "counter": "", "say": "in"})
 
 
 def keep(system, content):

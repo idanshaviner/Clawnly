@@ -258,7 +258,12 @@ def parse_hours(text):
     start_half = found[0][2].lower()
     if start_half == "":
         start_half = end_half
-    return _to_hours(found[0], start_half), _to_hours(found[-1], end_half)
+    start = _to_hours(found[0], start_half)
+    end = _to_hours(found[-1], end_half)
+    # "11pm-12am" ends after midnight, not at hour 0: otherwise it reads as inside the evening
+    if end <= start:
+        end += 24
+    return start, end
 
 
 def inside_part(time_text, part):

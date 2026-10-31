@@ -540,8 +540,9 @@ ol.in{margin:8px 0; padding-left:20px; font-size:13.5px; display:grid; gap:3px}
   function resolvePrompt(groups) {
     var lines = [
       "You are the Clawnly matchmaker for " + DATA.neighborhood + ", " + dayLabel(state.run.day) + ". You proposed these groups and each person's agent answered you privately. Now finish the plan.",
-      "For each group: keep it if at least 2 people can do it. Accept a counter by moving the time if that still works for the ones who said yes (then re-ask them with the new time). Replace people who said no with alternates (ask them). Drop a group that can't reach 2.",
-      "Never add anyone who is already in another group. Only ask the group's own members or its alternates.",
+      "For each group: keep it if at least 2 people can do it. Accept a counter by moving the time if that still works for the ones who said yes (then re-ask them with the new time). Replace people who said no (ask them): an alternate, or someone from the group's free list. Drop a group that can't reach 2.",
+      "The free list is people from the group's break room who are free, have a strong interest and haven't been asked today, keenest first. Pick whoever fits the people who said yes best (shared likes, similar stage of life).",
+      "Never add anyone who is already in another group. Only ask the group's own members, its alternates or its free list.",
       "Only ask people whose answer you still need: an alternate replacing a no, someone whose counter you're answering, or someone who said yes to a time you've now changed. Don't send confirmations: everyone gets one after the lock. Never tell anyone who declined.",
       "",
       "Reply with only this JSON object:",
@@ -564,6 +565,11 @@ ol.in{margin:8px 0; padding-left:20px; font-size:13.5px; display:grid; gap:3px}
       var alts = [];
       for (var k = 0; k < g.alternates.length; k++) alts.push(g.alternates[k] + " " + nameOf(g.alternates[k]));
       if (alts.length > 0) lines.push("  alternates: " + alts.join(", "));
+      var pool = listOr(g.pool);
+      if (pool.length > 0) {
+        lines.push("  free list:");
+        for (var q = 0; q < pool.length; q++) lines.push("  " + personLine(pool[q]));
+      }
     }
     return lines.join("\n");
   }
@@ -708,6 +714,108 @@ ol.in{margin:8px 0; padding-left:20px; font-size:13.5px; display:grid; gap:3px}
     if (!reason) return "the agent gave no reason from " + p.name.split(" ")[0] + "'s profile.";
     return "";
   }
+  // ---- dropouts: who else the matchmaker can ask (same as src/matchmaker.py) ----------
+  // a group with a no also sees this many free, keen people from its break room besides its alternates
+  var POOL_PER_GROUP = 4;
+  // round 1 asks the plan; rounds 2 and 3 replace whoever said no
+  var LAST_ROUND = 3;
+  function hasOpenAnswer(g) {
+    for (var i = 0; i < g.members.length; i++) { if (g.members[i].state === "no" || g.members[i].state === "counter") return true; }
+    return false;
+  }
+  function fillPools(groups, slots) {
+    // each group with a no or a counter gets its free list: keen people in its break room who
+    // haven't been asked today and whose profile has nothing against it, keenest first
+    var asked = {};
+    for (var g = 0; g < groups.length; g++) { for (var m = 0; m < groups[g].members.length; m++) asked[groups[g].members[m].id] = true; }
+    for (var i = 0; i < groups.length; i++) {
+      var grp = groups[i];
+      grp.pool = [];
+      if (grp.status === "dropped" || !hasOpenAnswer(grp)) continue;
+      var slot = slotFor(slots, grp.activity, grp.part);
+      if (!slot) continue;
+      var a = ACTS[grp.activity];
+      for (var c = 0; c < slot.candidates.length && grp.pool.length < POOL_PER_GROUP; c++) {
+        var pid = slot.candidates[c].id;
+        if (asked[pid] || has(grp.alternates, pid)) continue;
+        if (keenness(PEOPLE[pid], a) < STRONG) continue;
+        if (conflicts(PEOPLE[pid], a, grp.part, grp.time, state.run.day).length > 0) continue;
+        grp.pool.push(pid);
+      }
+    }
+  }
+  function logPools(groups) {
+    for (var i = 0; i < groups.length; i++) {
+      var g = groups[i];
+      if (g.pool.length === 0) continue;
+      log("code", "check", "Free list for " + g.id + " (" + ACTS[g.activity].name + "), free, keen, not asked today, keenest first: " + g.pool.map(nameOf).join(", "), g.id);
+    }
+  }
+  function needsAnotherRound(groups, round) {
+    // someone asked in this round said no or countered, and the group still has someone to ask
+    for (var i = 0; i < groups.length; i++) {
+      var g = groups[i];
+      if (g.status === "dropped") continue;
+      var open = false;
+      for (var t = 0; t < g.thread.length; t++) {
+        var e = g.thread[t];
+        if (e.from !== "agent" || e.round !== round) continue;
+        var m = member(g, e.by);
+        if (m && (m.state === "no" || m.state === "counter")) open = true;
+      }
+      if (!open) continue;
+      if (g.pool.length > 0) return true;
+      for (var k = 0; k < g.alternates.length; k++) { if (!member(g, g.alternates[k])) return true; }
+    }
+    return false;
+  }
+  function resolveJobs(res, round) {
+    // the matchmaker's asks for this round, kept only where they follow the rules
+    var day = state.run.day, placed = {};
+    for (var p0 = 0; p0 < state.run.groups.length; p0++) {
+      var yes0 = yesMembers(state.run.groups[p0]);
+      for (var y0 = 0; y0 < yes0.length; y0++) placed[yes0[y0]] = state.run.groups[p0].id;
+    }
+    var jobs = [], claimed = {}, decisions = listOr(res && res.groups);
+    for (var d = 0; d < decisions.length; d++) {
+      var dec = decisions[d] || {}, grp = null;
+      for (var s = 0; s < state.run.groups.length; s++) { if (state.run.groups[s].id === dec.id) grp = state.run.groups[s]; }
+      if (!grp) continue;
+      if (dec.keep === false) { grp.status = "dropped"; grp.dropReason = "the matchmaker dropped it"; log("hub", "decision", "Dropped " + grp.id + " (" + ACTS[grp.activity].name + ").", grp.id); continue; }
+      var moved = false;
+      if (dec.time && String(dec.time) !== grp.time) {
+        if (grp.fixed) log("code", "check", "Kept " + grp.id + " at " + grp.time + ": " + ACTS[grp.activity].name + " is a real event, so the matchmaker can't move it to " + dec.time + ".", grp.id);
+        else if (!insidePart(String(dec.time), grp.part)) log("code", "check", "Kept " + grp.id + " at " + grp.time + ": " + dec.time + " is outside the " + grp.part + " (" + PART_HOURS[grp.part] + "), when nobody's calendar was checked.", grp.id);
+        else { log("hub", "decision", grp.id + " moves to " + dec.time + ".", grp.id); grp.time = String(dec.time); moved = true; }
+      }
+      var asks = listOr(dec.ask);
+      for (var a2 = 0; a2 < asks.length; a2++) {
+        var pid = String((asks[a2] || {}).id || "");
+        var ok = member(grp, pid) !== null || has(grp.alternates, pid) || has(listOr(grp.pool), pid);
+        if (!ok) { log("code", "check", "Rejected: the matchmaker tried to ask " + nameOf(pid) + ", who isn't in " + grp.id + ", its alternates or its free list."); continue; }
+        if (placed[pid] && placed[pid] !== grp.id) { log("code", "check", "Rejected: " + nameOf(pid) + " already said yes to " + placed[pid] + "."); continue; }
+        // a yes to the same time is settled: asking again can only repeat it or undo it
+        var mem = member(grp, pid);
+        if (mem && mem.state === "yes" && !moved) { log("code", "check", "Skipped asking " + nameOf(pid) + " again: they already said yes to " + grp.id + " at this time, and everyone gets a confirmation after the lock.", grp.id); continue; }
+        // one person is only ever asked for one group in a round
+        if (claimed[pid] && claimed[pid] !== grp.id) { log("code", "check", "Rejected: " + nameOf(pid) + " is already being asked for " + claimed[pid] + "."); continue; }
+        claimed[pid] = grp.id;
+        jobs.push([grp, pid, String(asks[a2].message || ""), round]);
+      }
+      // a yes to the old time isn't a yes to the new one: anyone the hub didn't re-ask, code does
+      if (moved) {
+        for (var mm = 0; mm < grp.members.length; mm++) {
+          var gm = grp.members[mm];
+          if (gm.state === "yes" && claimed[gm.id] !== grp.id) {
+            claimed[gm.id] = grp.id;
+            log("code", "check", "Asking " + nameOf(gm.id) + " again: they said yes to " + grp.id + " before it moved to " + grp.time + ".", grp.id);
+            jobs.push([grp, gm.id, ACTS[grp.activity].name + " has moved to " + grp.time + ", " + dayLabel(day) + ". Does the new time still work?", round]);
+          }
+        }
+      }
+    }
+    return jobs;
+  }
   async function askAll(jobs) {
     // jobs: [[group, id, message, round]]; two at a time, like the rest of the page
     var next = 0;
@@ -767,56 +875,23 @@ ol.in{margin:8px 0; padding-left:20px; font-size:13.5px; display:grid; gap:3px}
         }
       }
       await askAll(jobs);
-      // 4. resolve counters and declines
-      status = "The matchmaker is reading every answer and adjusting…";
-      render();
-      var res = await askJson(resolvePrompt(state.run.groups), "complex", "orchestrator resolve");
-      state.run.resolve = { thoughts: String((res && res.thoughts) || "") };
-      log("hub", "thought", "Matchmaker after round 1: " + state.run.resolve.thoughts);
-      var placed = {};
-      for (var p0 = 0; p0 < state.run.groups.length; p0++) {
-        var yes0 = yesMembers(state.run.groups[p0]);
-        for (var y0 = 0; y0 < yes0.length; y0++) placed[yes0[y0]] = state.run.groups[p0].id;
+      // 4. resolve counters and declines, then ask; again if a replacement said no
+      state.run.resolve = { thoughts: "", rounds: [] };
+      for (var round = 2; round <= LAST_ROUND; round++) {
+        fillPools(state.run.groups, slots);
+        if (round > 2 && !needsAnotherRound(state.run.groups, round - 1)) break;
+        logPools(state.run.groups);
+        status = "The matchmaker is reading every answer and adjusting…";
+        render();
+        var res = await askJson(resolvePrompt(state.run.groups), "complex", "orchestrator resolve");
+        var thoughts = String((res && res.thoughts) || "");
+        if (round === 2) state.run.resolve.thoughts = thoughts;
+        state.run.resolve.rounds.push({ round: round, thoughts: thoughts });
+        log("hub", "thought", "Matchmaker after round " + (round - 1) + ": " + thoughts);
+        var jobs2 = resolveJobs(res, round);
+        if (jobs2.length === 0) break;
+        await askAll(jobs2);
       }
-      var jobs2 = [], claimed = {}, decisions = listOr(res && res.groups);
-      for (var d = 0; d < decisions.length; d++) {
-        var dec = decisions[d] || {}, grp = null;
-        for (var s = 0; s < state.run.groups.length; s++) { if (state.run.groups[s].id === dec.id) grp = state.run.groups[s]; }
-        if (!grp) continue;
-        if (dec.keep === false) { grp.status = "dropped"; grp.dropReason = "the matchmaker dropped it"; log("hub", "decision", "Dropped " + grp.id + " (" + ACTS[grp.activity].name + ").", grp.id); continue; }
-        var moved = false;
-        if (dec.time && String(dec.time) !== grp.time) {
-          if (grp.fixed) log("code", "check", "Kept " + grp.id + " at " + grp.time + ": " + ACTS[grp.activity].name + " is a real event, so the matchmaker can't move it to " + dec.time + ".", grp.id);
-          else if (!insidePart(String(dec.time), grp.part)) log("code", "check", "Kept " + grp.id + " at " + grp.time + ": " + dec.time + " is outside the " + grp.part + " (" + PART_HOURS[grp.part] + "), when nobody's calendar was checked.", grp.id);
-          else { log("hub", "decision", grp.id + " moves to " + dec.time + ".", grp.id); grp.time = String(dec.time); moved = true; }
-        }
-        var asks = listOr(dec.ask);
-        for (var a2 = 0; a2 < asks.length; a2++) {
-          var pid = String((asks[a2] || {}).id || "");
-          var ok = member(grp, pid) !== null || has(grp.alternates, pid);
-          if (!ok) { log("code", "check", "Rejected: the matchmaker tried to ask " + nameOf(pid) + ", who isn't in " + grp.id + " or its alternates."); continue; }
-          if (placed[pid] && placed[pid] !== grp.id) { log("code", "check", "Rejected: " + nameOf(pid) + " already said yes to " + placed[pid] + "."); continue; }
-          // a yes to the same time is settled: asking again can only repeat it or undo it
-          var mem = member(grp, pid);
-          if (mem && mem.state === "yes" && !moved) { log("code", "check", "Skipped asking " + nameOf(pid) + " again: they already said yes to " + grp.id + " at this time, and everyone gets a confirmation after the lock.", grp.id); continue; }
-          // one person is only ever asked for one group in a round
-          if (claimed[pid] && claimed[pid] !== grp.id) { log("code", "check", "Rejected: " + nameOf(pid) + " is already being asked for " + claimed[pid] + "."); continue; }
-          claimed[pid] = grp.id;
-          jobs2.push([grp, pid, String(asks[a2].message || ""), 2]);
-        }
-        // a yes to the old time isn't a yes to the new one: anyone the hub didn't re-ask, code does
-        if (moved) {
-          for (var mm = 0; mm < grp.members.length; mm++) {
-            var gm = grp.members[mm];
-            if (gm.state === "yes" && claimed[gm.id] !== grp.id) {
-              claimed[gm.id] = grp.id;
-              log("code", "check", "Asking " + nameOf(gm.id) + " again: they said yes to " + grp.id + " before it moved to " + grp.time + ".", grp.id);
-              jobs2.push([grp, gm.id, ACTS[grp.activity].name + " has moved to " + grp.time + ", " + dayLabel(day) + ". Does the new time still work?", 2]);
-            }
-          }
-        }
-      }
-      if (jobs2.length > 0) await askAll(jobs2);
       // 5. lock: only in code, only with 2+ yes
       for (var l = 0; l < state.run.groups.length; l++) {
         var lg = state.run.groups[l];
@@ -1085,6 +1160,9 @@ ol.in{margin:8px 0; padding-left:20px; font-size:13.5px; display:grid; gap:3px}
     var out = ["<h2>Negotiation</h2>", '<p class="lede">Every message between the matchmaker and an agent, word for word. Lines go only from the hub to each agent: agents never see or talk to each other.</p>'];
     if (state.run.plan && state.run.plan.thoughts) out.push('<p class="thoughts"><b>Matchmaker, planning:</b> ' + esc(state.run.plan.thoughts) + "</p>");
     if (state.run.resolve && state.run.resolve.thoughts) out.push('<p class="thoughts"><b>Matchmaker, after round 1:</b> ' + esc(state.run.resolve.thoughts) + "</p>");
+    // a server run resolves once more when a replacement said no (matchmaker.LAST_ROUND)
+    var later = (state.run.resolve && state.run.resolve.rounds) || [];
+    for (var r = 1; r < later.length; r++) out.push('<p class="thoughts"><b>Matchmaker, after round ' + (later[r].round - 1) + ':</b> ' + esc(later[r].thoughts) + "</p>");
     for (var i = 0; i < state.run.groups.length; i++) {
       var g = state.run.groups[i], a = ACTS[g.activity];
       var chip = '<span class="chip">negotiating</span>';

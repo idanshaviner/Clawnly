@@ -43,10 +43,13 @@ The run, all hub and spoke (agents never talk to each other):
    side interest (the fishing on a hike) or a mild one gets no seat.
 3. **Round 1 (each agent, `default` tier -- never the fast one)** -- the matchmaker asks each person's agent one to
    one; the agent answers yes / no / counter from its person's brief and calendar only.
-4. **Resolve (matchmaker)** -- accepts counters by moving the time, calls alternates. Code
-   rejects asking anyone outside the group and its alternates, anyone who already said
-   yes elsewhere, and asking one person for two groups.
-5. **Round 2** -- only the people the matchmaker needs to re-ask.
+4. **Resolve (matchmaker)** -- accepts counters by moving the time, replaces a no. A group
+   with a no also gets a free list from code: up to 4 keen people from its break room who
+   are free and haven't been asked that day, and the matchmaker picks who fits. Code
+   rejects asking anyone outside the group, its alternates and that list, anyone who
+   already said yes elsewhere, and asking one person for two groups.
+5. **Round 2** -- only the people the matchmaker needs to re-ask. If a replacement says no,
+   steps 4 and 5 run once more (round 3) while there's anyone left to ask.
 6. **Lock (code)** -- a group locks once at least 2 people said yes.
 7. **The message (matchmaker, `default` tier)** -- what each person receives: what, when,
    where, the others by first name and why they'll get along.

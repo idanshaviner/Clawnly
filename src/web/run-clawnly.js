@@ -176,12 +176,12 @@
       "You are the Clawnly matchmaker: the orchestrator for " + DATA.neighborhood + ". Each neighbor has told their own agent what they like, what they don't, and when they're free. You plan small in-person activities for " + dayLabel(iso) + ".",
       "You talk to each person's agent one to one. Agents never talk to each other. The goal is not friendship matching: it is a good small group doing something real together, so neighbors get to know each other.",
       "",
-      "The break rooms below were built by code: one per activity and time of day that can run that day, holding every neighbor who is free then, interested, can afford it and doesn't avoid anything about it. Each room lists the people with a strong interest as id:keenness [which of the activity's tags they like] (higher is better), then the rest of them by id, then the people only mildly interested. PEOPLE has one line per listed person, once each, with what they avoid.",
+      "The break rooms below were built by code: one per activity and time of day that can run that day, holding every neighbor who is free then, interested, can afford it and doesn't avoid anything about it. Each room lists only the people who can take a seat: they really like or love what the activity is mainly about (marked main), as id:keenness [which of the activity's tags they like] (higher is better), then the rest of them by id. PEOPLE has one line per listed person, once each, with what they avoid.",
       "",
       "Plan up to " + maxGroups + " groups:",
       "- Size each group to fit the activity and the people. You decide: two neighbors having a beer over the game is a group, and so is a bigger hike. Small groups are often where people actually meet each other.",
       "- Each person in at most one group. Use only people in that break room.",
-      "- Members need a strong interest. People listed as mild can be alternates, never members.",
+      "- Members and alternates come only from the people listed. Someone in the room only for a side interest (the beer at a trivia night, the fishing on a hike) or a mild one gets no seat.",
       "- Prefer groups whose members share more than the activity (overlapping likes, similar stage of life), so they'd enjoy each other.",
       "- Spread plans across many people rather than stacking the keenest into one group.",
       "- Pick a specific time inside the day part (morning " + PART_HOURS.morning + ", afternoon " + PART_HOURS.afternoon + ", evening " + PART_HOURS.evening + "). A room marked FIXED is a real event (a game, a concert): use exactly that time.",
@@ -200,12 +200,13 @@
       var split = splitRoom(s);
       // no group can form without two members who really want it
       if (split.strong.length < 2) continue;
-      var header = "[" + a.id + " | " + s.part + "] " + a.name + " at " + a.where + ", cost " + a.cost + ", about: " + a.tags.map(words).join(", ");
+      var about = [words(a.tags[0]) + " (main)"].concat(a.tags.slice(1).map(words));
+      var header = "[" + a.id + " | " + s.part + "] " + a.name + " at " + a.where + ", cost " + a.cost + ", about: " + about.join(", ");
       var fixed = fixedTime(a, s.part);
       if (fixed) header += ", FIXED " + fixed;
       lines.push("", header + " (" + s.candidates.length + " in the room)");
       // the keenest with keenness (profiles once, below); everyone else by id, so nobody is left out
-      var top = [], rest = [], mild = [];
+      var top = [], rest = [];
       for (var j = 0; j < split.strong.length; j++) {
         var c = split.strong[j];
         if (j < PROFILES_PER_ROOM) {
@@ -213,10 +214,8 @@
           if (!seen[c.id]) { seen[c.id] = true; listed.push(c.id); }
         } else rest.push(c.id);
       }
-      for (var q = 0; q < split.mild.length; q++) mild.push(split.mild[q].id);
       lines.push("  keenest: " + top.join("; "));
       if (rest.length > 0) lines.push("  also: " + rest.join(" "));
-      if (mild.length > 0) lines.push("  mild, alternates only: " + mild.join(" "));
     }
     lines.push("", "PEOPLE:");
     for (var k = 0; k < listed.length; k++) lines.push(personLine(listed[k]));
@@ -225,14 +224,27 @@
 
   // ---- what an agent checks before answering (same as src/matchmaker.py) ----------
   var PROFILES_PER_ROOM = 8;
-  // a member needs a strong interest (really likes or loves one of the activity's tags); someone
-  // only up for it is an alternate (same as src/matchmaker.py)
+  // a seat needs a strong interest (really likes or loves) in what the activity is mainly about,
+  // its first tag (same as src/matchmaker.py)
   var STRONG = 2;
   function keenness(p, a) {
     // their strongest like among the activity's tags: 3 loves, 2 really likes, 1 only up for it, 0 none
     var keen = 0;
     for (var k = 0; k < p.likes.length; k++) { if (has(a.tags, p.likes[k].tag) && p.likes[k].weight > keen) keen = p.likes[k].weight; }
     return keen;
+  }
+  function mainKeenness(p, a) {
+    // how much they like what the activity is mainly about, its first tag: only this earns a seat
+    var keen = 0;
+    for (var k = 0; k < p.likes.length; k++) { if (p.likes[k].tag === a.tags[0]) keen = p.likes[k].weight; }
+    return keen;
+  }
+  function noSeat(p, a) {
+    // why someone in the break room can't be a member or an alternate, or "" when they can
+    var main = words(a.tags[0]), keen = mainKeenness(p, a);
+    if (keen >= STRONG) return "";
+    if (keen === 1) return p.name + " is only up for " + main;
+    return p.name + " is in the room for the " + likedHere(p, a) + ", not the " + main;
   }
   function likedHere(p, a) {
     // which of this activity's tags the person likes: what their keenness is made of
@@ -243,13 +255,14 @@
     return out.join(", ");
   }
   function splitRoom(slot) {
-    // the room's candidates who can be members, and the ones who can only be alternates
-    var a = ACTS[slot.activity], strong = [], mild = [];
+    // the room's candidates who can be members or alternates, and the ones who are there only
+    // for a side interest or a mild one
+    var a = ACTS[slot.activity], strong = [], rest = [];
     for (var i = 0; i < slot.candidates.length; i++) {
       var c = slot.candidates[i];
-      if (keenness(PEOPLE[c.id], a) >= STRONG) strong.push(c); else mild.push(c);
+      if (mainKeenness(PEOPLE[c.id], a) >= STRONG) strong.push(c); else rest.push(c);
     }
-    return { strong: strong, mild: mild };
+    return { strong: strong, rest: rest };
   }
   function insidePart(time, part) {
     // calendars and break rooms are checked per day part, so a time outside it was never checked
@@ -447,20 +460,24 @@
       var r = list[i] || {};
       var slot = slotFor(slots, String(r.activity || ""), String(r.part || ""));
       if (!slot) { rejected.push(String(r.activity) + " " + String(r.part) + ": no such break room that day"); continue; }
-      var members = [], mild = [], ids = listOr(r.members);
+      var members = [], ids = listOr(r.members), a = ACTS[slot.activity], why = "";
       for (var j = 0; j < ids.length; j++) {
         var id = String(ids[j]);
         if (!inSlot(slot, id)) { rejected.push(nameOf(id) + " isn't in the " + ACTS[slot.activity].name + " break room"); continue; }
         if (taken[id]) { rejected.push(nameOf(id) + " was already in another group"); continue; }
-        if (keenness(PEOPLE[id], ACTS[slot.activity]) < STRONG) { mild.push(id); rejected.push(nameOf(id) + " is only up for " + ACTS[slot.activity].name + ": an alternate, not a member"); continue; }
+        why = noSeat(PEOPLE[id], a);
+        if (why) { rejected.push(why + ": no seat in " + a.name); continue; }
         members.push(id);
       }
       if (members.length < DATA.groupMin) { rejected.push(ACTS[slot.activity].name + ": fewer than " + DATA.groupMin + " valid people"); continue; }
-      // the plan's own alternates first, then anyone it named as a member who is only mildly interested
-      var alternates = [], alts = listOr(r.alternates).concat(mild);
+      var alternates = [], alts = listOr(r.alternates);
       for (var k = 0; k < alts.length && alternates.length < 2; k++) {
         var aid = String(alts[k]);
-        if (inSlot(slot, aid) && !taken[aid] && !has(members, aid) && !has(alternates, aid)) alternates.push(aid);
+        if (!inSlot(slot, aid) || taken[aid] || has(members, aid) || has(alternates, aid)) continue;
+        // an alternate who steps in takes a seat, so the same bar applies
+        why = noSeat(PEOPLE[aid], a);
+        if (why) { rejected.push(why + ": not an alternate for " + a.name); continue; }
+        alternates.push(aid);
       }
       var g = { id: "g" + (groups.length + 1), activity: slot.activity, part: slot.part, time: String(r.time || PART_HOURS[slot.part]),
                 why: String(r.why || ""), members: [], alternates: alternates, thread: [], status: "negotiating", magic: null };
@@ -555,7 +572,7 @@
       var usable = 0;
       for (var u = 0; u < slots.length; u++) { if (splitRoom(slots[u]).strong.length >= 2) usable += 1; }
       state.run.breakRoom.usable = usable;
-      log("code", "check", "Built " + slots.length + " break rooms for " + dayLabel(day) + " (one per activity and time of day); " + state.run.breakRoom.people + " of " + DATA.people.length + " neighbors are in at least one. " + usable + " have at least 2 people with a strong interest; only those can form a group.");
+      log("code", "check", "Built " + slots.length + " break rooms for " + dayLabel(day) + " (one per activity and time of day); " + state.run.breakRoom.people + " of " + DATA.people.length + " neighbors are in at least one. " + usable + " have at least 2 people with a strong interest in the main activity; only those can form a group.");
       // 2. plan
       status = "The matchmaker is reading " + slots.length + " break rooms and planning groups…";
       render();

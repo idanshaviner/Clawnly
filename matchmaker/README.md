@@ -38,7 +38,9 @@ The run, all hub and spoke (agents never talk to each other):
    Break rooms tab shows who is in each room and why, and why everyone else isn't.
 2. **Plan (matchmaker, `complex` tier)** -- groups sized by the matchmaker (no upper limit
    in code), alternates, a personal proposal to each agent. Code rejects anyone not in that
-   break room, double bookings, and a "group" of one.
+   break room, double bookings, and a "group" of one. A member or alternate needs a strong
+   interest in what the activity is mainly about, its first tag: someone there only for a
+   side interest (the fishing on a hike) or a mild one gets no seat.
 3. **Round 1 (each agent, `default` tier -- never the fast one)** -- the matchmaker asks each person's agent one to
    one; the agent answers yes / no / counter from its person's brief and calendar only.
 4. **Resolve (matchmaker)** -- accepts counters by moving the time, calls alternates. Code

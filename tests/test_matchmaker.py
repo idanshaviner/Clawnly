@@ -30,8 +30,10 @@ def two_group_plan(rooms):
     # the first two break rooms, three people each, one alternate each
     groups = []
     used = set()
+    index = {p["id"]: p for p in town()}
     for room in rooms:
-        ids = [c["id"] for c in room["candidates"] if c["id"] not in used]
+        # people who can take a seat: a strong interest in what the activity is mainly about
+        ids = [c["id"] for c in matchmaker.split_room(room, index)[0] if c["id"] not in used]
         if len(ids) < 4:
             continue
         members = ids[:3]
@@ -174,10 +176,12 @@ def test_no_upper_size_limit_but_max_groups_is_respected():
     people = town()
     rooms = rooms_for(people)
     index = {p["id"]: p for p in people}
-    big = [c["id"] for c in rooms[0]["candidates"]][:9]
-    raw = {"groups": [{"activity": rooms[0]["activity"], "part": rooms[0]["part"], "members": big}]}
+    room = max(rooms, key=lambda r: len(strong_ids(r, index)))
+    big = strong_ids(room, index)[:9]
+    assert len(big) > catalog.GROUP_MAX
+    raw = {"groups": [{"activity": room["activity"], "part": room["part"], "members": big}]}
     groups, rejected = matchmaker.check_plan(raw, rooms, 10, index)
-    assert len(groups[0]["members"]) == 9
+    assert len(groups[0]["members"]) == len(big)
     groups, rejected = matchmaker.check_plan(two_group_plan(rooms), rooms, 1, index)
     assert len(groups) == 1
 
@@ -210,12 +214,14 @@ def test_round_two_only_asks_members_or_alternates_and_never_a_yes_elsewhere():
     plan = two_group_plan(rooms)
     g1 = plan["groups"][0]
     g2 = plan["groups"][1]
-    # someone in both break rooms: a g2 member who is also g1's second alternate
+    # someone who can take a seat in both break rooms: a g2 member who is also g1's second alternate
+    index = {p["id"]: p for p in people}
     room1 = [r for r in rooms if r["activity"] == g1["activity"] and r["part"] == g1["part"]][0]
     room2 = [r for r in rooms if r["activity"] == g2["activity"] and r["part"] == g2["part"]][0]
     in1 = {c["id"] for c in room1["candidates"]}
+    seats1 = set(strong_ids(room1, index))
     used = set(g1["members"] + g1["alternates"] + g2["members"] + g2["alternates"])
-    both = [c["id"] for c in room2["candidates"] if c["id"] in in1 and c["id"] not in used][0]
+    both = [pid for pid in strong_ids(room2, index) if pid in seats1 and pid not in used][0]
     g2["members"][0] = both
     g2["proposals"][both] = "join?"
     g1["alternates"].append(both)
@@ -396,11 +402,11 @@ def test_the_plan_lists_each_person_once_and_stays_small():
     payload = matchmaker._plan_payload(rooms, index)
     profiled = [line.split()[0] for line in payload.split("PEOPLE:")[1].splitlines() if line.strip()]
     assert len(profiled) == len(set(profiled))
-    # every room that can form a group still names everyone in it, so nobody is left out of the plan
+    # every room that can form a group names everyone who can take a seat, so nobody is left out
     for room in rooms:
         if len(matchmaker.split_room(room, index)[0]) < 2:
             continue
-        for c in room["candidates"]:
+        for c in matchmaker.split_room(room, index)[0]:
             assert c["id"] in payload
     # under half of what it was before the trim (65,000 characters for this day). It grew from
     # 25,000 when each keen person's liked tags and everyone's avoids were added: without them the
@@ -596,42 +602,62 @@ def test_the_agent_needs_a_strong_reason_to_say_yes():
     assert "A mild interest is a fair reason to pass" not in system
 
 
-def test_only_people_with_a_strong_interest_can_be_members():
-    # Donna and Valeria were only "up for" it, and their agents said yes anyway
+def side_and_mild(room, index):
+    # someone in the room only for a side interest they love or really like, and someone only up
+    # for the main activity: neither can take a seat
+    activity = catalog.get(room["activity"])
+    rest = [c["id"] for c in matchmaker.split_room(room, index)[1]]
+    side = [pid for pid in rest if matchmaker.main_keenness(index[pid], activity) == 0 and matchmaker.keenness(index[pid], activity) >= 2]
+    mild = [pid for pid in rest if matchmaker.main_keenness(index[pid], activity) == 1]
+    return side, mild
+
+
+def test_a_seat_needs_a_strong_interest_in_the_main_activity():
+    # the Sunday 1 Nov browser run: the Gorge hike went to Logan (only up for hiking), and to
+    # Aaliyah and Tom O., who don't list hiking at all and were there for the fishing
     people = town()
     index = {p["id"]: p for p in people}
     rooms = rooms_for(people)
-    room = [r for r in rooms if len(strong_ids(r, index)) >= 2 and matchmaker.split_room(r, index)[1]][0]
+    room = [r for r in rooms if len(strong_ids(r, index)) >= 2 and all(side_and_mild(r, index))][0]
+    activity = catalog.get(room["activity"])
+    main = activity["tags"][0].replace("_", " ")
+    side, mild = side_and_mild(room, index)
     strong = strong_ids(room, index)[:2]
-    mild = matchmaker.split_room(room, index)[1][0]["id"]
-    assert matchmaker.keenness(index[mild], catalog.get(room["activity"])) == 1
-    raw = {"groups": [{"activity": room["activity"], "part": room["part"], "members": strong + [mild], "alternates": []}]}
+    raw = {"groups": [{"activity": room["activity"], "part": room["part"], "members": strong + [side[0], mild[0]],
+                       "alternates": [side[0], mild[0]]}]}
     groups, rejected = matchmaker.check_plan(raw, rooms, 5, index)
     assert [m["id"] for m in groups[0]["members"]] == strong
-    assert groups[0]["alternates"] == [mild]
-    assert any(index[mild]["name"] + " is only up for" in r and "an alternate, not a member" in r for r in rejected)
-    # two mild people alone can't make a group
-    others = [c["id"] for c in matchmaker.split_room(room, index)[1]]
-    if len(others) >= 2:
-        groups, rejected = matchmaker.check_plan({"groups": [{"activity": room["activity"], "part": room["part"],
-                                                               "members": others[:2]}]}, rooms, 5, index)
-        assert groups == [] and any("fewer than 2 valid people" in r for r in rejected)
+    # an alternate who steps in takes a seat, so neither is one
+    assert groups[0]["alternates"] == []
+    assert index[side[0]]["name"] + " is in the room for the " in " ".join(rejected)
+    assert any(r.startswith(index[side[0]]["name"]) and r.endswith(", not the " + main + ": no seat in " + activity["name"]) for r in rejected)
+    assert index[mild[0]]["name"] + " is only up for " + main + ": no seat in " + activity["name"] in rejected
+    assert index[mild[0]]["name"] + " is only up for " + main + ": not an alternate for " + activity["name"] in rejected
+    # loving the side interest isn't enough, however much
+    assert matchmaker.keenness(index[side[0]], activity) >= matchmaker.STRONG
+    assert matchmaker.no_seat(index[strong[0]], activity) == ""
+    # people without a seat can't make a group on their own
+    groups, rejected = matchmaker.check_plan({"groups": [{"activity": room["activity"], "part": room["part"],
+                                                           "members": [side[0], mild[0]]}]}, rooms, 5, index)
+    assert groups == [] and any("fewer than 2 valid people" in r for r in rejected)
 
 
-def test_the_plan_lists_mild_people_as_alternates_only():
+def test_the_plan_lists_only_people_who_can_take_a_seat():
     people = town()
     index = {p["id"]: p for p in people}
     rooms = rooms_for(people)
     payload = matchmaker._plan_payload(rooms, index)
-    assert "Members need a strong interest" in matchmaker._plan_system(DAY, 10)
-    room = [r for r in rooms if len(strong_ids(r, index)) >= 2 and matchmaker.split_room(r, index)[1]][0]
+    system = matchmaker._plan_system(DAY, 10)
+    assert "Someone in the room only for a side interest" in system
+    assert "mild, alternates only" not in payload
+    room = [r for r in rooms if len(strong_ids(r, index)) >= 2 and all(side_and_mild(r, index))][0]
     activity = catalog.get(room["activity"])
     block = payload.split("[" + activity["id"] + " | " + room["part"] + "]")[1].split("\n[")[0]
-    mild = [c["id"] for c in matchmaker.split_room(room, index)[1]]
-    assert "  mild, alternates only: " + " ".join(mild) in block
-    keenest = [line for line in block.splitlines() if line.startswith("  keenest: ")][0]
-    assert not any(pid + ":" in keenest for pid in mild)
-    # a room without two people who really want it can't form a group, so the plan doesn't show it
+    assert "about: " + activity["tags"][0].replace("_", " ") + " (main)" in block
+    side, mild = side_and_mild(room, index)
+    for pid in side + mild:
+        assert pid not in block
+    # a room without two people who can take a seat can't form a group, so the plan doesn't show it
     weak = [r for r in rooms if len(strong_ids(r, index)) < 2]
     for r in weak:
         assert "[" + r["activity"] + " | " + r["part"] + "]" not in payload

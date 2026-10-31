@@ -1,0 +1,399 @@
+[
+ {
+  "id": 1,
+  "what": "simulation smoke",
+  "folder": "run_20261029_023316_smoke",
+  "reserved_usd": 1.5,
+  "spent_usd": 0.094614,
+  "at": "2026-10-29T06:33:16.629649+00:00",
+  "settled": "2026-10-29T06:34:00.283470+00:00"
+ },
+ {
+  "id": 2,
+  "what": "audit claude-fable-5-1",
+  "folder": "run_20261029_023316_smoke",
+  "reserved_usd": 2.0,
+  "spent_usd": 0.62607,
+  "at": "2026-10-29T06:34:38.601506+00:00",
+  "settled": "2026-10-29T06:36:34.961591+00:00"
+ },
+ {
+  "id": 3,
+  "what": "simulation pilot",
+  "folder": "run_20261029_023732_pilot",
+  "reserved_usd": 4.0,
+  "spent_usd": 0.509644,
+  "at": "2026-10-29T06:37:32.212860+00:00",
+  "settled": "2026-10-29T06:41:01.435362+00:00"
+ },
+ {
+  "id": 4,
+  "what": "audit claude-fable-5-1",
+  "folder": "run_20261029_023732_pilot",
+  "reserved_usd": 3.0,
+  "spent_usd": 2.25627,
+  "at": "2026-10-29T06:42:27.322166+00:00",
+  "settled": "2026-10-29T06:48:36.375727+00:00"
+ },
+ {
+  "id": 5,
+  "what": "simulation town",
+  "folder": "run_20261029_025000_town",
+  "reserved_usd": 2.5,
+  "spent_usd": 1.076078,
+  "at": "2026-10-29T06:50:00.093330+00:00",
+  "settled": "2026-10-29T06:57:28.508851+00:00"
+ },
+ {
+  "id": 6,
+  "what": "audit claude-fable-5-1",
+  "folder": "run_20261029_025000_town",
+  "reserved_usd": 2.3,
+  "spent_usd": 1.97362,
+  "at": "2026-10-29T06:58:47.507170+00:00",
+  "settled": "2026-10-29T07:03:18.686258+00:00"
+ },
+ {
+  "id": 7,
+  "what": "simulation pilot",
+  "folder": "run_20261029_030412_pilot",
+  "reserved_usd": 0.9,
+  "spent_usd": 0.43068,
+  "at": "2026-10-29T07:04:12.167921+00:00",
+  "settled": "2026-10-29T07:07:21.190897+00:00"
+ },
+ {
+  "id": 8,
+  "what": "simulation town",
+  "folder": "run_20261029_030721_town",
+  "reserved_usd": 0.8,
+  "spent_usd": 0.349488,
+  "at": "2026-10-29T07:07:21.937951+00:00",
+  "settled": "2026-10-29T07:09:50.811544+00:00"
+ },
+ {
+  "id": 9,
+  "what": "probe",
+  "folder": "run_20261029_025000_town",
+  "reserved_usd": 0.25,
+  "spent_usd": 0.05151,
+  "at": "2026-10-29T07:11:04.410263+00:00",
+  "settled": "2026-10-29T07:11:40.712501+00:00"
+ },
+ {
+  "id": 10,
+  "what": "probe",
+  "folder": "run_20261029_025000_town",
+  "reserved_usd": 0.25,
+  "spent_usd": 0.05022,
+  "at": "2026-10-29T07:12:01.212023+00:00",
+  "settled": "2026-10-29T07:12:35.802760+00:00"
+ },
+ {
+  "id": 11,
+  "what": "audit claude-fable-5-1",
+  "folder": "run_20261029_030412_pilot",
+  "reserved_usd": 2.0,
+  "spent_usd": 1.21977,
+  "at": "2026-10-29T07:12:46.277048+00:00",
+  "settled": "2026-10-29T07:16:17.405706+00:00"
+ },
+ {
+  "id": 12,
+  "what": "simulation review completion",
+  "folder": "run_20261029_110553_review",
+  "reserved_usd": 1.25,
+  "spent_usd": 0.0,
+  "at": "2026-10-29T15:05:53.161768+00:00",
+  "settled": "2026-10-29T15:06:03.451085+00:00"
+ },
+ {
+  "id": 13,
+  "what": "simulation review completion",
+  "folder": "run_20261029_110603_review",
+  "reserved_usd": 1.25,
+  "spent_usd": 0.0,
+  "at": "2026-10-29T15:06:03.489628+00:00",
+  "settled": "2026-10-29T15:06:13.743218+00:00"
+ },
+ {
+  "id": 14,
+  "what": "simulation review completion",
+  "folder": "run_20261029_110613_review",
+  "reserved_usd": 1.25,
+  "spent_usd": 0.0,
+  "at": "2026-10-29T15:06:13.786498+00:00",
+  "settled": "2026-10-29T15:06:24.039227+00:00"
+ },
+ {
+  "id": 15,
+  "what": "simulation review completion",
+  "folder": "run_20261029_110624_review",
+  "reserved_usd": 1.25,
+  "spent_usd": 0.0,
+  "at": "2026-10-29T15:06:24.094793+00:00",
+  "settled": "2026-10-29T15:06:34.345436+00:00"
+ },
+ {
+  "id": 16,
+  "what": "simulation review completion",
+  "folder": "run_20261029_110634_review",
+  "reserved_usd": 1.25,
+  "spent_usd": 0.0,
+  "at": "2026-10-29T15:06:34.397430+00:00",
+  "settled": "2026-10-29T15:06:44.647414+00:00"
+ },
+ {
+  "id": 17,
+  "what": "simulation review completion",
+  "folder": "run_20261029_110644_review",
+  "reserved_usd": 1.25,
+  "spent_usd": 0.0,
+  "at": "2026-10-29T15:06:44.699299+00:00",
+  "settled": "2026-10-29T15:06:54.945775+00:00"
+ },
+ {
+  "id": 18,
+  "what": "simulation review completion",
+  "folder": "run_20261029_110654_review",
+  "reserved_usd": 1.25,
+  "spent_usd": 0.0,
+  "at": "2026-10-29T15:06:54.997568+00:00",
+  "settled": "2026-10-29T15:07:05.248064+00:00"
+ },
+ {
+  "id": 19,
+  "what": "simulation review completion",
+  "folder": "run_20261029_110705_review",
+  "reserved_usd": 1.25,
+  "spent_usd": 0.0,
+  "at": "2026-10-29T15:07:05.326785+00:00",
+  "settled": "2026-10-29T15:07:15.576475+00:00"
+ },
+ {
+  "id": 20,
+  "what": "simulation review completion",
+  "folder": "run_20261029_110715_review",
+  "reserved_usd": 1.25,
+  "spent_usd": 0.0,
+  "at": "2026-10-29T15:07:15.634805+00:00",
+  "settled": "2026-10-29T15:07:25.891776+00:00"
+ },
+ {
+  "id": 21,
+  "what": "simulation review completion",
+  "folder": "run_20261029_110725_review",
+  "reserved_usd": 1.25,
+  "spent_usd": 0.0,
+  "at": "2026-10-29T15:07:25.956566+00:00",
+  "settled": "2026-10-29T15:07:36.206897+00:00"
+ },
+ {
+  "id": 22,
+  "what": "simulation review completion",
+  "folder": "run_20261029_110736_review",
+  "reserved_usd": 1.25,
+  "spent_usd": 0.0,
+  "at": "2026-10-29T15:07:36.271727+00:00",
+  "settled": "2026-10-29T15:07:46.520584+00:00"
+ },
+ {
+  "id": 23,
+  "what": "simulation review completion",
+  "folder": "run_20261029_110746_review",
+  "reserved_usd": 1.25,
+  "spent_usd": 0.0,
+  "at": "2026-10-29T15:07:46.610244+00:00",
+  "settled": "2026-10-29T15:07:56.868448+00:00"
+ },
+ {
+  "id": 24,
+  "what": "simulation review completion",
+  "folder": "run_20261029_110756_review",
+  "reserved_usd": 1.25,
+  "spent_usd": 0.0,
+  "at": "2026-10-29T15:07:56.944141+00:00",
+  "settled": "2026-10-29T15:08:07.195402+00:00"
+ },
+ {
+  "id": 25,
+  "what": "simulation review completion",
+  "folder": "run_20261029_110807_review",
+  "reserved_usd": 1.25,
+  "spent_usd": 0.0,
+  "at": "2026-10-29T15:08:07.269786+00:00",
+  "settled": "2026-10-29T15:08:17.535428+00:00"
+ },
+ {
+  "id": 26,
+  "what": "simulation review completion",
+  "folder": "run_20261029_110817_review",
+  "reserved_usd": 1.25,
+  "spent_usd": 0.0,
+  "at": "2026-10-29T15:08:17.612859+00:00",
+  "settled": "2026-10-29T15:11:32.428303+00:00",
+  "settlement_note": "Interrupted during retry sleep after DNS connection failures in restricted execution. No API response or billable usage; released unused reservation."
+ },
+ {
+  "id": 27,
+  "what": "simulation review completion",
+  "folder": "run_20261029_110853_review",
+  "reserved_usd": 1.25,
+  "spent_usd": 0.316696,
+  "at": "2026-10-29T15:08:53.915080+00:00",
+  "settled": "2026-10-29T15:10:58.775452+00:00"
+ },
+ {
+  "id": 28,
+  "what": "simulation review completion",
+  "folder": "run_20261029_111058_review",
+  "reserved_usd": 1.25,
+  "spent_usd": 0.332522,
+  "at": "2026-10-29T15:10:58.870216+00:00",
+  "settled": "2026-10-29T15:13:10.438316+00:00"
+ },
+ {
+  "id": 29,
+  "what": "simulation review completion",
+  "folder": "run_20261029_111310_review",
+  "reserved_usd": 1.25,
+  "spent_usd": 0.38707,
+  "at": "2026-10-29T15:13:10.540275+00:00",
+  "settled": "2026-10-29T15:16:27.797195+00:00"
+ },
+ {
+  "id": 30,
+  "what": "simulation review completion",
+  "folder": "run_20261029_111627_review",
+  "reserved_usd": 1.25,
+  "spent_usd": 0.365462,
+  "at": "2026-10-29T15:16:27.926594+00:00",
+  "settled": "2026-10-29T15:18:51.560925+00:00"
+ },
+ {
+  "id": 31,
+  "what": "simulation review completion",
+  "folder": "run_20261029_111851_review",
+  "reserved_usd": 1.25,
+  "spent_usd": 0.367024,
+  "at": "2026-10-29T15:18:51.673225+00:00",
+  "settled": "2026-10-29T15:21:31.620750+00:00"
+ },
+ {
+  "id": 32,
+  "what": "simulation review completion",
+  "folder": "run_20261029_112131_review",
+  "reserved_usd": 1.25,
+  "spent_usd": 0.379208,
+  "at": "2026-10-29T15:21:31.755522+00:00",
+  "settled": "2026-10-29T15:24:16.480150+00:00"
+ },
+ {
+  "id": 33,
+  "what": "simulation review completion",
+  "folder": "run_20261029_112416_review",
+  "reserved_usd": 1.25,
+  "spent_usd": 0.354704,
+  "at": "2026-10-29T15:24:16.617183+00:00",
+  "settled": "2026-10-29T15:26:36.559920+00:00"
+ },
+ {
+  "id": 34,
+  "what": "simulation review completion",
+  "folder": "run_20261029_112636_review",
+  "reserved_usd": 1.25,
+  "spent_usd": 0.33748,
+  "at": "2026-10-29T15:26:36.699807+00:00",
+  "settled": "2026-10-29T15:28:44.993395+00:00"
+ },
+ {
+  "id": 35,
+  "what": "simulation review completion",
+  "folder": "run_20261029_112845_review",
+  "reserved_usd": 1.25,
+  "spent_usd": 0.348638,
+  "at": "2026-10-29T15:28:45.178201+00:00",
+  "settled": "2026-10-29T15:31:02.136538+00:00"
+ },
+ {
+  "id": 36,
+  "what": "simulation review completion",
+  "folder": "run_20261029_113102_review",
+  "reserved_usd": 1.25,
+  "spent_usd": 0.383334,
+  "at": "2026-10-29T15:31:02.291300+00:00",
+  "settled": "2026-10-29T15:33:29.150207+00:00"
+ },
+ {
+  "id": 37,
+  "what": "simulation review completion",
+  "folder": "run_20261029_113329_review",
+  "reserved_usd": 1.25,
+  "spent_usd": 0.35693,
+  "at": "2026-10-29T15:33:29.339920+00:00",
+  "settled": "2026-10-29T15:35:48.998026+00:00"
+ },
+ {
+  "id": 38,
+  "what": "simulation review completion",
+  "folder": "run_20261029_113549_review",
+  "reserved_usd": 1.25,
+  "spent_usd": 0.32951,
+  "at": "2026-10-29T15:35:49.164845+00:00",
+  "settled": "2026-10-29T15:38:04.222161+00:00"
+ },
+ {
+  "id": 39,
+  "what": "simulation review completion",
+  "folder": "run_20261029_113804_review",
+  "reserved_usd": 1.25,
+  "spent_usd": 0.347308,
+  "at": "2026-10-29T15:38:04.416996+00:00",
+  "settled": "2026-10-29T15:40:27.754574+00:00"
+ },
+ {
+  "id": 40,
+  "what": "simulation review completion",
+  "folder": "run_20261029_114027_review",
+  "reserved_usd": 1.25,
+  "spent_usd": 0.17607,
+  "at": "2026-10-29T15:40:27.934384+00:00",
+  "settled": "2026-10-29T15:41:32.459652+00:00"
+ },
+ {
+  "id": 41,
+  "what": "simulation retest",
+  "folder": "run_20261030_212909_retest",
+  "reserved_usd": 2.5,
+  "spent_usd": 1.229192,
+  "at": "2026-10-31T01:29:09.153105+00:00",
+  "settled": "2026-10-31T01:37:15.794509+00:00"
+ },
+ {
+  "id": 42,
+  "what": "probe",
+  "folder": "run_20261029_111851_review",
+  "reserved_usd": 0.25,
+  "spent_usd": 0.04895,
+  "at": "2026-10-31T01:37:29.813151+00:00",
+  "settled": "2026-10-31T01:37:57.761680+00:00"
+ },
+ {
+  "id": 43,
+  "what": "probe",
+  "folder": "run_20261029_112131_review",
+  "reserved_usd": 0.25,
+  "spent_usd": 0.04639,
+  "at": "2026-10-31T01:37:58.540509+00:00",
+  "settled": "2026-10-31T01:38:26.742384+00:00"
+ },
+ {
+  "id": 44,
+  "what": "audit claude-fable-5-1",
+  "folder": "run_20261030_212909_retest",
+  "reserved_usd": 2.5,
+  "spent_usd": 2.19538,
+  "at": "2026-10-31T01:38:38.037117+00:00",
+  "settled": "2026-10-31T01:44:33.575471+00:00"
+ }
+]

@@ -1,0 +1,487 @@
+{
+ "auditor": "claude-fable-5-1",
+ "effort": "medium",
+ "sampling": "all 1 groups code flagged or that didn't lock, plus 5 of the other 29 drawn with seed 7",
+ "groups": [
+  {
+   "group": "2026-10-31/g1",
+   "verdict": "weak",
+   "summary": "The group is a sensible sports-watching table and the proposal, resolution and final messages are clean, but half of it rests on two agents saying yes to a late-night conflict code explicitly showed them. Ava's agent simply redefined 9:30pm as 'not a late night', and Nikhil's agent accepted 9:30pm after having countered a 9pm end as too late earlier in the run, while citing a 'no early morning after' that the calendar does not support. The matchmaker then locked the group without addressing either flag.",
+   "compatibility": "Cody, Rosa, Ava and Nikhil all list watching sports, three of them beer or golf, and ages 25-43 sit comfortably together for a bar game night, so the core fit is fine. The frictions are lifestyle rather than interest: Ava avoids both late nights and crowds (a game-night sports grill is plausibly crowded), and Nikhil avoids late nights. Kevin B. from the break room (watch sports, golf, craft beer, free that evening) matched the stated 'sports + beer + golf' theme at least as well, though he avoids crowds too, so no one clearly fit better.",
+   "agents": [
+    {
+     "id": "e094",
+     "consistent": true,
+     "note": "Yes follows directly from loves of watch sports, dining and golf, a free Saturday evening and any-cost budget [568]."
+    },
+    {
+     "id": "e075",
+     "consistent": true,
+     "note": "Yes is grounded in watch sports, craft beer, free Saturday evening and low-cost budget [563], and matches her other answers in the run [239][854]."
+    },
+    {
+     "id": "e117",
+     "consistent": false,
+     "note": "Said yes despite being shown the late-night conflict, asserting a 9:30pm end is 'not a late night' and never mentioning her crowd avoidance [560][573]."
+    },
+    {
+     "id": "e001",
+     "consistent": false,
+     "note": "Accepted 9:30pm as fine citing 'no early morning after' that the calendar doesn't support, after countering a 9pm end as too late elsewhere in the run [562][578][274]."
+    }
+   ],
+   "matchmaker": "The proposal is coherent and the final messages name only the four attendees and use real profile facts (Rosa golf/hiking, Ava and Rosa craft beer and sports, Cody golf and sports) [801]. However it knowingly built a fixed 9:30pm-ending group around two people who avoid late nights, and its alternate Jim lists no interest in watching sports at all, so the fallback was weak. The resolve step [755] correctly kept the fully-confirmed group without extra asks.",
+   "conversation": "Messages were clear and consistent, every person was asked exactly once, and there were no misunderstandings or wasted rounds."
+  },
+  {
+   "group": "2026-11-01/g10",
+   "verdict": "acceptable",
+   "summary": "The group locked cleanly with four quick yeses and no counters or declines, and all four agents answered in line with their profiles. The main weakness is composition: Hannah has no card interest at all while two keen card lovers (Liam A., Claire B.) sat unasked in the same break room, and the alternates chosen were also non-card people. Final messages are accurate on names and logistics but slightly inflate shared interests.",
+   "compatibility": "Grace, Tom and Jack are a strong cribbage core (all rate cards highly) and the cross-generational angle is reasonable. Hannah is included only for coffee and lists no interest in cards; for a two-hour four-hand cribbage game, Liam A. (cards 3, retiree, keenness 3) or Claire B. (cards 3, retiree, keenness 3) would clearly have fit better.",
+   "agents": [
+    {
+     "id": "e061",
+     "consistent": true,
+     "note": "Yes grounded in loving cards and a free Sunday afternoon [1029]."
+    },
+    {
+     "id": "e190",
+     "consistent": true,
+     "note": "Yes grounded in liking cards and a free Sunday afternoon [1037]."
+    },
+    {
+     "id": "e088",
+     "consistent": true,
+     "note": "Yes justified by coffee and free afternoon [1043]; nothing in her profile conflicts, though she has no card interest."
+    },
+    {
+     "id": "e133",
+     "consistent": true,
+     "note": "Yes grounded in cards/board games and a free Sunday afternoon [1040]."
+    }
+   ],
+   "matchmaker": "Proposal and timing matched everyone's calendars and the resolve step correctly kept g10 unchanged [1046]. However it filled the fourth seat and both alternate slots with coffee-only people despite keener card lovers being available, and its final messages overstate interests ('love' golf for Tom, 'love' basketball for Grace) and tell Jack 'experienced players' will attend, which the profiles do not say.",
+   "conversation": "Short, clear and consistent with no misunderstandings or wasted asks."
+  }
+ ],
+ "days": [
+  {
+   "day": "2026-10-28",
+   "verdict": "acceptable",
+   "summary": "The matchmaker planned ten groups that largely tracked the break-room evidence (fishing retirees, kayakers, MTB riders, pickleball foursome, crafts makers) and handled round 1 cleanly: both counters were accepted by shifting times and re-confirming everyone, and both declines were backfilled from unconflicted alternates, so all ten groups locked with 40 of 42 placed [426][490]-[509]. The weaker spots are in composition and spread: the trivia team was built from five people with no listed trivia interest while the one listed trivia lover in the room was only an alternate; the birding walk was filled with two non-birders over an available birder, producing a predictable decline; and large rooms (ten-trails 50, pickleball with eight keen-3 players) yielded a single foursome each, leaving clearly fitting people unasked. Several proposal messages slightly overstated shared interests. The day's outcome is defensible, but the planning left obvious fit on the table."
+  },
+  {
+   "day": "2026-10-31",
+   "verdict": "good",
+   "summary": "The matchmaker planned ten small groups built around the two fixed evening events and the keenest-listed people in each room, with themes (history, photography, young riders) that the profiles actually support [533]. Every one of the 40 people asked said yes in round one except one counter, which it handled correctly by accepting the earlier time for a non-fixed event and re-confirming all members before locking [713][755][767]-[778][781]-[800]. The weakness is coverage and fairness: only 40 of 147 people in rooms were asked, several large or high-keenness rooms were left entirely unplanned, and some clearly keener candidates (e.g. e157 at 5 for Kraken) were passed over for less keen ones [533]. The day's outcome is defensible and all groups locked, but a few keen, available neighbors were left out without any stated reason."
+  },
+  {
+   "day": "2026-11-01",
+   "verdict": "good",
+   "summary": "The matchmaker built ten groups of four from the break rooms, grounding most picks in room keenness and profile interests (photographers on the Gorge, history buffs at Franklin and the museum, picnic lovers at Flaming Geyser, twenty-somethings on the evening walk) [824]. All ten groups locked with four yeses after two declines were covered by alternates who accepted [1046][1052][1056][1059]-[1068]. The main weakness is the evening Seahawks group, where three of four initial members (e085, e074, e189) show no watch-sports interest in their profiles while e001 (watch sports 3) sat as second alternate; e085's decline was foreseeable and e198 was chosen over e001 on replacement [824][909][1046]. A few highly keen people (e153, e121, e173) were asked nowhere despite appearing near the top of several rooms, but with only 40 slots this is a judgment call rather than an error. The day's outcome is defensible and efficient (42 asked, 40 placed)."
+  }
+ ],
+ "kept": [
+  {
+   "severity": "medium",
+   "kind": "quality issue",
+   "check": "AI audit",
+   "agents": [
+    "e074",
+    "e075",
+    "e062",
+    "e157",
+    "e198",
+    "e170",
+    "e196"
+   ],
+   "groups": [
+    "2026-10-28/g1"
+   ],
+   "what": "Trivia team was assembled from five people whose profiles show no trivia interest (craft beer/golf/sports only), while e170 (trivia 3) was relegated to alternate and e196 (trivia 3, in the room) was not asked at all.",
+   "why": "The matchmaker's own 'why' frames g1 as a craft-beer group rather than a trivia group, so the activity itself was not the basis for selection; e170 only joined after e062 declined.",
+   "expected": "Lead with people who list trivia (e170, e196), then fill with craft-beer fans.",
+   "fix": "Seed activity-specific groups with people whose profiles name that activity before adding adjacent-interest fillers.",
+   "evidence": [
+    204,
+    249,
+    426,
+    447,
+    500
+   ],
+   "source": "AI audit of day 2026-10-28"
+  },
+  {
+   "severity": "medium",
+   "kind": "quality issue",
+   "check": "AI audit",
+   "agents": [
+    "e175",
+    "e136",
+    "e060",
+    "e038"
+   ],
+   "groups": [
+    "2026-10-28/g8"
+   ],
+   "what": "Birding walk was staffed with e175 and e136, neither of whom lists birding, while e060 (birding 2, in the room) was held as an alternate; e175 declined precisely because birding isn't her thing.",
+   "why": "The plan substituted photography for birding as the matching basis, and the proposal to e038 told him 'the others love photography' rather than birding; the group also launched at only 3 people.",
+   "expected": "Fill the birding group with people who list birding first (e060), keeping photographers as secondary fits or alternates.",
+   "fix": "Prioritize the room's activity interest over proxy interests; use proxies only to fill remaining seats.",
+   "evidence": [
+    204,
+    384,
+    426,
+    484,
+    507
+   ],
+   "source": "AI audit of day 2026-10-28"
+  },
+  {
+   "severity": "medium",
+   "kind": "quality issue",
+   "check": "AI audit",
+   "agents": [
+    "e078",
+    "e167",
+    "e174",
+    "e182",
+    "e122",
+    "e132"
+   ],
+   "groups": [
+    "2026-10-28/g3",
+    "2026-10-28/g10"
+   ],
+   "what": "Pickleball room had eight players at keen score 3 (all pickleball 3 in profile) but only one foursome was formed, leaving e078, e167, e174, e182 unplaced (two as alternates, two never asked); the 50-person ten-trails room produced one group of 4, with e122 and e132 (keen 3) only alternates.",
+   "why": "These people clearly fit by the matchmaker's own evidence; the plan's stated preference for a 'clean doubles foursome' and 3-5 person groups did not preclude running a second group from the same room.",
+   "expected": "A second pickleball foursome and/or a second Ten Trails walking group drawn from the remaining keenest people.",
+   "fix": "When a room has more clearly-fitting people than one group can hold, spin up additional parallel groups from the same room.",
+   "evidence": [
+    204,
+    426,
+    502,
+    509
+   ],
+   "source": "AI audit of day 2026-10-28"
+  },
+  {
+   "severity": "low",
+   "kind": "quality issue",
+   "check": "AI audit",
+   "agents": [
+    "e012",
+    "e035",
+    "e124"
+   ],
+   "groups": [
+    "2026-10-28/g7",
+    "2026-10-28/g5",
+    "2026-10-28/g4"
+   ],
+   "what": "Some proposals overstated shared traits: e012 was told 'the whole group' loves kayaking though e067 rates it 2; e035 was told the group is 'into baking and family life' though e008 (22, no kids) has no family noted; e124 was promised 'another photo fan' when e100 rates photography 1.",
+   "why": "Minor inaccuracies in pitch text, not material to decisions, but they slightly misrepresent the group to the invitee.",
+   "expected": "Pitches that only claim what the profiles support.",
+   "fix": "Generate 'why' claims from the actual interest scores of the other members.",
+   "evidence": [
+    204
+   ],
+   "source": "AI audit of day 2026-10-28"
+  },
+  {
+   "severity": "medium",
+   "kind": "quality issue",
+   "check": "AI audit",
+   "agents": [
+    "e157",
+    "e188",
+    "e127",
+    "e053",
+    "e081",
+    "e031",
+    "e184",
+    "e041"
+   ],
+   "groups": [
+    "2026-10-31/g1"
+   ],
+   "what": "Several people who were the keenest in their rooms were never asked, while less keen people were placed in the same or similar activities; whole popular rooms (bakery morning, potluck, trail cleanup, Ten Trails walk, Franklin/Gorge morning) got no group at all.",
+   "why": "e157 was at 5 for the fixed Kraken night but e001 (3) was chosen instead and e157 was not placed anywhere; e081 is listed first in both pickleball rooms and the paddle rooms and was never asked; e188 (5) and e127 (4) led the bakery room, e053 (5) led the potluck, and e031/e184/e041 appear in the keenest list of four to five rooms each, yet none were invited. Only 40 of 147 people in rooms were asked, and the log gives no reason for skipping these [533].",
+   "expected": "Fill fixed-event groups with the keenest available people first, and plan at least one group for rooms where a clear keenest person exists (bakery, potluck, trail cleanup) so recurring high-keenness neighbors are not left idle.",
+   "fix": "Add an 11th-12th group (e.g. bakery morning with e188/e127, trail cleanup with e159/e081), and prefer e157 over e001 or use him as first alternate for g1.",
+   "evidence": [
+    533,
+    755
+   ],
+   "source": "AI audit of day 2026-10-31"
+  },
+  {
+   "severity": "low",
+   "kind": "quality issue",
+   "check": "AI audit",
+   "agents": [
+    "e082",
+    "e051"
+   ],
+   "groups": [
+    "2026-10-31/g6"
+   ],
+   "what": "The two people most keen on the day's most popular evening room (Ten Trails walk: e082 at 8, e051 at 6) were redirected to the 1-hour dog walk, and that larger room was never planned.",
+   "why": "The matchmaker's stated reason was that dog lovers were 'a natural fit' for the smaller walk, but the room evidence shows e082's strongest signal of the whole day was the Ten Trails walk. Both accepted, so the outcome held, but a 32-person room with the day's top keenness went unused [533][673][668].",
+   "expected": "Plan the Ten Trails walk for its keenest people, or at least note why it was dropped.",
+   "fix": "Keep the dog walk for e011/e045 and others, and run an Evening Ten Trails walk with e082, e051, e098, e148 or similar.",
+   "evidence": [
+    533,
+    668,
+    673
+   ],
+   "source": "AI audit of day 2026-10-31"
+  },
+  {
+   "severity": "low",
+   "kind": "quality issue",
+   "check": "AI audit",
+   "agents": [
+    "e001",
+    "e094",
+    "e085"
+   ],
+   "groups": [
+    "2026-10-31/g1",
+    "2026-10-31/g3"
+   ],
+   "what": "Some proposal texts overstate shared interests and the plan miscounts its own reach.",
+   "why": "e001 was told the other three 'love watching sports and golf', but e117 lists no golf; e085 was told companions 'enjoy good food and craft beer', but e131 lists no craft beer. The plan's thoughts claim 41 neighbors placed while the groups total 40 [533]. These did not affect acceptance.",
+   "expected": "Proposal claims should match the listed interests of the actual members, and summary counts should be accurate.",
+   "fix": "Describe only interests the members actually have (e.g. 'sports fans, a couple of whom golf').",
+   "evidence": [
+    533
+   ],
+   "source": "AI audit of day 2026-10-31"
+  },
+  {
+   "severity": "medium",
+   "kind": "quality issue",
+   "check": "AI audit",
+   "agents": [
+    "e085",
+    "e074",
+    "e189",
+    "e001",
+    "e198"
+   ],
+   "groups": [
+    "2026-11-01/g2"
+   ],
+   "what": "The evening Seahawks watch party was filled mostly with people whose profiles show no watch-sports interest; e085 (craft beer, mountain biking, book club, basketball) declined because he isn't into watching sports, and the replacement e198 (craft beer, running, boating) also lacks that interest, while e001 (watch sports 3) was left as an unused alternate.",
+   "why": "Room keenness was a flat 3 for everyone, so profile interests should have driven selection; the 'why' called them sports fans but only e058 lists watch sports [824]. The decline was predictable and the mechanical 'first alternate' choice ignored the better-fitting e001 [1046].",
+   "expected": "Pick members for a watch party who list watch sports, and on a decline prefer the alternate whose profile best matches the activity.",
+   "fix": "Put e001 ahead of e198 (or in e085's original slot) for g2; reserve e085 for a brewery or book-club style outing.",
+   "evidence": [
+    824,
+    909,
+    1046,
+    1056
+   ],
+   "source": "AI audit of day 2026-11-01"
+  },
+  {
+   "severity": "low",
+   "kind": "quality issue",
+   "check": "AI audit",
+   "agents": [
+    "e051",
+    "e088",
+    "e190"
+   ],
+   "groups": [
+    "2026-11-01/g1",
+    "2026-11-01/g10"
+   ],
+   "what": "Group rationales overstate fit: g1 is described as 'four committed sports watchers' though e051's profile has no watch-sports interest, and g10 as 'card lovers' though e088 lists no cards interest and e190 only cards 2.",
+   "why": "The individual proposals were honest (craft beer for e051, coffee for e088), and all accepted, but the internal justification doesn't match the profiles shown [824].",
+   "expected": "Group 'why' text should reflect the actual interests of the members chosen.",
+   "fix": "Either choose members who match the stated theme (e.g., e153 or e129 for sports) or describe the group accurately as a mixed beer/coffee social.",
+   "evidence": [
+    824,
+    869,
+    1043,
+    1037
+   ],
+   "source": "AI audit of day 2026-11-01"
+  },
+  {
+   "severity": "low",
+   "kind": "subjective concern",
+   "check": "AI audit",
+   "agents": [
+    "e153",
+    "e121",
+    "e173",
+    "e043"
+   ],
+   "groups": [
+    "2026-11-01/g1",
+    "2026-11-01/g3",
+    "2026-11-01/g4",
+    "2026-11-01/g5"
+   ],
+   "what": "Several people near the top of multiple rooms were not asked at all: e153 (keen 4 in gorge, franklin and afternoon Seahawks; watch sports 3), e121 (keen 4 in gorge), e173 and e043 (keen 3 in pickleball rooms, pickleball 3), while lower-keenness 'also' members such as e113, e162 and e111 were placed.",
+   "why": "With 46-person hiking rooms and only four slots per group, passing over some keen people is unavoidable, but e153 in particular was a strong fit for three different groups and ended up only as a second alternate [824][1046].",
+   "expected": "Keenest multi-room people get at least one invitation or are listed as first alternates.",
+   "fix": "Make e153 first alternate in g1 or g4 and e001/e173 first alternates where they fit; consider an 11th group from the oversubscribed hiking rooms.",
+   "evidence": [
+    824,
+    1046
+   ],
+   "source": "AI audit of day 2026-11-01"
+  },
+  {
+   "severity": "medium",
+   "kind": "quality issue",
+   "check": "AI audit",
+   "agents": [
+    "e117"
+   ],
+   "groups": [
+    "2026-10-31/g1"
+   ],
+   "what": "Ava's agent said yes to a 7-9:30pm event after code told it the event runs past 9pm and Ava avoids late nights, rationalizing that 9:30pm is 'not a late night'.",
+   "why": "The agent overrode an explicit profile avoidance with its own opinion rather than the person's, and also ignored Ava's crowd avoidance for a bar on game night.",
+   "expected": "A decline, or a yes that acknowledges the late-night and crowd concerns and explains why Ava would still accept.",
+   "fix": "Have the agent decline or explicitly justify accepting against the shown late-night flag instead of redefining it.",
+   "evidence": [
+    560,
+    573
+   ],
+   "source": "AI audit of 2026-10-31/g1"
+  },
+  {
+   "severity": "high",
+   "kind": "quality issue",
+   "check": "AI audit",
+   "agents": [
+    "e001"
+   ],
+   "groups": [
+    "2026-10-31/g1"
+   ],
+   "what": "Nikhil's agent accepted a 9:30pm finish, stating he has 'no early morning after', although his Sunday calendar shows only a free evening, and the same agent countered a 9pm end as 'later than he likes to be out' on Wednesday.",
+   "why": "The yes rests on an unsupported calendar claim and directly contradicts the agent's own earlier reading of Nikhil's late-night avoidance, so the acceptance is not defensible from the profile.",
+   "expected": "A counter or decline consistent with [274], or a yes grounded only in facts the profile contains.",
+   "fix": "Remove the 'no early morning after' claim and treat the late-night flag the same way the agent did in [274].",
+   "evidence": [
+    562,
+    578,
+    274,
+    477
+   ],
+   "source": "AI audit of 2026-10-31/g1"
+  },
+  {
+   "severity": "medium",
+   "kind": "quality issue",
+   "check": "AI audit",
+   "agents": [],
+   "groups": [
+    "2026-10-31/g1"
+   ],
+   "what": "The matchmaker proposed a fixed-time 7-9:30pm event to two members who avoid late nights and locked the group without addressing the conflicts, while listing Jim (no sports-watching interest, avoids crowds and spending) as an alternate.",
+   "why": "Half the group now carries a known lifestyle conflict even though the break room offered other sports-watching beer and golf fans, and the alternate pool offered little real backup.",
+   "expected": "Prefer members without a late-night avoidance for a fixed late event, or at least choose alternates who like watching sports.",
+   "fix": "Swap one late-night avoider for a break-room sports watcher such as Kevin B., and replace Jim with a sports-watching alternate.",
+   "evidence": [
+    535,
+    545,
+    560,
+    562,
+    755,
+    781
+   ],
+   "source": "AI audit of 2026-10-31/g1"
+  },
+  {
+   "severity": "low",
+   "kind": "subjective concern",
+   "check": "AI audit",
+   "agents": [
+    "e117"
+   ],
+   "groups": [
+    "2026-10-31/g1"
+   ],
+   "what": "Ava avoids crowds, and a hockey night at a grill is plausibly crowded, but neither code nor the matchmaker nor her agent raised it.",
+   "why": "It is a second profile avoidance that could make the evening unpleasant for her, though the log cannot show how busy the venue will be.",
+   "expected": "The matchmaker or agent should at least note the crowd avoidance when pitching a game-night bar.",
+   "fix": "Mention table/seating or crowd expectations in the pitch to Ava or pick a crowd-tolerant member.",
+   "evidence": [
+    559,
+    573
+   ],
+   "source": "AI audit of 2026-10-31/g1"
+  },
+  {
+   "severity": "medium",
+   "kind": "quality issue",
+   "check": "AI audit",
+   "agents": [
+    "e088"
+   ],
+   "groups": [
+    "2026-11-01/g10"
+   ],
+   "what": "Hannah, who lists no interest in cards, was placed in a four-hand cribbage game while Liam A. and Claire B. (both cards 3, keenness 3, retirees) were in the same break room and not asked; the alternates Arjun and Gary also have no card interest.",
+   "why": "A cribbage table needs four players; a seat given to someone with no card interest weakens the activity's stated purpose ('card lovers') and ignores better-fitting candidates.",
+   "expected": "Fill the fourth seat and alternates from the card-keen candidates in the break room.",
+   "fix": "Ask Liam A. or Claire B. for the fourth seat; keep Hannah for a coffee-centric group.",
+   "evidence": [
+    845,
+    1027,
+    1043,
+    1078
+   ],
+   "source": "AI audit of 2026-11-01/g10"
+  },
+  {
+   "severity": "low",
+   "kind": "quality issue",
+   "check": "AI audit",
+   "agents": [],
+   "groups": [
+    "2026-11-01/g10"
+   ],
+   "what": "Final messages say Tom 'loves' golf and Grace shares 'a love for basketball', and Jack was told 'some experienced players will be at the table'; Tom is only 'up for' golf, Grace only 'up for' basketball, and no profile mentions cribbage experience.",
+   "why": "Messages should use only facts from the profiles; inflated or invented details mislead attendees about each other.",
+   "expected": "Describe shared interests at their actual strength and omit claims the profiles don't support.",
+   "fix": "Soften to 'Tom also enjoys golf', 'Grace is up for basketball too', and drop the 'experienced players' line.",
+   "evidence": [
+    1032,
+    1097
+   ],
+   "source": "AI audit of 2026-11-01/g10"
+  }
+ ],
+ "unsupported": [],
+ "failures": [
+  "2026-10-28/g6: spending ceiling reached; the simulation made no further calls",
+  "2026-11-01/g5: spending ceiling reached; the simulation made no further calls",
+  "2026-10-28/g10: spending ceiling reached; the simulation made no further calls",
+  "2026-10-28/g8: spending ceiling reached; the simulation made no further calls"
+ ],
+ "cost_usd": 1.97362,
+ "groups_audited": 2,
+ "days_audited": 3,
+ "inconsistent_agents": 2,
+ "inconsistent_agent_notes": [
+  {
+   "group": "2026-10-31/g1",
+   "id": "e117",
+   "note": "Said yes despite being shown the late-night conflict, asserting a 9:30pm end is 'not a late night' and never mentioning her crowd avoidance [560][573]."
+  },
+  {
+   "group": "2026-10-31/g1",
+   "id": "e001",
+   "note": "Accepted 9:30pm as fine citing 'no early morning after' that the calendar doesn't support, after countering a 9pm end as too late elsewhere in the run [562][578][274]."
+  }
+ ]
+}

@@ -27,6 +27,9 @@ PURPOSES = [
     ["you are the personal agent of", "matchmaker_agent"],
     ["finish the day's plan", "matchmaker_resolve"],
     ["small group is confirmed", "matchmaker_message"],
+    # the independent audit of a simulation (orchestration_audit.py)
+    ["audit one negotiated group", "audit_group"],
+    ["audit the matchmaker's whole day", "audit_day"],
 ]
 
 

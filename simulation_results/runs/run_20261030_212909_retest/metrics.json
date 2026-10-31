@@ -1,0 +1,25 @@
+{
+ "replies_from": "Claude (live Anthropic API)",
+ "agents": 200,
+ "days": 3,
+ "groups_proposed": 30,
+ "groups_locked": 29,
+ "groups_dropped": 1,
+ "invitations_sent": 123,
+ "agent_replies": 123,
+ "answers": {
+  "yes": 114,
+  "no": 9,
+  "counter": 0
+ },
+ "acceptance_rate": 0.927,
+ "hard_constraint_violations": 0,
+ "agents_accepting_a_conflict_they_were_shown": 0,
+ "orchestration_failures": 0,
+ "days_not_done": 0,
+ "findings_by_check": {},
+ "simulation_cost_usd": 1.229192,
+ "audit_cost_usd": 2.19538,
+ "ai_audit_coverage": "2 of 30 groups, 2 of 3 days",
+ "ai_inconsistent_agents": 0
+}

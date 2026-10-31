@@ -94,6 +94,24 @@ def _weighted(rng, pairs):
     return pairs[len(pairs) - 1][0]
 
 
+def _merge_repeats(likes):
+    # a parent's leans and the kids' leans overlap, so a tag can be drawn twice: keep it once,
+    # at its higher weight. Done after every draw, so the rest of the seeded town is unchanged.
+    out = []
+    where = {}
+    i = 0
+    while i < len(likes):
+        tag = likes[i]["tag"]
+        if tag in where:
+            if likes[i]["weight"] > out[where[tag]]["weight"]:
+                out[where[tag]]["weight"] = likes[i]["weight"]
+        else:
+            where[tag] = len(out)
+            out.append(dict(likes[i]))
+        i += 1
+    return out
+
+
 def _pick(rng, items, how_many):
     # `how_many` distinct items, in random order
     pool = list(items)
@@ -123,7 +141,7 @@ def _kids_at_home(rng, age, archetype):
     return False
 
 
-def _calendar(rng, archetype, kids, start, days):
+def _calendar(rng, archetype, kids, start, days, busier=False):
     # free day parts for each of the next `days` days, with some of them taken
     pattern = ARCHETYPES[archetype]
     out = {}
@@ -140,6 +158,8 @@ def _calendar(rng, archetype, kids, start, days):
             taken = 0.35
             if kids:
                 taken = 0.5
+            if busier:
+                taken += 0.25
             if rng.random() > taken:
                 free.append(usual[i])
             i += 1
@@ -201,9 +221,18 @@ def _name(rng, used):
             return name
 
 
-def generate(count=200, seed=7, start=None, days=7):
-    # the same seed always gives the same town
+def generate(count=200, seed=7, start=None, days=7, busier=False, pickier=False):
+    # the same seed always gives the same town. busier / pickier make the retest town: the same
+    # neighbors (each draw takes the same random numbers), with more of their week taken and more
+    # mild likes, dislikes and things they avoid, so agents get real reasons to say no
     rng = random.Random(seed)
+    weights = [1, 2, 2, 3, 3]
+    dislikes = [1, 3]
+    avoids = [0, 2]
+    if pickier:
+        weights = [1, 1, 2, 2, 3]
+        dislikes = [2, 4]
+        avoids = [1, 3]
     if start is None:
         start = datetime.date.today()
     used = {}
@@ -229,8 +258,9 @@ def generate(count=200, seed=7, start=None, days=7):
         likes = []
         i = 0
         while i < len(like_tags):
-            likes.append({"tag": like_tags[i], "weight": rng.choice([1, 2, 2, 3, 3])})
+            likes.append({"tag": like_tags[i], "weight": rng.choice(weights)})
             i += 1
+        likes = _merge_repeats(likes)
         others = []
         j = 0
         while j < len(catalog.TAGS):
@@ -246,10 +276,10 @@ def generate(count=200, seed=7, start=None, days=7):
             "archetype": archetype,
             "kids_at_home": kids,
             "likes": likes,
-            "dislikes": _pick(rng, others, rng.randint(1, 3)),
-            "avoid": _pick(rng, catalog.TRAITS, rng.randint(0, 2)),
+            "dislikes": _pick(rng, others, rng.randint(dislikes[0], dislikes[1])),
+            "avoid": _pick(rng, catalog.TRAITS, rng.randint(avoids[0], avoids[1])),
             "budget": _weighted(rng, BUDGETS),
-            "calendar": _calendar(rng, archetype, kids, start, days),
+            "calendar": _calendar(rng, archetype, kids, start, days, busier),
             "emulated": True,
         }
         person["brief"] = _brief(person)

@@ -70,3 +70,25 @@ def test_a_crowd_is_split_into_small_groups_across_the_day():
     groups = demand.propose_groups(eight, [kayak], SUNDAY)["groups"]
     assert [len(g["members"]) for g in groups] == [5, 3]
     assert {g["part"] for g in groups} == {"morning", "afternoon"}
+
+
+def test_equal_keenness_is_not_settled_by_id_order():
+    # id order used to give the earliest ids more groups; ties now follow a per-day draw
+    kayak = catalog.get("sawyer-paddle")
+    six = [person(id="p" + str(i)) for i in range(6)]   # all equally keen and free
+    first_pick = set()
+    for d in range(10):
+        day = SUNDAY + datetime.timedelta(days=d)   # kayaking runs every day through October
+        crowd = [dict(p, calendar={day.isoformat(): ["afternoon"]}) for p in six]
+        room = demand.break_room(crowd, [kayak], day)[0]
+        first_pick.add(room["candidates"][0]["id"])
+    assert len(first_pick) > 1
+
+
+def test_the_tie_order_is_reproducible_and_ignores_input_order():
+    people = population.generate(200, seed=7, start=SUNDAY)
+    shuffled = list(reversed(people))
+    assert demand.break_room(people, catalog.ACTIVITIES, SUNDAY) == demand.break_room(shuffled, catalog.ACTIVITIES, SUNDAY)
+    assert demand.tie_order(SUNDAY, "e001") == demand.tie_order(SUNDAY, "e001")
+    # the same FNV-1a value src/web/run-clawnly.js computes for this day and id
+    assert demand.tie_order(datetime.date(2026, 10, 28), "e001") == 1893869886

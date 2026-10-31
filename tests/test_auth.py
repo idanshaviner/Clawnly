@@ -22,6 +22,9 @@ client = TestClient(webapp.app)
 def reset_state():
     db.reset_all()
     os.environ.pop("CLAWNLY_ADMIN_EMAILS", None)
+    # a login route's Set-Cookie stays in the shared client's jar; left there, it
+    # rides along next to a later test's cookies.set() and the server reads the stale one
+    client.cookies.clear()
 
 
 def clear_env(monkeypatch):

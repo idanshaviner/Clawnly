@@ -1,0 +1,220 @@
+{
+ "ceiling_usd": 1.5,
+ "total_usd": 0.094614,
+ "input_tokens": 10814,
+ "output_tokens": 4131,
+ "calls": 13,
+ "calls_without_usage": 0,
+ "note": "output tokens include thinking, which is billed as output; prices in orchestration_sim.PRICES",
+ "by_model": {
+  "claude-opus-5-5": {
+   "calls": 2,
+   "usd": 0.063352,
+   "input_tokens": 2813,
+   "output_tokens": 2605
+  },
+  "claude-sonnet-5": {
+   "calls": 11,
+   "usd": 0.031262,
+   "input_tokens": 8001,
+   "output_tokens": 1526
+  }
+ },
+ "by_purpose": {
+  "matchmaker_plan": {
+   "calls": 1,
+   "usd": 0.0526,
+   "input_tokens": 2310,
+   "output_tokens": 2168
+  },
+  "matchmaker_agent": {
+   "calls": 8,
+   "usd": 0.019108,
+   "input_tokens": 6569,
+   "output_tokens": 597
+  },
+  "matchmaker_resolve": {
+   "calls": 1,
+   "usd": 0.010752,
+   "input_tokens": 503,
+   "output_tokens": 437
+  },
+  "matchmaker_message": {
+   "calls": 3,
+   "usd": 0.012154,
+   "input_tokens": 1432,
+   "output_tokens": 929
+  }
+ },
+ "per_call": [
+  {
+   "seq": 12,
+   "day": "2026-10-31",
+   "purpose": "matchmaker_plan",
+   "model": "claude-opus-5-5",
+   "person": null,
+   "group": null,
+   "input_tokens": 2310,
+   "output_tokens": 2168,
+   "cost_usd": 0.0526,
+   "ms": 22284,
+   "error": null
+  },
+  {
+   "seq": 21,
+   "day": "2026-10-31",
+   "purpose": "matchmaker_agent",
+   "model": "claude-sonnet-5",
+   "person": "e124",
+   "group": "g1",
+   "input_tokens": 845,
+   "output_tokens": 82,
+   "cost_usd": 0.00251,
+   "ms": 1564,
+   "error": null
+  },
+  {
+   "seq": 23,
+   "day": "2026-10-31",
+   "purpose": "matchmaker_agent",
+   "model": "claude-sonnet-5",
+   "person": "e104",
+   "group": "g1",
+   "input_tokens": 807,
+   "output_tokens": 67,
+   "cost_usd": 0.002284,
+   "ms": 1432,
+   "error": null
+  },
+  {
+   "seq": 25,
+   "day": "2026-10-31",
+   "purpose": "matchmaker_agent",
+   "model": "claude-sonnet-5",
+   "person": "e020",
+   "group": "g2",
+   "input_tokens": 857,
+   "output_tokens": 74,
+   "cost_usd": 0.002454,
+   "ms": 1468,
+   "error": null
+  },
+  {
+   "seq": 27,
+   "day": "2026-10-31",
+   "purpose": "matchmaker_agent",
+   "model": "claude-sonnet-5",
+   "person": "e143",
+   "group": "g2",
+   "input_tokens": 859,
+   "output_tokens": 61,
+   "cost_usd": 0.002328,
+   "ms": 1629,
+   "error": null
+  },
+  {
+   "seq": 32,
+   "day": "2026-10-31",
+   "purpose": "matchmaker_agent",
+   "model": "claude-sonnet-5",
+   "person": "e094",
+   "group": "g3",
+   "input_tokens": 785,
+   "output_tokens": 70,
+   "cost_usd": 0.00227,
+   "ms": 1370,
+   "error": null
+  },
+  {
+   "seq": 37,
+   "day": "2026-10-31",
+   "purpose": "matchmaker_agent",
+   "model": "claude-sonnet-5",
+   "person": "e075",
+   "group": "g3",
+   "input_tokens": 804,
+   "output_tokens": 64,
+   "cost_usd": 0.002248,
+   "ms": 1340,
+   "error": null
+  },
+  {
+   "seq": 42,
+   "day": "2026-10-31",
+   "purpose": "matchmaker_agent",
+   "model": "claude-sonnet-5",
+   "person": "e158",
+   "group": "g3",
+   "input_tokens": 799,
+   "output_tokens": 97,
+   "cost_usd": 0.002568,
+   "ms": 1307,
+   "error": null
+  },
+  {
+   "seq": 47,
+   "day": "2026-10-31",
+   "purpose": "matchmaker_agent",
+   "model": "claude-sonnet-5",
+   "person": "e157",
+   "group": "g3",
+   "input_tokens": 813,
+   "output_tokens": 82,
+   "cost_usd": 0.002446,
+   "ms": 1642,
+   "error": null
+  },
+  {
+   "seq": 60,
+   "day": "2026-10-31",
+   "purpose": "matchmaker_resolve",
+   "model": "claude-opus-5-5",
+   "person": null,
+   "group": null,
+   "input_tokens": 503,
+   "output_tokens": 437,
+   "cost_usd": 0.010752,
+   "ms": 6118,
+   "error": null
+  },
+  {
+   "seq": 68,
+   "day": "2026-10-31",
+   "purpose": "matchmaker_message",
+   "model": "claude-sonnet-5",
+   "person": null,
+   "group": "g1",
+   "input_tokens": 461,
+   "output_tokens": 278,
+   "cost_usd": 0.003702,
+   "ms": 3547,
+   "error": null
+  },
+  {
+   "seq": 70,
+   "day": "2026-10-31",
+   "purpose": "matchmaker_message",
+   "model": "claude-sonnet-5",
+   "person": null,
+   "group": "g2",
+   "input_tokens": 464,
+   "output_tokens": 284,
+   "cost_usd": 0.003768,
+   "ms": 3744,
+   "error": null
+  },
+  {
+   "seq": 72,
+   "day": "2026-10-31",
+   "purpose": "matchmaker_message",
+   "model": "claude-sonnet-5",
+   "person": null,
+   "group": "g3",
+   "input_tokens": 507,
+   "output_tokens": 367,
+   "cost_usd": 0.004684,
+   "ms": 4604,
+   "error": null
+  }
+ ]
+}

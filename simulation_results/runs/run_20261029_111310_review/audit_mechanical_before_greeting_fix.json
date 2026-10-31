@@ -1,0 +1,234 @@
+{
+ "findings": [
+  {
+   "severity": "low",
+   "kind": "quality issue",
+   "check": "proposal names another person",
+   "agents": [
+    "e051",
+    "e045"
+   ],
+   "groups": [
+    "2026-10-31/g8"
+   ],
+   "what": "The hub's proposal to e051 mentions 'Nora', a first name of another member of 2026-10-31/g8.",
+   "why": "The plan prompt says not to name the other people before the group is confirmed.",
+   "expected": "Proposals describe the group without names.",
+   "fix": "Check proposals in code for members' names before sending (a human should confirm the word is the name, not an ordinary word).",
+   "evidence": [
+    223
+   ],
+   "source": "code"
+  },
+  {
+   "severity": "low",
+   "kind": "quality issue",
+   "check": "proposal names another person",
+   "agents": [
+    "e045",
+    "e051"
+   ],
+   "groups": [
+    "2026-10-31/g8"
+   ],
+   "what": "The hub's proposal to e045 mentions 'Nora', a first name of another member of 2026-10-31/g8.",
+   "why": "The plan prompt says not to name the other people before the group is confirmed.",
+   "expected": "Proposals describe the group without names.",
+   "fix": "Check proposals in code for members' names before sending (a human should confirm the word is the name, not an ordinary word).",
+   "evidence": [
+    223
+   ],
+   "source": "code"
+  }
+ ],
+ "fairness": {
+  "by_kind": {
+   "all": {
+    "people": 200,
+    "in_a_room": 147,
+    "asked": 40,
+    "placed": 39,
+    "placements": 39
+   },
+   "archetype: commuter": {
+    "people": 77,
+    "in_a_room": 64,
+    "asked": 19,
+    "placed": 19,
+    "placements": 19
+   },
+   "budget: low": {
+    "people": 70,
+    "in_a_room": 51,
+    "asked": 17,
+    "placed": 17,
+    "placements": 17
+   },
+   "kids at home": {
+    "people": 65,
+    "in_a_room": 35,
+    "asked": 9,
+    "placed": 9,
+    "placements": 9
+   },
+   "archetype: remote worker": {
+    "people": 47,
+    "in_a_room": 32,
+    "asked": 5,
+    "placed": 5,
+    "placements": 5
+   },
+   "budget: free": {
+    "people": 27,
+    "in_a_room": 18,
+    "asked": 4,
+    "placed": 4,
+    "placements": 4
+   },
+   "archetype: retiree": {
+    "people": 22,
+    "in_a_room": 17,
+    "asked": 5,
+    "placed": 4,
+    "placements": 4
+   },
+   "budget: any": {
+    "people": 103,
+    "in_a_room": 78,
+    "asked": 19,
+    "placed": 18,
+    "placements": 18
+   },
+   "archetype: shift worker": {
+    "people": 23,
+    "in_a_room": 11,
+    "asked": 2,
+    "placed": 2,
+    "placements": 2
+   },
+   "archetype: student": {
+    "people": 10,
+    "in_a_room": 9,
+    "asked": 4,
+    "placed": 4,
+    "placements": 4
+   },
+   "archetype: parent at home": {
+    "people": 21,
+    "in_a_room": 14,
+    "asked": 5,
+    "placed": 5,
+    "placements": 5
+   }
+  },
+  "in_a_room_but_never_asked": [
+   "e001",
+   "e002",
+   "e003",
+   "e004",
+   "e007",
+   "e012",
+   "e013",
+   "e017",
+   "e023",
+   "e024",
+   "e027",
+   "e029",
+   "e030",
+   "e031",
+   "e034",
+   "e036",
+   "e037",
+   "e038",
+   "e041",
+   "e042",
+   "e044",
+   "e048",
+   "e049",
+   "e050",
+   "e052",
+   "e054",
+   "e059",
+   "e060",
+   "e061",
+   "e062",
+   "e063",
+   "e065",
+   "e067",
+   "e068",
+   "e070",
+   "e072",
+   "e078",
+   "e079",
+   "e080",
+   "e081",
+   "e083",
+   "e084",
+   "e085",
+   "e086",
+   "e090",
+   "e091",
+   "e095",
+   "e097",
+   "e098",
+   "e100",
+   "e101",
+   "e102",
+   "e105",
+   "e106",
+   "e107",
+   "e108",
+   "e112",
+   "e116",
+   "e117",
+   "e122",
+   "e123",
+   "e127",
+   "e128",
+   "e131",
+   "e132",
+   "e134",
+   "e136",
+   "e137",
+   "e140",
+   "e141",
+   "e142",
+   "e144",
+   "e145",
+   "e150",
+   "e151",
+   "e152",
+   "e154",
+   "e155",
+   "e157",
+   "e159",
+   "e161",
+   "e162",
+   "e163",
+   "e164",
+   "e165",
+   "e166",
+   "e167",
+   "e169",
+   "e170",
+   "e171",
+   "e174",
+   "e175",
+   "e177",
+   "e178",
+   "e180",
+   "e181",
+   "e182",
+   "e187",
+   "e188",
+   "e191",
+   "e193",
+   "e194",
+   "e195",
+   "e196",
+   "e197",
+   "e198",
+   "e200"
+  ]
+ }
+}

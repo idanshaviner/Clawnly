@@ -22,6 +22,20 @@ import population
 BUDGET_OK = {"free": ["free"], "low": ["free", "low"], "any": ["free", "low", "mid"]}
 
 
+def tie_order(day, person_id):
+    # equally keen people are ordered by a per-day draw, not by id: id order used
+    # to hand the earliest ids ~15% more groups (evaluation/MATCH_QUALITY_REPORT.md).
+    # FNV-1a, so it's the same every run and in src/web/run-clawnly.js.
+    value = 2166136261
+    text = day.isoformat() + "|" + person_id
+    i = 0
+    while i < len(text):
+        value = value ^ ord(text[i])
+        value = (value * 16777619) % 4294967296
+        i += 1
+    return value
+
+
 def fit(person, activity, day, part):
     # (score, None) if this person could join this activity in this day part,
     # else (0, the reason they can't). The score says how much they'd want to.
@@ -74,7 +88,7 @@ def break_room(people, activities, day):
                     interested.append({"id": people[n]["id"], "score": score})
                 n += 1
             if len(interested) >= catalog.GROUP_MIN:
-                interested.sort(key=lambda c: (-c["score"], c["id"]))
+                interested.sort(key=lambda c: (-c["score"], tie_order(day, c["id"]), c["id"]))
                 slots.append({"activity": activity["id"], "part": part, "candidates": interested})
             p += 1
         a += 1

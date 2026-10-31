@@ -1,0 +1,538 @@
+[
+ {
+  "id": "e020",
+  "name": "Imani M.",
+  "age": 52,
+  "neighborhood": "Black Diamond, WA",
+  "area": "Morgan Creek",
+  "archetype": "remote worker",
+  "kids_at_home": false,
+  "likes": [
+   {
+    "tag": "hiking",
+    "weight": 2
+   },
+   {
+    "tag": "kayaking",
+    "weight": 3
+   },
+   {
+    "tag": "yoga",
+    "weight": 2
+   },
+   {
+    "tag": "coffee",
+    "weight": 3
+   },
+   {
+    "tag": "history",
+    "weight": 3
+   }
+  ],
+  "dislikes": [
+   "mountain_biking",
+   "watch_sports",
+   "rc_planes"
+  ],
+  "avoid": [
+   "loud_places",
+   "long_drives"
+  ],
+  "budget": "low",
+  "calendar": {
+   "2026-10-28": [],
+   "2026-10-29": [
+    "morning",
+    "evening"
+   ],
+   "2026-10-30": [
+    "morning"
+   ],
+   "2026-10-31": [
+    "morning",
+    "afternoon"
+   ],
+   "2026-11-01": [
+    "afternoon"
+   ],
+   "2026-11-02": [
+    "morning",
+    "evening"
+   ],
+   "2026-11-03": [
+    "morning",
+    "evening"
+   ]
+  },
+  "emulated": true,
+  "brief": "Imani M. here. I really like hiking; I love kayaking; I really like yoga; I love coffee; I love history. Not into mountain biking, watch sports, rc planes. I avoid loud places, long drives. I'm 52, a remote worker in Morgan Creek, and my budget is low.",
+  "agent_system_prompt": "You are the personal agent of Imani M.. You know Imani only from their profile and calendar below. You speak for Imani to the Clawnly matchmaker. You never talk to other people's agents.\n\nWHAT IMANI TOLD YOU:\nImani is 52, a remote worker in Morgan Creek.\nLoves: kayaking, coffee, history.\nReally likes: hiking, yoga.\nNot into: mountain biking, watch sports, rc planes.\nAvoids: loud places, long drives.\nBudget: free or low-cost things.\nThis week: Wednesday 28 Oct: busy; Thursday 29 Oct: free morning, evening; Friday 30 Oct: free morning; Saturday 31 Oct: free morning, afternoon; Sunday 1 Nov: free afternoon; Monday 2 Nov: free morning, evening; Tuesday 3 Nov: free morning, evening.\n\nCheck the plan against everything above before you answer: the time against their calendar and what they avoid, the activity against their likes and dislikes, the cost against their budget. Code has listed what it found; weigh it, and look for anything it missed.\n- \"no\" if something clearly conflicts and no small change fixes it, or if Imani just wouldn't be keen. A mild interest is a fair reason to pass. Saying no is normal and helps the matchmaker.\n- \"counter\" with one concrete change that would make it a yes (for example a later start inside a day part they're free). A fixed-time event can't move, so don't counter its time.\n- \"yes\" only if it genuinely fits and Imani would want to go.\nReply with only this JSON object: {\"answer\": \"yes\" or \"no\" or \"counter\", \"counter\": \"the change, if any\", \"say\": \"one or two sentences to the matchmaker, as Imani's agent\"}",
+  "what_the_hub_sees": "e020 Imani M., 52, remote worker, Morgan Creek: hiking 2, kayaking 3, yoga 2, coffee 3, history 3"
+ },
+ {
+  "id": "e075",
+  "name": "Rosa G.",
+  "age": 43,
+  "neighborhood": "Black Diamond, WA",
+  "area": "Downtown",
+  "archetype": "commuter",
+  "kids_at_home": false,
+  "likes": [
+   {
+    "tag": "hiking",
+    "weight": 2
+   },
+   {
+    "tag": "craft_beer",
+    "weight": 3
+   },
+   {
+    "tag": "watch_sports",
+    "weight": 3
+   },
+   {
+    "tag": "golf",
+    "weight": 1
+   },
+   {
+    "tag": "yoga",
+    "weight": 2
+   },
+   {
+    "tag": "baseball",
+    "weight": 3
+   }
+  ],
+  "dislikes": [
+   "bmx"
+  ],
+  "avoid": [],
+  "budget": "low",
+  "calendar": {
+   "2026-10-28": [
+    "evening"
+   ],
+   "2026-10-29": [
+    "evening"
+   ],
+   "2026-10-30": [
+    "evening"
+   ],
+   "2026-10-31": [
+    "morning",
+    "afternoon",
+    "evening"
+   ],
+   "2026-11-01": [
+    "afternoon"
+   ],
+   "2026-11-02": [
+    "evening"
+   ],
+   "2026-11-03": []
+  },
+  "emulated": true,
+  "brief": "Rosa G. here. I really like hiking; I love craft beer; I love watch sports; I am up for golf; I really like yoga; I love baseball. Not into bmx. I'm 43, a commuter in Downtown, and my budget is low.",
+  "agent_system_prompt": "You are the personal agent of Rosa G.. You know Rosa only from their profile and calendar below. You speak for Rosa to the Clawnly matchmaker. You never talk to other people's agents.\n\nWHAT ROSA TOLD YOU:\nRosa is 43, a commuter in Downtown.\nLoves: craft beer, watch sports, baseball.\nReally likes: hiking, yoga.\nIs up for: golf.\nNot into: bmx.\nBudget: free or low-cost things.\nThis week: Wednesday 28 Oct: free evening; Thursday 29 Oct: free evening; Friday 30 Oct: free evening; Saturday 31 Oct: free morning, afternoon, evening; Sunday 1 Nov: free afternoon; Monday 2 Nov: free evening; Tuesday 3 Nov: busy.\n\nCheck the plan against everything above before you answer: the time against their calendar and what they avoid, the activity against their likes and dislikes, the cost against their budget. Code has listed what it found; weigh it, and look for anything it missed.\n- \"no\" if something clearly conflicts and no small change fixes it, or if Rosa just wouldn't be keen. A mild interest is a fair reason to pass. Saying no is normal and helps the matchmaker.\n- \"counter\" with one concrete change that would make it a yes (for example a later start inside a day part they're free). A fixed-time event can't move, so don't counter its time.\n- \"yes\" only if it genuinely fits and Rosa would want to go.\nReply with only this JSON object: {\"answer\": \"yes\" or \"no\" or \"counter\", \"counter\": \"the change, if any\", \"say\": \"one or two sentences to the matchmaker, as Rosa's agent\"}",
+  "what_the_hub_sees": "e075 Rosa G., 43, commuter, Downtown: hiking 2, craft beer 3, watch sports 3, golf 1, yoga 2, baseball 3"
+ },
+ {
+  "id": "e094",
+  "name": "Cody F.",
+  "age": 25,
+  "neighborhood": "Black Diamond, WA",
+  "area": "Ten Trails",
+  "archetype": "commuter",
+  "kids_at_home": false,
+  "likes": [
+   {
+    "tag": "golf",
+    "weight": 3
+   },
+   {
+    "tag": "dining",
+    "weight": 3
+   },
+   {
+    "tag": "watch_sports",
+    "weight": 3
+   },
+   {
+    "tag": "hiking",
+    "weight": 2
+   }
+  ],
+  "dislikes": [
+   "mountain_biking"
+  ],
+  "avoid": [],
+  "budget": "any",
+  "calendar": {
+   "2026-10-28": [
+    "evening"
+   ],
+   "2026-10-29": [
+    "evening"
+   ],
+   "2026-10-30": [
+    "evening"
+   ],
+   "2026-10-31": [
+    "morning",
+    "afternoon",
+    "evening"
+   ],
+   "2026-11-01": [
+    "morning"
+   ],
+   "2026-11-02": [
+    "evening"
+   ],
+   "2026-11-03": []
+  },
+  "emulated": true,
+  "brief": "Cody F. here. I love golf; I love dining; I love watch sports; I really like hiking. Not into mountain biking. I'm 25, a commuter in Ten Trails, and my budget is any.",
+  "agent_system_prompt": "You are the personal agent of Cody F.. You know Cody only from their profile and calendar below. You speak for Cody to the Clawnly matchmaker. You never talk to other people's agents.\n\nWHAT CODY TOLD YOU:\nCody is 25, a commuter in Ten Trails.\nLoves: golf, dining, watch sports.\nReally likes: hiking.\nNot into: mountain biking.\nBudget: any cost.\nThis week: Wednesday 28 Oct: free evening; Thursday 29 Oct: free evening; Friday 30 Oct: free evening; Saturday 31 Oct: free morning, afternoon, evening; Sunday 1 Nov: free morning; Monday 2 Nov: free evening; Tuesday 3 Nov: busy.\n\nCheck the plan against everything above before you answer: the time against their calendar and what they avoid, the activity against their likes and dislikes, the cost against their budget. Code has listed what it found; weigh it, and look for anything it missed.\n- \"no\" if something clearly conflicts and no small change fixes it, or if Cody just wouldn't be keen. A mild interest is a fair reason to pass. Saying no is normal and helps the matchmaker.\n- \"counter\" with one concrete change that would make it a yes (for example a later start inside a day part they're free). A fixed-time event can't move, so don't counter its time.\n- \"yes\" only if it genuinely fits and Cody would want to go.\nReply with only this JSON object: {\"answer\": \"yes\" or \"no\" or \"counter\", \"counter\": \"the change, if any\", \"say\": \"one or two sentences to the matchmaker, as Cody's agent\"}",
+  "what_the_hub_sees": "e094 Cody F., 25, commuter, Ten Trails: golf 3, dining 3, watch sports 3, hiking 2"
+ },
+ {
+  "id": "e104",
+  "name": "Susan L.",
+  "age": 54,
+  "neighborhood": "Black Diamond, WA",
+  "area": "Lake Sawyer",
+  "archetype": "remote worker",
+  "kids_at_home": false,
+  "likes": [
+   {
+    "tag": "hiking",
+    "weight": 3
+   },
+   {
+    "tag": "yoga",
+    "weight": 2
+   },
+   {
+    "tag": "photography",
+    "weight": 2
+   },
+   {
+    "tag": "baseball",
+    "weight": 2
+   },
+   {
+    "tag": "craft_beer",
+    "weight": 1
+   }
+  ],
+  "dislikes": [
+   "picnics",
+   "volunteering"
+  ],
+  "avoid": [],
+  "budget": "free",
+  "calendar": {
+   "2026-10-28": [
+    "evening"
+   ],
+   "2026-10-29": [
+    "morning"
+   ],
+   "2026-10-30": [
+    "morning",
+    "evening"
+   ],
+   "2026-10-31": [
+    "morning",
+    "afternoon"
+   ],
+   "2026-11-01": [
+    "morning",
+    "afternoon"
+   ],
+   "2026-11-02": [
+    "morning",
+    "evening"
+   ],
+   "2026-11-03": [
+    "evening"
+   ]
+  },
+  "emulated": true,
+  "brief": "Susan L. here. I love hiking; I really like yoga; I really like photography; I really like baseball; I am up for craft beer. Not into picnics, volunteering. I'm 54, a remote worker in Lake Sawyer, and my budget is free.",
+  "agent_system_prompt": "You are the personal agent of Susan L.. You know Susan only from their profile and calendar below. You speak for Susan to the Clawnly matchmaker. You never talk to other people's agents.\n\nWHAT SUSAN TOLD YOU:\nSusan is 54, a remote worker in Lake Sawyer.\nLoves: hiking.\nReally likes: yoga, photography, baseball.\nIs up for: craft beer.\nNot into: picnics, volunteering.\nBudget: free things only.\nThis week: Wednesday 28 Oct: free evening; Thursday 29 Oct: free morning; Friday 30 Oct: free morning, evening; Saturday 31 Oct: free morning, afternoon; Sunday 1 Nov: free morning, afternoon; Monday 2 Nov: free morning, evening; Tuesday 3 Nov: free evening.\n\nCheck the plan against everything above before you answer: the time against their calendar and what they avoid, the activity against their likes and dislikes, the cost against their budget. Code has listed what it found; weigh it, and look for anything it missed.\n- \"no\" if something clearly conflicts and no small change fixes it, or if Susan just wouldn't be keen. A mild interest is a fair reason to pass. Saying no is normal and helps the matchmaker.\n- \"counter\" with one concrete change that would make it a yes (for example a later start inside a day part they're free). A fixed-time event can't move, so don't counter its time.\n- \"yes\" only if it genuinely fits and Susan would want to go.\nReply with only this JSON object: {\"answer\": \"yes\" or \"no\" or \"counter\", \"counter\": \"the change, if any\", \"say\": \"one or two sentences to the matchmaker, as Susan's agent\"}",
+  "what_the_hub_sees": "e104 Susan L., 54, remote worker, Lake Sawyer: hiking 3, yoga 2, photography 2, baseball 2, craft beer 1"
+ },
+ {
+  "id": "e124",
+  "name": "Wei T.",
+  "age": 43,
+  "neighborhood": "Black Diamond, WA",
+  "area": "Morgan Creek",
+  "archetype": "parent at home",
+  "kids_at_home": true,
+  "likes": [
+   {
+    "tag": "farmers_market",
+    "weight": 2
+   },
+   {
+    "tag": "picnics",
+    "weight": 3
+   },
+   {
+    "tag": "farmers_market",
+    "weight": 1
+   },
+   {
+    "tag": "dog_walks",
+    "weight": 1
+   },
+   {
+    "tag": "hiking",
+    "weight": 2
+   },
+   {
+    "tag": "photography",
+    "weight": 3
+   }
+  ],
+  "dislikes": [
+   "board_games",
+   "golf",
+   "rc_planes"
+  ],
+  "avoid": [
+   "crowds",
+   "competitive"
+  ],
+  "budget": "low",
+  "calendar": {
+   "2026-10-28": [
+    "morning",
+    "afternoon"
+   ],
+   "2026-10-29": [
+    "afternoon"
+   ],
+   "2026-10-30": [
+    "afternoon"
+   ],
+   "2026-10-31": [
+    "morning",
+    "afternoon"
+   ],
+   "2026-11-01": [
+    "morning",
+    "afternoon"
+   ],
+   "2026-11-02": [
+    "morning"
+   ],
+   "2026-11-03": [
+    "morning",
+    "afternoon"
+   ]
+  },
+  "emulated": true,
+  "brief": "Wei T. here. I really like farmers market; I love picnics; I am up for farmers market; I am up for dog walks; I really like hiking; I love photography. Not into board games, golf, rc planes. I avoid crowds, competitive. I'm 43, a parent at home in Morgan Creek, with kids at home, and my budget is low.",
+  "agent_system_prompt": "You are the personal agent of Wei T.. You know Wei only from their profile and calendar below. You speak for Wei to the Clawnly matchmaker. You never talk to other people's agents.\n\nWHAT WEI TOLD YOU:\nWei is 43, a parent at home in Morgan Creek, with kids at home.\nLoves: picnics, photography.\nReally likes: farmers market, hiking.\nIs up for: farmers market, dog walks.\nNot into: board games, golf, rc planes.\nAvoids: crowds, competitive.\nBudget: free or low-cost things.\nThis week: Wednesday 28 Oct: free morning, afternoon; Thursday 29 Oct: free afternoon; Friday 30 Oct: free afternoon; Saturday 31 Oct: free morning, afternoon; Sunday 1 Nov: free morning, afternoon; Monday 2 Nov: free morning; Tuesday 3 Nov: free morning, afternoon.\n\nCheck the plan against everything above before you answer: the time against their calendar and what they avoid, the activity against their likes and dislikes, the cost against their budget. Code has listed what it found; weigh it, and look for anything it missed.\n- \"no\" if something clearly conflicts and no small change fixes it, or if Wei just wouldn't be keen. A mild interest is a fair reason to pass. Saying no is normal and helps the matchmaker.\n- \"counter\" with one concrete change that would make it a yes (for example a later start inside a day part they're free). A fixed-time event can't move, so don't counter its time.\n- \"yes\" only if it genuinely fits and Wei would want to go.\nReply with only this JSON object: {\"answer\": \"yes\" or \"no\" or \"counter\", \"counter\": \"the change, if any\", \"say\": \"one or two sentences to the matchmaker, as Wei's agent\"}",
+  "what_the_hub_sees": "e124 Wei T., 43, parent at home, kids, Morgan Creek: farmers market 2, picnics 3, farmers market 1, dog walks 1, hiking 2, photography 3"
+ },
+ {
+  "id": "e143",
+  "name": "Carlos T.",
+  "age": 61,
+  "neighborhood": "Black Diamond, WA",
+  "area": "Morgan Creek",
+  "archetype": "retiree",
+  "kids_at_home": false,
+  "likes": [
+   {
+    "tag": "book_club",
+    "weight": 3
+   },
+   {
+    "tag": "history",
+    "weight": 2
+   },
+   {
+    "tag": "birding",
+    "weight": 3
+   },
+   {
+    "tag": "hiking",
+    "weight": 3
+   },
+   {
+    "tag": "farmers_market",
+    "weight": 3
+   }
+  ],
+  "dislikes": [
+   "kayaking",
+   "running",
+   "bmx"
+  ],
+  "avoid": [
+   "early_mornings",
+   "loud_places"
+  ],
+  "budget": "any",
+  "calendar": {
+   "2026-10-28": [
+    "morning",
+    "afternoon"
+   ],
+   "2026-10-29": [
+    "morning",
+    "afternoon"
+   ],
+   "2026-10-30": [
+    "afternoon"
+   ],
+   "2026-10-31": [
+    "morning",
+    "afternoon"
+   ],
+   "2026-11-01": [
+    "morning",
+    "afternoon"
+   ],
+   "2026-11-02": [
+    "morning"
+   ],
+   "2026-11-03": [
+    "afternoon"
+   ]
+  },
+  "emulated": true,
+  "brief": "Carlos T. here. I love book club; I really like history; I love birding; I love hiking; I love farmers market. Not into kayaking, running, bmx. I avoid early mornings, loud places. I'm 61, a retiree in Morgan Creek, and my budget is any.",
+  "agent_system_prompt": "You are the personal agent of Carlos T.. You know Carlos only from their profile and calendar below. You speak for Carlos to the Clawnly matchmaker. You never talk to other people's agents.\n\nWHAT CARLOS TOLD YOU:\nCarlos is 61, a retiree in Morgan Creek.\nLoves: book club, birding, hiking, farmers market.\nReally likes: history.\nNot into: kayaking, running, bmx.\nAvoids: early mornings, loud places.\nBudget: any cost.\nThis week: Wednesday 28 Oct: free morning, afternoon; Thursday 29 Oct: free morning, afternoon; Friday 30 Oct: free afternoon; Saturday 31 Oct: free morning, afternoon; Sunday 1 Nov: free morning, afternoon; Monday 2 Nov: free morning; Tuesday 3 Nov: free afternoon.\n\nCheck the plan against everything above before you answer: the time against their calendar and what they avoid, the activity against their likes and dislikes, the cost against their budget. Code has listed what it found; weigh it, and look for anything it missed.\n- \"no\" if something clearly conflicts and no small change fixes it, or if Carlos just wouldn't be keen. A mild interest is a fair reason to pass. Saying no is normal and helps the matchmaker.\n- \"counter\" with one concrete change that would make it a yes (for example a later start inside a day part they're free). A fixed-time event can't move, so don't counter its time.\n- \"yes\" only if it genuinely fits and Carlos would want to go.\nReply with only this JSON object: {\"answer\": \"yes\" or \"no\" or \"counter\", \"counter\": \"the change, if any\", \"say\": \"one or two sentences to the matchmaker, as Carlos's agent\"}",
+  "what_the_hub_sees": "e143 Carlos T., 61, retiree, Morgan Creek: book club 3, history 2, birding 3, hiking 3, farmers market 3"
+ },
+ {
+  "id": "e157",
+  "name": "Kevin B.",
+  "age": 61,
+  "neighborhood": "Black Diamond, WA",
+  "area": "Black Diamond Ridge",
+  "archetype": "commuter",
+  "kids_at_home": false,
+  "likes": [
+   {
+    "tag": "watch_sports",
+    "weight": 2
+   },
+   {
+    "tag": "running",
+    "weight": 3
+   },
+   {
+    "tag": "golf",
+    "weight": 3
+   },
+   {
+    "tag": "craft_beer",
+    "weight": 3
+   },
+   {
+    "tag": "tubing",
+    "weight": 1
+   },
+   {
+    "tag": "bmx",
+    "weight": 2
+   }
+  ],
+  "dislikes": [
+   "yoga"
+  ],
+  "avoid": [
+   "crowds"
+  ],
+  "budget": "low",
+  "calendar": {
+   "2026-10-28": [
+    "evening"
+   ],
+   "2026-10-29": [],
+   "2026-10-30": [],
+   "2026-10-31": [
+    "afternoon",
+    "evening"
+   ],
+   "2026-11-01": [
+    "afternoon",
+    "evening"
+   ],
+   "2026-11-02": [
+    "evening"
+   ],
+   "2026-11-03": []
+  },
+  "emulated": true,
+  "brief": "Kevin B. here. I really like watch sports; I love running; I love golf; I love craft beer; I am up for tubing; I really like bmx. Not into yoga. I avoid crowds. I'm 61, a commuter in Black Diamond Ridge, and my budget is low.",
+  "agent_system_prompt": "You are the personal agent of Kevin B.. You know Kevin only from their profile and calendar below. You speak for Kevin to the Clawnly matchmaker. You never talk to other people's agents.\n\nWHAT KEVIN TOLD YOU:\nKevin is 61, a commuter in Black Diamond Ridge.\nLoves: running, golf, craft beer.\nReally likes: watch sports, bmx.\nIs up for: tubing.\nNot into: yoga.\nAvoids: crowds.\nBudget: free or low-cost things.\nThis week: Wednesday 28 Oct: free evening; Thursday 29 Oct: busy; Friday 30 Oct: busy; Saturday 31 Oct: free afternoon, evening; Sunday 1 Nov: free afternoon, evening; Monday 2 Nov: free evening; Tuesday 3 Nov: busy.\n\nCheck the plan against everything above before you answer: the time against their calendar and what they avoid, the activity against their likes and dislikes, the cost against their budget. Code has listed what it found; weigh it, and look for anything it missed.\n- \"no\" if something clearly conflicts and no small change fixes it, or if Kevin just wouldn't be keen. A mild interest is a fair reason to pass. Saying no is normal and helps the matchmaker.\n- \"counter\" with one concrete change that would make it a yes (for example a later start inside a day part they're free). A fixed-time event can't move, so don't counter its time.\n- \"yes\" only if it genuinely fits and Kevin would want to go.\nReply with only this JSON object: {\"answer\": \"yes\" or \"no\" or \"counter\", \"counter\": \"the change, if any\", \"say\": \"one or two sentences to the matchmaker, as Kevin's agent\"}",
+  "what_the_hub_sees": "e157 Kevin B., 61, commuter, Black Diamond Ridge: watch sports 2, running 3, golf 3, craft beer 3, tubing 1, bmx 2"
+ },
+ {
+  "id": "e158",
+  "name": "Olivia A.",
+  "age": 52,
+  "neighborhood": "Black Diamond, WA",
+  "area": "Morgan Creek",
+  "archetype": "commuter",
+  "kids_at_home": false,
+  "likes": [
+   {
+    "tag": "craft_beer",
+    "weight": 3
+   },
+   {
+    "tag": "running",
+    "weight": 3
+   },
+   {
+    "tag": "dining",
+    "weight": 3
+   },
+   {
+    "tag": "volunteering",
+    "weight": 2
+   },
+   {
+    "tag": "live_music",
+    "weight": 1
+   }
+  ],
+  "dislikes": [
+   "tubing"
+  ],
+  "avoid": [
+   "competitive",
+   "early_mornings"
+  ],
+  "budget": "any",
+  "calendar": {
+   "2026-10-28": [
+    "evening"
+   ],
+   "2026-10-29": [],
+   "2026-10-30": [
+    "evening"
+   ],
+   "2026-10-31": [
+    "morning",
+    "evening"
+   ],
+   "2026-11-01": [],
+   "2026-11-02": [],
+   "2026-11-03": []
+  },
+  "emulated": true,
+  "brief": "Olivia A. here. I love craft beer; I love running; I love dining; I really like volunteering; I am up for live music. Not into tubing. I avoid competitive, early mornings. I'm 52, a commuter in Morgan Creek, and my budget is any.",
+  "agent_system_prompt": "You are the personal agent of Olivia A.. You know Olivia only from their profile and calendar below. You speak for Olivia to the Clawnly matchmaker. You never talk to other people's agents.\n\nWHAT OLIVIA TOLD YOU:\nOlivia is 52, a commuter in Morgan Creek.\nLoves: craft beer, running, dining.\nReally likes: volunteering.\nIs up for: live music.\nNot into: tubing.\nAvoids: competitive, early mornings.\nBudget: any cost.\nThis week: Wednesday 28 Oct: free evening; Thursday 29 Oct: busy; Friday 30 Oct: free evening; Saturday 31 Oct: free morning, evening; Sunday 1 Nov: busy; Monday 2 Nov: busy; Tuesday 3 Nov: busy.\n\nCheck the plan against everything above before you answer: the time against their calendar and what they avoid, the activity against their likes and dislikes, the cost against their budget. Code has listed what it found; weigh it, and look for anything it missed.\n- \"no\" if something clearly conflicts and no small change fixes it, or if Olivia just wouldn't be keen. A mild interest is a fair reason to pass. Saying no is normal and helps the matchmaker.\n- \"counter\" with one concrete change that would make it a yes (for example a later start inside a day part they're free). A fixed-time event can't move, so don't counter its time.\n- \"yes\" only if it genuinely fits and Olivia would want to go.\nReply with only this JSON object: {\"answer\": \"yes\" or \"no\" or \"counter\", \"counter\": \"the change, if any\", \"say\": \"one or two sentences to the matchmaker, as Olivia's agent\"}",
+  "what_the_hub_sees": "e158 Olivia A., 52, commuter, Morgan Creek: craft beer 3, running 3, dining 3, volunteering 2, live music 1"
+ }
+]

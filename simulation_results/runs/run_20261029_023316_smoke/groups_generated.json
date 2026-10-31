@@ -1,0 +1,285 @@
+[
+ {
+  "group": "2026-10-31/g1",
+  "day": "2026-10-31",
+  "id": "g1",
+  "activity": "gorge",
+  "activity_name": "Green River Gorge hike",
+  "where": "Green River Gorge Conservation Area",
+  "cost": "free",
+  "part": "morning",
+  "time_planned": "9am-12pm",
+  "time_final": "9am-12pm",
+  "fixed_event": false,
+  "why_hub_chose_it": "Two keen hikers in their 40s and 50s who both love photography, on the most photogenic trail around.",
+  "proposed_members": [
+   "e124",
+   "e104"
+  ],
+  "alternates": [
+   "e020",
+   "e094"
+  ],
+  "members": [
+   {
+    "id": "e124",
+    "name": "Wei T.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "This sounds great - Saturday morning works perfectly, Wei loves hiking and photography, it's free, and a small group with a fellow photography enthusiast is just the right vibe. Count Wei in!",
+      "ask_seq": 20,
+      "reply_seq": 38,
+      "call_seq": 21,
+      "group_time_at_ask": "9am-12pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e104",
+    "name": "Susan L.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Susan's free Saturday morning and loves hiking plus photography - this gorge hike with fall colors sounds perfect, and it's free. Count her in!",
+      "ask_seq": 22,
+      "reply_seq": 28,
+      "call_seq": 23,
+      "group_time_at_ask": "9am-12pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   }
+  ],
+  "final_members": [
+   "e124",
+   "e104"
+  ],
+  "status": "locked",
+  "drop_reason": null,
+  "signals": {
+   "shared_likes_overlap": 0.25,
+   "age_spread": 11
+  },
+  "headline": "Two trail-loving neighbors are set for the Green River Gorge",
+  "final_messages": {
+   "e124": "Wei, your small group hike at Green River Gorge Conservation Area is confirmed for Saturday 31 Oct, 9am-12pm. You'll be joined by Susan, a fellow hiking and photography lover, so expect some good stops along the way to snap the gorge views. Low-key and no crowds, just like you like it.",
+   "e104": "Susan, you're confirmed for the Green River Gorge hike this Saturday 31 Oct, 9am-12pm at the Green River Gorge Conservation Area. You'll be hiking with Wei, who shares your love of hiking and photography, so bring your camera for the overlooks. Should be a nice, easy-paced morning out on the trail."
+  },
+  "evidence": {
+   "proposed_seq": 17,
+   "plan_call_seq": 12,
+   "resolve_call_seq": 60,
+   "status_seq": 65,
+   "time_change_seqs": [],
+   "message_call_seq": 68
+  }
+ },
+ {
+  "group": "2026-10-31/g2",
+  "day": "2026-10-31",
+  "id": "g2",
+  "activity": "franklin",
+  "activity_name": "Franklin ghost town hike",
+  "where": "Franklin ghost town trail, Green River Gorge Rd",
+  "cost": "free",
+  "part": "afternoon",
+  "time_planned": "1pm-4pm",
+  "time_final": "1pm-4pm",
+  "fixed_event": false,
+  "why_hub_chose_it": "Two Morgan Creek history buffs who love hiking, exploring an old coal-mining ghost town together.",
+  "proposed_members": [
+   "e020",
+   "e143"
+  ],
+  "alternates": [],
+  "members": [
+   {
+    "id": "e020",
+    "name": "Imani M.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "This is a great fit—Imani loves hiking and history, it's free, Saturday afternoon is open, and a small neighbor group sounds low-key and not loud. Count her in!",
+      "ask_seq": 24,
+      "reply_seq": 33,
+      "call_seq": 25,
+      "group_time_at_ask": "1pm-4pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e143",
+    "name": "Carlos T.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Carlos would love this — hiking, history, and a ghost town ruin all in one, during his free Saturday afternoon. Count him in!",
+      "ask_seq": 26,
+      "reply_seq": 43,
+      "call_seq": 27,
+      "group_time_at_ask": "1pm-4pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   }
+  ],
+  "final_members": [
+   "e020",
+   "e143"
+  ],
+  "status": "locked",
+  "drop_reason": null,
+  "signals": {
+   "shared_likes_overlap": 0.25,
+   "age_spread": 9
+  },
+  "headline": "A ghost town walk through Franklin's history, Halloween weekend",
+  "final_messages": {
+   "e020": "Imani, you're set for the Franklin ghost town hike on Saturday 31 Oct, 1-4pm, along Green River Gorge Rd. You'll be walking with Carlos, a fellow Morgan Creek local — with your shared love of history, this old townsite will give you plenty to explore together.",
+   "e143": "Carlos, your small group for the Franklin ghost town hike is confirmed: Saturday 31 Oct, 1-4pm at Green River Gorge Rd. You're joined by Imani, another Morgan Creek resident who loves hiking and history just as much as you do, so the ghost town's backstory should make for great conversation on the trail."
+  },
+  "evidence": {
+   "proposed_seq": 18,
+   "plan_call_seq": 12,
+   "resolve_call_seq": 60,
+   "status_seq": 66,
+   "time_change_seqs": [],
+   "message_call_seq": 70
+  }
+ },
+ {
+  "group": "2026-10-31/g3",
+  "day": "2026-10-31",
+  "id": "g3",
+  "activity": "kraken",
+  "activity_name": "Kraken hockey night",
+  "where": "Black Diamond Grill",
+  "cost": "low",
+  "part": "evening",
+  "time_planned": "7pm-9:30pm",
+  "time_final": "7pm-9:30pm",
+  "fixed_event": true,
+  "why_hub_chose_it": "Four big sports fans who also share a taste for good food and craft beer, watching the Kraken together.",
+  "proposed_members": [
+   "e094",
+   "e075",
+   "e158",
+   "e157"
+  ],
+  "alternates": [],
+  "members": [
+   {
+    "id": "e094",
+    "name": "Cody F.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Cody's free Saturday evening and loves watch sports plus dining, so Kraken hockey night at Black Diamond Grill is a great fit. Count him in!",
+      "ask_seq": 31,
+      "reply_seq": 48,
+      "call_seq": 32,
+      "group_time_at_ask": "7pm-9:30pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e075",
+    "name": "Rosa G.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Rosa's free Saturday evening and this is right up her alley—watching sports with craft beer and meeting neighbors sounds great. She's in!",
+      "ask_seq": 36,
+      "reply_seq": 51,
+      "call_seq": 37,
+      "group_time_at_ask": "7pm-9:30pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e158",
+    "name": "Olivia A.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "no",
+      "counter": "",
+      "said": "Olivia's free Saturday evening, but watching a competitive sports game isn't her thing—she avoids competitive settings and this isn't really aligned with her interests in craft beer, running, dining, or volunteering. Thanks for thinking of her though!",
+      "ask_seq": 41,
+      "reply_seq": 54,
+      "call_seq": 42,
+      "group_time_at_ask": "7pm-9:30pm"
+     }
+    ],
+    "final_state": "no",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e157",
+    "name": "Kevin B.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Kevin's free Saturday evening and loves watching sports with craft beer on hand — count him in for Kraken hockey night at Black Diamond Grill, low cost and small group works great for him.",
+      "ask_seq": 46,
+      "reply_seq": 57,
+      "call_seq": 47,
+      "group_time_at_ask": "7pm-9:30pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   }
+  ],
+  "final_members": [
+   "e094",
+   "e075",
+   "e157"
+  ],
+  "status": "locked",
+  "drop_reason": null,
+  "signals": {
+   "shared_likes_overlap": 0.337,
+   "age_spread": 36
+  },
+  "headline": "Three Black Diamond regulars are catching the Kraken game together",
+  "final_messages": {
+   "e094": "Cody, you're set for Kraken hockey night at Black Diamond Grill this Saturday, Oct 31, 7-9:30pm. You'll be with Rosa and Kevin, and with all three of you loving to watch sports, this should be an easy one to settle into over a beer and some good plays.",
+   "e075": "Rosa, your Kraken hockey night at Black Diamond Grill is locked in for Saturday, Oct 31, 7-9:30pm, alongside Cody and Kevin. Between your craft beer love and their shared passion for watching sports, you'll have plenty to talk about between periods.",
+   "e157": "Kevin, you're joining Cody and Rosa for Kraken hockey night at Black Diamond Grill this Saturday, Oct 31, from 7-9:30pm. You all love watching sports and golf, so expect some good game talk and maybe a few course stories mixed in with the hockey."
+  },
+  "evidence": {
+   "proposed_seq": 19,
+   "plan_call_seq": 12,
+   "resolve_call_seq": 60,
+   "status_seq": 67,
+   "time_change_seqs": [],
+   "message_call_seq": 72
+  }
+ }
+]

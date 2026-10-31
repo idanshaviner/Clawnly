@@ -54,3 +54,30 @@ def test_weekend_calendars_follow_the_archetype():
     for p in town():
         usual = population.ARCHETYPES[p["archetype"]]["weekend"]
         assert set(p["calendar"][saturday]) <= set(usual)
+
+
+def test_no_one_likes_the_same_thing_twice():
+    # a parent's leans and the kids' leans overlap; a repeated tag would count twice in demand.fit
+    town = population.generate(200, seed=7, start=datetime.date(2026, 10, 28))
+    for person in town:
+        tags = [like["tag"] for like in person["likes"]]
+        assert len(tags) == len(set(tags)), person["id"]
+    wei = next(p for p in town if p["id"] == "e124")
+    assert {"tag": "farmers_market", "weight": 2} in wei["likes"]
+
+
+def test_the_retest_town_is_busier_and_pickier_but_the_same_people():
+    plain = town()
+    harder = population.generate(200, seed=7, start=START, busier=True, pickier=True)
+    for a, b in zip(plain, harder):
+        assert (a["name"], a["age"], a["archetype"], a["area"]) == (b["name"], b["age"], b["archetype"], b["area"])
+        assert [like["tag"] for like in a["likes"]] == [like["tag"] for like in b["likes"]]
+    def free(people):
+        return sum(len(parts) for p in people for parts in p["calendar"].values())
+    def mild(people):
+        return sum(1 for p in people for like in p["likes"] if like["weight"] == 1)
+    assert free(harder) < 0.7 * free(plain)
+    assert mild(harder) > 1.5 * mild(plain)
+    assert sum(len(p["dislikes"]) for p in harder) > sum(len(p["dislikes"]) for p in plain)
+    assert sum(len(p["avoid"]) for p in harder) > sum(len(p["avoid"]) for p in plain)
+    assert all(p["avoid"] for p in harder)

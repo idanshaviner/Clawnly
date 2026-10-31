@@ -12,3 +12,9 @@ tests/test_clawnly.db-*
 clawnly_*.db
 clawnly_*.db-*
 pilot_visual_demo_output/
+# simulation databases (each run folder keeps its own verbatim record)
+simulation_results/simulation.db
+simulation_results/simulation.db-*
+simulation_results/metadata/simulation.db
+simulation_results/metadata/simulation.db-*
+simulation_results/review_package.zip

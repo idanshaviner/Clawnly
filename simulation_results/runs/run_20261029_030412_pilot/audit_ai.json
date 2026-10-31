@@ -1,0 +1,561 @@
+{
+ "auditor": "claude-fable-5-1",
+ "effort": "medium",
+ "sampling": "all 0 groups code flagged or that didn't lock, plus 8 of the other 12 drawn with seed 7",
+ "groups": [
+  {
+   "group": "2026-10-31/g2",
+   "verdict": "good",
+   "summary": "Four runners who are all free Saturday morning were offered a free, easy 5K, and every agent said yes with reasons that match their profiles. The matchmaker correctly kept the group as proposed and the final messages name only the four attendees using profile facts. Only minor wording overstatements and one unverifiable claim appear.",
+   "compatibility": "All four love or really like running, are free Saturday morning, and a free event fits the three low-cost budgets and Quinn's aversion to spending money. The age spread (25 to 84) is wide but nothing in the profiles suggests a clash for a non-competitive run; no one else was listed in the break room, so no better fit is visible.",
+   "agents": [
+    {
+     "id": "e088",
+     "consistent": true,
+     "note": "Yes grounded in free Saturday morning and love of running [239], matching the profile."
+    },
+    {
+     "id": "e170",
+     "consistent": true,
+     "note": "Yes cites free Saturday morning, love of running and free cost [234], all correct."
+    },
+    {
+     "id": "e078",
+     "consistent": true,
+     "note": "Yes correctly states Kevin 'really likes' running and is free Saturday morning [244]."
+    },
+    {
+     "id": "e043",
+     "consistent": true,
+     "note": "Yes is justified by free Saturday morning and free cost [259], though it slightly overstates 'really likes running' as 'love of running'."
+    }
+   ],
+   "matchmaker": "The proposal fit all four profiles and calendars, and with unanimous yeses the resolve step correctly kept the group and time [306], [309]. Final messages [322] name only attendees and draw on real profile interests, though they inflate some 'really likes'/'up for' items to 'love', and the pitch to Kevin asserts Ten Trails is 'close to home' [232] without profile support.",
+   "conversation": "Messages were clear, consistent, and efficient: one round, four invitations, four yeses, no wasted asks."
+  },
+  {
+   "group": "2026-10-31/g6",
+   "verdict": "good",
+   "summary": "A clean two-person pairing of neighbors from the same village who both rank hiking highly, at a free evening slot both calendars show as open. Both agents said yes for reasons grounded in their profiles, the matchmaker needed no alternates or counters, and the final messages name only the two attendees with accurate facts. The only blemish is the matchmaker's small assumption that Isabel owns a dog.",
+   "compatibility": "Isabel (really likes hiking, free-only budget, avoids crowds) and Josh (loves hiking, free-only budget, avoids long drives) both live in Lake Sawyer, so a free, quiet local trail loop suits both; the 23/41 age gap is not an obvious clash for a walk. Grace C. (hiking 3, keenness 3, shares baseball with Isabel and watch sports with Josh) would have been a reasonable third, but nobody in the break room clearly beats the two chosen.",
+   "agents": [
+    {
+     "id": "e082",
+     "consistent": true,
+     "note": "Said yes citing free cost, small uncrowded group and hiking, all supported by her profile and the clean conflict check [288][297]."
+    },
+    {
+     "id": "e105",
+     "consistent": true,
+     "note": "Said yes citing free cost and his love of hiking, matching his profile and open Saturday evening [293][300]."
+    }
+   ],
+   "matchmaker": "The proposal matched both profiles on interest, budget, location and calendar [199][287][292], the resolve step correctly kept the group with no asks [306], and the final messages use only profile facts and name only Isabel and Josh [330]. The one unsupported touch is telling Isabel 'your dog is welcome' when her profile only says she loves dog walks, not that she has a dog [287].",
+   "conversation": "Two concise invitations, two clear yeses, no misunderstandings or wasted asks [287][292][297][300]."
+  },
+  {
+   "group": "2026-10-28/g4",
+   "verdict": "good",
+   "summary": "Four parents with kids, all free Wednesday morning and all with coffee or baking in their profiles, were offered a low-cost 9:30-11am bakery meetup that respects Chris's early-morning avoidance and Imani's low-drive and low-cost needs. All four agents said yes with profile-grounded reasons, the matchmaker correctly kept the group unchanged, and the final messages name only attendees. Only minor overstatements of shared interests appear in the pitches and confirmations.",
+   "compatibility": "All four share the same stage of life (parents with kids at home) and each has coffee or baking as a love or strong like, with Wednesday morning free and the cost within Mark's and Imani's low budgets [45][94][99][104][109]. Neither break-room alternative (Donna, 61, or Ron, 19, both coffee keenness 1 and not parents) would have fit better; the alternates Andres (22) and Hannah (84) also lack the parent theme.",
+   "agents": [
+    {
+     "id": "e035",
+     "consistent": true,
+     "note": "Yes cites free Wednesday morning, coffee/baking fit, low cost and fellow parents, all in Mark's profile [121]."
+    },
+    {
+     "id": "e127",
+     "consistent": true,
+     "note": "Yes correctly checks that 9:30 is not an early morning and matches Chris's love of baking [111]."
+    },
+    {
+     "id": "e047",
+     "consistent": true,
+     "note": "Yes grounded in free Wednesday morning and Brian's love of baking [116]."
+    },
+    {
+     "id": "e041",
+     "consistent": true,
+     "note": "Yes grounded in free morning, coffee love, low cost and no long drive, consistent with her later hike reply [126][254]."
+    }
+   ],
+   "matchmaker": "The proposal and member choice follow the evidence, the resolve step correctly recognised no declines or counters [163], and the final messages name only the four attendees with mostly accurate shared interests [183]. It slightly overstated interests: Imani has no baking in her profile yet Chris was told all three others are 'into baking' [99], the group reason says all four love coffee and baking [45], and Imani's confirmation says Chris 'loves' coffee when he is only 'up for' it [183].",
+   "conversation": "Clear, concise single-round asks with four direct yeses and no wasted messages [94][99][104][109][111][116][121][126]."
+  },
+  {
+   "group": "2026-10-31/g5",
+   "verdict": "good",
+   "summary": "A clean three-person board game night: all three members are free Saturday evening, all list cards as a love or strong like, the event is free (fitting Grace's budget), and the 8:30pm end respects Grace's and Ron's avoidance of late nights. Every agent said yes for reasons grounded in its profile, the matchmaker kept the plan unchanged, and the final messages name only attendees and use only profile facts.",
+   "compatibility": "Cards is a shared interest for all three, the venue and time suit the two late-night avoiders, and free cost suits Grace. The only soft point is the age/stage gap (two 19-20-year-olds with a 42-year-old shift worker), which is mild for a card night. No alternates were listed in the break room, so no better fit is visible.",
+   "agents": [
+    {
+     "id": "e133",
+     "consistent": true,
+     "note": "Yes cites Saturday evening free and love of board games and cards, both in profile [284]."
+    },
+    {
+     "id": "e148",
+     "consistent": true,
+     "note": "Yes cites free Saturday evening, cards and free cost, all matching profile [303]."
+    },
+    {
+     "id": "e052",
+     "consistent": true,
+     "note": "Yes cites free evening, liking cards, non-competitive framing and early finish, consistent with avoids list [294]."
+    }
+   ],
+   "matchmaker": "The proposal reason matches the members' profiles [204][198], each invitation was tailored correctly (early finish for Grace, non-competitive for Ron), and the resolve step correctly kept the time with no asks after three yeses [306]. Final messages [328] name only Jack, Grace and Ron and cite only profile facts (cards, watching sports).",
+   "conversation": "Three concise invites, three direct yeses, no counters or wasted asks; clear and natural throughout."
+  },
+  {
+   "group": "2026-10-31/g3",
+   "verdict": "good",
+   "summary": "A clean one-round negotiation: three craft-beer fans free Saturday afternoon were asked, all three said yes consistently with their profiles, and the group locked at the proposed time with accurate final messages naming only attendees. The only blemish is the matchmaker's internal rationale claiming all three enjoy live music when Rosa's profile never mentions it.",
+   "compatibility": "Rachel (loves craft beer), Rosa (loves craft beer) and Heather (really likes craft beer) all fit a low-cost afternoon pint; ages 29/43/31, all commuters, no activity-relevant dislikes clash, and low cost suits everyone's budget. Heather's 'not into birding' versus Rachel's 'really likes birding' is irrelevant to a brewery visit. No one else was in the break room, so no better candidate was available.",
+   "agents": [
+    {
+     "id": "e123",
+     "consistent": true,
+     "note": "Yes grounded in craft beer love, free Saturday afternoon and any-cost budget [249]; no conflict shown [243]."
+    },
+    {
+     "id": "e075",
+     "consistent": true,
+     "note": "Yes grounded in craft beer love, free Saturday afternoon and low-cost budget [264]; no conflict shown [248]."
+    },
+    {
+     "id": "e167",
+     "consistent": true,
+     "note": "Yes correctly cites free afternoon, craft beer interest and low-cost budget, and the 3pm start respects her early-mornings avoidance [269], [253]."
+    }
+   ],
+   "matchmaker": "The proposal matched profiles and calendars, every invite was accurate about cost and group size [242], [247], [252], the resolve step correctly kept the time with no alternates needed [306], and the final messages cite only real shared interests and only attendees [324]. The stated rationale that all three enjoy live music is wrong for Rosa [202]; the 'close by'/'nearby' claims for the two members who avoid long drives cannot be verified from the log.",
+   "conversation": "Clear, natural, single-round exchange with no misunderstandings, counters or wasted asks [242]-[269]."
+  },
+  {
+   "group": "2026-10-28/g5",
+   "verdict": "good",
+   "summary": "A free Wednesday-morning birding walk pairing three birders (Ron, Noah, Claire) with a photographer (Wei) who avoids crowds and competition. All four agents said yes with reasons that match their profiles and calendars, the matchmaker kept the original time with no declines or counters to handle, and the final messages name only confirmed members using profile facts. Only minor wording overstatements and a headline label the log can't fully support.",
+   "compatibility": "Ron, Noah and Claire all list birding (two love it, Claire really likes it), Wei loves photography and the small free group respects her avoidance of crowds and competitive settings, and the free cost suits Claire's and Wei's budgets. The 43-year-old parent among three retirees is an age spread but nothing in the profiles suggests a clash; shared cards, fishing and photography interests give extra common ground. No break-room alternatives were listed, so no better fit was available.",
+   "agents": [
+    {
+     "id": "e038",
+     "consistent": true,
+     "note": "Yes grounded in a free Wednesday morning and birding/photography interests [131], consistent with his profile."
+    },
+    {
+     "id": "e069",
+     "consistent": true,
+     "note": "Yes grounded in loved birding and a free Wednesday morning [136]."
+    },
+    {
+     "id": "e111",
+     "consistent": true,
+     "note": "Yes cites free cost, free morning and birding [141]; calling birding 'one of her favorite activities' slightly overstates a 'really likes'."
+    },
+    {
+     "id": "e124",
+     "consistent": true,
+     "note": "Yes correctly weighs free cost, small non-competitive group and the photography angle [151], even though birding itself isn't in Wei's profile."
+    }
+   ],
+   "matchmaker": "Proposal and rationale [40][46] match the profiles, each invite was tailored (notably addressing Wei's crowd/competition avoidance [129]), and the resolve step correctly kept the time with nothing to fix [163]. Final messages [185] use profile facts and name only the four locked members, though a few invites and confirmations round 'really likes' up to 'loves/favorites' and the headline's 'Four Black Diamond neighbors' and 'dawn' aren't strictly supported by the profiles (only two live in Black Diamond Ridge).",
+   "conversation": "Clear, natural and efficient: one round, four unambiguous yeses, no wasted asks or misunderstandings."
+  },
+  {
+   "group": "2026-10-31/g4",
+   "verdict": "good",
+   "summary": "Three neighbors with genuine on-water interests (boating, kayaking) were offered a low-cost Saturday afternoon paddle that fits all three calendars and Lauren's budget, and every agent said yes for reasons grounded in its profile. The matchmaker locked the group without changes and sent final messages that name only the three members and draw on profile facts. The only nit is slightly inflated wording about how strongly some members 'love' shared interests.",
+   "compatibility": "Andres loves boating, Donna really likes kayaking and is up for boating, and Lauren loves kayaking, so the activity is a direct hit for all three; the group of three also respects Donna's avoidance of crowds, and Lauren lives in Lake Sawyer. The age gap (64 and 61 vs 28) is the only mild stage-of-life difference, but the strong shared activity outweighs it. No one else was listed in the break room, so no better candidate was passed over.",
+   "agents": [
+    {
+     "id": "e081",
+     "consistent": true,
+     "note": "Said yes citing a free Saturday afternoon and love of boating, both accurate to the profile [274]."
+    },
+    {
+     "id": "e067",
+     "consistent": true,
+     "note": "Said yes citing free Saturday afternoon, kayaking and the small group fitting her crowd avoidance, all supported by the profile (though 'loves' slightly overstates 'really likes') [279]."
+    },
+    {
+     "id": "e049",
+     "consistent": true,
+     "note": "Said yes citing kayaking as a favorite, a free Saturday afternoon and the low cost matching her budget, all accurate [289]."
+    }
+   ],
+   "matchmaker": "The proposal matched everyone's calendar, interests, cost tolerance and Donna's crowd avoidance [197][257][262][267], and the resolve step correctly kept the group unchanged after three yeses [306]. Final messages name only confirmed members and use profile facts, though they describe some 'up for'/'really likes' interests as things people 'love' [326].",
+   "conversation": "Clear, consistent, one round, no misunderstandings or unnecessary asks [257][262][267][274][279][289]."
+  },
+  {
+   "group": "2026-10-28/g2",
+   "verdict": "good",
+   "summary": "A clean four-person pickleball doubles group where every member lists pickleball as a top interest, is free Wednesday evening, and the event is free, satisfying the two budget-conscious members. All four agents accepted on the first round with reasons matching their profiles, and the matchmaker locked without needing alternates or re-asks. The only blemishes are minor: the final messages inflate Heather's 'up for' running into a shared 'love', and the proximity claims to Kevin and Heather rest on nothing visible in the log.",
+   "compatibility": "All four rate pickleball at the top tier [43], exactly fill a doubles court, and all are free Wednesday evening with free cost matching the three low-budget profiles. Ages span 30 to 64, but nothing in the profiles suggests a clash for a casual doubles game, and there are overlapping secondary interests (running, live music, baseball). No one else was in the break room, so no better fit was passed over.",
+   "agents": [
+    {
+     "id": "e081",
+     "consistent": true,
+     "note": "Yes [76] matches Andres's free Wednesday evening and 'loves pickleball'."
+    },
+    {
+     "id": "e043",
+     "consistent": true,
+     "note": "Yes [71] correctly cites the free evening, love of pickleball, and the free cost that fits Quinn's budget and avoidance of spending."
+    },
+    {
+     "id": "e078",
+     "consistent": true,
+     "note": "Yes [101] matches Kevin's free evening, love of pickleball, and low-cost budget."
+    },
+    {
+     "id": "e167",
+     "consistent": true,
+     "note": "Yes [91] matches Heather's free evening, love of pickleball, and budget, though 'close by' merely echoes the matchmaker's unverified proximity claim [74]."
+    }
+   ],
+   "matchmaker": "The proposal [37] is well founded on the shared top interest and availability, every invite was clear, and the resolve step [163] correctly kept the group unchanged after four yeses. The final messages [179] name only confirmed members and mostly use profile facts, but overstate Heather's running interest and the matchmaker asserted 'a short trip' [69] and 'close to Lake Sawyer' [74] to the two long-drive avoiders without any distance evidence in the log.",
+   "conversation": "Concise, natural, consistent, and efficient: one round of invites, four immediate yeses, no misunderstandings or wasted asks."
+  }
+ ],
+ "days": [],
+ "kept": [
+  {
+   "severity": "low",
+   "kind": "quality issue",
+   "check": "AI audit",
+   "agents": [],
+   "groups": [
+    "2026-10-31/g2"
+   ],
+   "what": "Final messages say Kavya and Kevin 'both love live music and trivia' and Kevin and Quinn 'both love pickleball and baseball' [322].",
+   "why": "Kevin only 'really likes' live music and is 'up for' trivia; Quinn only 'really likes' baseball, so the intensity is overstated.",
+   "expected": "Shared interests described at the strength the profiles give.",
+   "fix": "Change 'both love' to 'both enjoy' or similar.",
+   "evidence": [
+    322
+   ],
+   "source": "AI audit of 2026-10-31/g2"
+  },
+  {
+   "severity": "low",
+   "kind": "insufficient evidence",
+   "check": "AI audit",
+   "agents": [],
+   "groups": [
+    "2026-10-31/g2"
+   ],
+   "what": "The invitation to Kevin claims the venue is 'close to home' [232].",
+   "why": "Kevin avoids long drives and no profile or event data states where Ten Trails is relative to Lawson Hills, so the claim is unsupported by the log.",
+   "expected": "Only state proximity if known from the data.",
+   "fix": "Drop 'close to home' or state the actual location.",
+   "evidence": [
+    232
+   ],
+   "source": "AI audit of 2026-10-31/g2"
+  },
+  {
+   "severity": "low",
+   "kind": "quality issue",
+   "check": "AI audit",
+   "agents": [
+    "e043"
+   ],
+   "groups": [
+    "2026-10-31/g2"
+   ],
+   "what": "Quinn's agent justified its yes with Quinn's 'love of running' [259].",
+   "why": "The profile lists running under 'really likes', not 'loves'; a slight overstatement, though the decision is still correct.",
+   "expected": "Reasons that mirror the profile's stated strength.",
+   "fix": "Say 'really likes running'.",
+   "evidence": [
+    259
+   ],
+   "source": "AI audit of 2026-10-31/g2"
+  },
+  {
+   "severity": "low",
+   "kind": "quality issue",
+   "check": "AI audit",
+   "agents": [
+    "e082"
+   ],
+   "groups": [
+    "2026-10-31/g6"
+   ],
+   "what": "The matchmaker told Isabel 'your dog is welcome' [287].",
+   "why": "Her profile lists 'dog walks' as an interest but nowhere says she owns a dog; the log also gives no basis for the trail's dog policy.",
+   "expected": "Mention only what the profile supports, e.g. that it is a dog-walk-style outing or that dogs are allowed if known.",
+   "fix": "Change 'your dog is welcome' to 'dogs are welcome'.",
+   "evidence": [
+    287,
+    288,
+    297
+   ],
+   "source": "AI audit of 2026-10-31/g6"
+  },
+  {
+   "severity": "low",
+   "kind": "subjective concern",
+   "check": "AI audit",
+   "agents": [
+    "e082",
+    "e105"
+   ],
+   "groups": [
+    "2026-10-31/g6"
+   ],
+   "what": "The group was planned and locked at only 2 people while Grace C. (hiking 3, keenness 3, overlaps on baseball and watch sports) sat unasked in the break room [199][313].",
+   "why": "A two-person group is fragile and Grace appears at least as compatible as either member, though the log does not show why she was excluded.",
+   "expected": "Consider inviting the keenest compatible break-room member to reach three.",
+   "fix": "Ask Grace C. as a third before locking.",
+   "evidence": [
+    199,
+    306,
+    313,
+    319
+   ],
+   "source": "AI audit of 2026-10-31/g6"
+  },
+  {
+   "severity": "low",
+   "kind": "quality issue",
+   "check": "AI audit",
+   "agents": [
+    "e127",
+    "e041"
+   ],
+   "groups": [
+    "2026-10-28/g4"
+   ],
+   "what": "Pitches and confirmations generalised interests beyond the profiles: Chris was told the other three parents are 'into baking' though Imani lists no baking, and Imani's confirmation says Chris loves coffee though he is only 'up for' it.",
+   "why": "Final and pitch messages should use only facts from the profiles; small overstatements set slightly wrong expectations.",
+   "expected": "Describe shared interests only where the profiles support them.",
+   "fix": "Say 'two other parents into baking' to Chris and 'you and Mark both love coffee, and Chris enjoys it too' to Imani.",
+   "evidence": [
+    45,
+    99,
+    183
+   ],
+   "source": "AI audit of 2026-10-28/g4"
+  },
+  {
+   "severity": "low",
+   "kind": "subjective concern",
+   "check": "AI audit",
+   "agents": [
+    "e035"
+   ],
+   "groups": [
+    "2026-10-28/g4"
+   ],
+   "what": "Mark is 'not into dining' and was placed in a bakery coffee-and-pastries meetup; code found no conflict and his agent accepted.",
+   "why": "A bakery table is arguably a light form of dining; it is a judgment call whether this touches his dislike.",
+   "expected": "Nothing required; coffee is his top love and the agent accepted knowingly.",
+   "fix": "None needed.",
+   "evidence": [
+    95,
+    121
+   ],
+   "source": "AI audit of 2026-10-28/g4"
+  },
+  {
+   "severity": "low",
+   "kind": "subjective concern",
+   "check": "AI audit",
+   "agents": [
+    "e052"
+   ],
+   "groups": [
+    "2026-10-31/g5"
+   ],
+   "what": "The invite to Ron asserts the night is 'friendly and casual, not competitive' [282], and Ron's agent leaned on that assurance when accepting [294], though the event description itself only says 'board game night at a neighbor's table' [198].",
+   "why": "Ron avoids competitive settings; if the games turn competitive the assurance was the matchmaker's framing rather than a documented feature of the event.",
+   "expected": "Frame the tone as a suggestion (e.g. 'meant to be casual') rather than a guarantee, or note it in the final message so the group knows Ron prefers low-key play.",
+   "fix": "Soften 'not competitive' to 'meant to be casual' in the invite and final message to Ron.",
+   "evidence": [
+    282,
+    294,
+    198,
+    328
+   ],
+   "source": "AI audit of 2026-10-31/g5"
+  },
+  {
+   "severity": "low",
+   "kind": "quality issue",
+   "check": "AI audit",
+   "agents": [
+    "e075"
+   ],
+   "groups": [
+    "2026-10-31/g3"
+   ],
+   "what": "The matchmaker's rationale says all three members 'also enjoy live music', but Rosa's profile lists no interest in live music.",
+   "why": "The group reasoning rests partly on an invented shared trait, even though the invites and final messages did not repeat the error.",
+   "expected": "Rationale should cite only interests actually in the profiles (craft beer for all three; live music for Rachel and Heather only).",
+   "fix": "Reword the reason to 'three craft-beer lovers, two of whom also enjoy live music'.",
+   "evidence": [
+    202,
+    196
+   ],
+   "source": "AI audit of 2026-10-31/g3"
+  },
+  {
+   "severity": "low",
+   "kind": "insufficient evidence",
+   "check": "AI audit",
+   "agents": [
+    "e123",
+    "e167"
+   ],
+   "groups": [
+    "2026-10-31/g3"
+   ],
+   "what": "The matchmaker told Rachel the brewery is 'close by' and Heather it is 'nearby'; both avoid long drives, Rachel is in Downtown and Heather in Lake Sawyer, but the venue's location is not in the log.",
+   "why": "If the venue is far from either neighborhood the invite would misstate a fact that matters to both people's avoidances; the log cannot confirm either way.",
+   "expected": "Proximity claims should be verifiable against the venue location.",
+   "fix": "Include the venue's neighborhood in the proposal or drop the unverified proximity claim.",
+   "evidence": [
+    242,
+    252
+   ],
+   "source": "AI audit of 2026-10-31/g3"
+  },
+  {
+   "severity": "low",
+   "kind": "quality issue",
+   "check": "AI audit",
+   "agents": [
+    "e038",
+    "e069",
+    "e111",
+    "e124"
+   ],
+   "groups": [
+    "2026-10-28/g5"
+   ],
+   "what": "Invites and confirmations describe 'really likes' items as favorites/loves (Ron's photography [114][185], Claire's birding [185]) and tell Noah all three others 'enjoy birds' though Wei lists no birding [119].",
+   "why": "Small overstatements of profile facts can set mismatched expectations about companions.",
+   "expected": "Describe interests at the strength the profile gives them.",
+   "fix": "Use 'enjoys' or 'is into' for really-likes items and say Wei is there for photography.",
+   "evidence": [
+    114,
+    119,
+    185
+   ],
+   "source": "AI audit of 2026-10-28/g5"
+  },
+  {
+   "severity": "low",
+   "kind": "subjective concern",
+   "check": "AI audit",
+   "agents": [],
+   "groups": [
+    "2026-10-28/g5"
+   ],
+   "what": "Headline says 'Four Black Diamond neighbors meet at dawn' though only Ron and Claire live in Black Diamond Ridge (Noah: Downtown, Wei: Morgan Creek), and the 8am start is described as dawn.",
+   "why": "The profiles don't establish all four as Black Diamond residents, and 'dawn' isn't in the plan.",
+   "expected": "Headline limited to facts in the profiles and plan.",
+   "fix": "Change to 'Four neighbors meet Wednesday morning for Lake Sawyer birds'.",
+   "evidence": [
+    185,
+    186
+   ],
+   "source": "AI audit of 2026-10-28/g5"
+  },
+  {
+   "severity": "low",
+   "kind": "quality issue",
+   "check": "AI audit",
+   "agents": [
+    "e069",
+    "e111"
+   ],
+   "groups": [
+    "2026-10-28/g5"
+   ],
+   "what": "Confirmations to Noah and Claire name only Ron and Claire / Ron and Noah, leaving Wei unmentioned as a participant.",
+   "why": "Members should know who is actually coming; two of four messages omit a confirmed attendee.",
+   "expected": "Each confirmation lists all other attendees.",
+   "fix": "Add 'and Wei' to Noah's and Claire's messages.",
+   "evidence": [
+    175,
+    185
+   ],
+   "source": "AI audit of 2026-10-28/g5"
+  },
+  {
+   "severity": "low",
+   "kind": "subjective concern",
+   "check": "AI audit",
+   "agents": [
+    "e081",
+    "e067",
+    "e049"
+   ],
+   "groups": [
+    "2026-10-31/g4"
+   ],
+   "what": "Final messages say Andres and Donna 'both love boating' and Donna/Lauren 'love' running and craft beer, when Donna is only 'up for' boating and craft beer and Lauren only 'up for' running.",
+   "why": "The shared interests are real but the intensity is overstated, which could set slightly inflated expectations.",
+   "expected": "Describe shared interests at the level the profiles support.",
+   "fix": "Reword to 'you both enjoy' or 'you share an interest in' rather than 'love'.",
+   "evidence": [
+    326
+   ],
+   "source": "AI audit of 2026-10-31/g4"
+  },
+  {
+   "severity": "low",
+   "kind": "quality issue",
+   "check": "AI audit",
+   "agents": [
+    "e167",
+    "e043",
+    "e078"
+   ],
+   "groups": [
+    "2026-10-28/g2"
+   ],
+   "what": "The final messages say Quinn, Kevin, and Heather 'all love running' and that Heather's 'love of running' is shared, but Heather's profile lists running only as 'is up for'.",
+   "why": "The confirmation inflates a profile fact, so members receive a slightly inaccurate picture of what they have in common.",
+   "expected": "Describe shared interests at the intensity the profiles actually state.",
+   "fix": "Change the running line to say Heather is 'also up for running' rather than loves it.",
+   "evidence": [
+    179
+   ],
+   "source": "AI audit of 2026-10-28/g2"
+  },
+  {
+   "severity": "low",
+   "kind": "insufficient evidence",
+   "check": "AI audit",
+   "agents": [
+    "e078",
+    "e167"
+   ],
+   "groups": [
+    "2026-10-28/g2"
+   ],
+   "what": "The matchmaker told Kevin the courts are 'a short trip' and told Heather they are 'close to Lake Sawyer, so no long drive', and Heather's agent repeated 'close by'.",
+   "why": "Both people avoid long drives, and nothing in the log establishes distances between Lawson Hills, Lake Sawyer, and Maple Valley, so the reassurance is unsupported.",
+   "expected": "Either cite a known distance or avoid asserting proximity and let the agent judge.",
+   "fix": "Drop the proximity claims or replace them with a neutral mention of the location.",
+   "evidence": [
+    69,
+    74,
+    91
+   ],
+   "source": "AI audit of 2026-10-28/g2"
+  }
+ ],
+ "unsupported": [],
+ "failures": [],
+ "cost_usd": 1.21977,
+ "groups_audited": 8,
+ "days_audited": 0,
+ "inconsistent_agents": 0,
+ "inconsistent_agent_notes": []
+}

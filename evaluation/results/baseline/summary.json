@@ -1,0 +1,691 @@
+{
+ "matches": 282,
+ "member_placements": 1231,
+ "review_status": {
+  "needs human review": 221,
+  "rule-clean": 61
+ },
+ "flags": {
+  "member(s) don't like the main thing": 137,
+  "last place decided by id order": 146,
+  "member(s) would be told it conflicts with their profile": 108,
+  "age spread >= 40 years": 81
+ },
+ "group_sizes": {
+  "5": 201,
+  "4": 18,
+  "3": 28,
+  "2": 35
+ },
+ "groups_by_activity": {
+  "ten-trails-walk": 14,
+  "bakery": 14,
+  "franklin": 28,
+  "sawyer-birding": 13,
+  "cribbage": 8,
+  "mtb": 22,
+  "pickleball": 18,
+  "sawyer-fishing": 10,
+  "sawyer-paddle": 18,
+  "trivia": 2,
+  "crafts": 6,
+  "bmx": 13,
+  "kraken": 3,
+  "seahawks": 6,
+  "big-block": 8,
+  "lumber-house": 13,
+  "museum": 12,
+  "easy-run": 6,
+  "sawyer-dogs": 8,
+  "hoops": 9,
+  "golf": 5,
+  "vault-music": 4,
+  "game-night": 4,
+  "gorge": 8,
+  "geyser-hike": 4,
+  "potluck": 3,
+  "trail-cleanup": 2,
+  "garden-swap": 3,
+  "rc-planes": 1,
+  "book-club": 3,
+  "sawyer-swim": 7,
+  "tubing": 2,
+  "dock-concert": 1,
+  "farmers-market": 1,
+  "rainier": 2,
+  "yoga": 1
+ },
+ "hard_rule_violations": 0,
+ "members_agent_would_be_told_a_conflict": 147,
+ "conflict_reasons": {
+  "early start and they avoid early mornings": 20,
+  "runs to 9pm+ and they avoid late nights": 66,
+  "mild interest (weight 1)": 62
+ },
+ "members_not_liking_the_main_thing": 301,
+ "groups_with_an_id_order_tie_cut": 146,
+ "person_days": 2800,
+ "person_days_placed": 1231,
+ "person_days_unplaced_but_in_a_room": 635,
+ "person_days_with_no_room": 934,
+ "mean_cohesion": 0.2,
+ "mean_fit": 2.91,
+ "mean_age_spread": 33.98,
+ "repeat_pairs": {
+  "distinct_pairs": 1706,
+  "pairs_together_more_than_once": 379,
+  "most_times_together": 6
+ },
+ "order_stability": {
+  "day_runs_checked": 35,
+  "day_runs_that_differed": 0
+ },
+ "check_plan_fuzz": {
+  "trials": 300,
+  "groups_kept": 826,
+  "rule_breaks_that_got_through": [],
+  "rule_break_count": 0
+ },
+ "days": [
+  {
+   "day": "2026-10-28",
+   "weekday": "Wednesday",
+   "run_id": "wk20261028",
+   "slots": 23,
+   "groups": 16,
+   "placed": 71,
+   "in_any_room": 120,
+   "unplaced_with_a_room": 49,
+   "unplaced_with_no_room": 80
+  },
+  {
+   "day": "2026-10-29",
+   "weekday": "Thursday",
+   "run_id": "wk20261028",
+   "slots": 28,
+   "groups": 22,
+   "placed": 92,
+   "in_any_room": 135,
+   "unplaced_with_a_room": 43,
+   "unplaced_with_no_room": 65
+  },
+  {
+   "day": "2026-10-30",
+   "weekday": "Friday",
+   "run_id": "wk20261028",
+   "slots": 25,
+   "groups": 18,
+   "placed": 80,
+   "in_any_room": 124,
+   "unplaced_with_a_room": 44,
+   "unplaced_with_no_room": 76
+  },
+  {
+   "day": "2026-10-31",
+   "weekday": "Saturday",
+   "run_id": "wk20261028",
+   "slots": 36,
+   "groups": 30,
+   "placed": 124,
+   "in_any_room": 147,
+   "unplaced_with_a_room": 23,
+   "unplaced_with_no_room": 53
+  },
+  {
+   "day": "2026-11-01",
+   "weekday": "Sunday",
+   "run_id": "wk20261028",
+   "slots": 26,
+   "groups": 22,
+   "placed": 99,
+   "in_any_room": 149,
+   "unplaced_with_a_room": 50,
+   "unplaced_with_no_room": 51
+  },
+  {
+   "day": "2026-11-02",
+   "weekday": "Monday",
+   "run_id": "wk20261028",
+   "slots": 14,
+   "groups": 12,
+   "placed": 57,
+   "in_any_room": 120,
+   "unplaced_with_a_room": 63,
+   "unplaced_with_no_room": 80
+  },
+  {
+   "day": "2026-11-03",
+   "weekday": "Tuesday",
+   "run_id": "wk20261028",
+   "slots": 13,
+   "groups": 13,
+   "placed": 60,
+   "in_any_room": 127,
+   "unplaced_with_a_room": 67,
+   "unplaced_with_no_room": 73
+  },
+  {
+   "day": "2026-07-15",
+   "weekday": "Wednesday",
+   "run_id": "wk20260715",
+   "slots": 24,
+   "groups": 15,
+   "placed": 71,
+   "in_any_room": 120,
+   "unplaced_with_a_room": 49,
+   "unplaced_with_no_room": 80
+  },
+  {
+   "day": "2026-07-16",
+   "weekday": "Thursday",
+   "run_id": "wk20260715",
+   "slots": 26,
+   "groups": 21,
+   "placed": 88,
+   "in_any_room": 137,
+   "unplaced_with_a_room": 49,
+   "unplaced_with_no_room": 63
+  },
+  {
+   "day": "2026-07-17",
+   "weekday": "Friday",
+   "run_id": "wk20260715",
+   "slots": 26,
+   "groups": 18,
+   "placed": 82,
+   "in_any_room": 127,
+   "unplaced_with_a_room": 45,
+   "unplaced_with_no_room": 73
+  },
+  {
+   "day": "2026-07-18",
+   "weekday": "Saturday",
+   "run_id": "wk20260715",
+   "slots": 41,
+   "groups": 32,
+   "placed": 131,
+   "in_any_room": 148,
+   "unplaced_with_a_room": 17,
+   "unplaced_with_no_room": 52
+  },
+  {
+   "day": "2026-07-19",
+   "weekday": "Sunday",
+   "run_id": "wk20260715",
+   "slots": 38,
+   "groups": 30,
+   "placed": 131,
+   "in_any_room": 162,
+   "unplaced_with_a_room": 31,
+   "unplaced_with_no_room": 38
+  },
+  {
+   "day": "2026-07-20",
+   "weekday": "Monday",
+   "run_id": "wk20260715",
+   "slots": 21,
+   "groups": 15,
+   "placed": 68,
+   "in_any_room": 118,
+   "unplaced_with_a_room": 50,
+   "unplaced_with_no_room": 82
+  },
+  {
+   "day": "2026-07-21",
+   "weekday": "Tuesday",
+   "run_id": "wk20260715",
+   "slots": 21,
+   "groups": 18,
+   "placed": 77,
+   "in_any_room": 132,
+   "unplaced_with_a_room": 55,
+   "unplaced_with_no_room": 68
+  }
+ ],
+ "fairness": {
+  "wk20261028": {
+   "archetype": {
+    "commuter": {
+     "people": 77,
+     "placed_days": 201,
+     "never_placed": 8,
+     "days_placed_per_person": 2.61
+    },
+    "remote worker": {
+     "people": 47,
+     "placed_days": 129,
+     "never_placed": 10,
+     "days_placed_per_person": 2.74
+    },
+    "retiree": {
+     "people": 22,
+     "placed_days": 94,
+     "never_placed": 1,
+     "days_placed_per_person": 4.27
+    },
+    "shift worker": {
+     "people": 23,
+     "placed_days": 68,
+     "never_placed": 1,
+     "days_placed_per_person": 2.96
+    },
+    "student": {
+     "people": 10,
+     "placed_days": 41,
+     "never_placed": 0,
+     "days_placed_per_person": 4.1
+    },
+    "parent at home": {
+     "people": 21,
+     "placed_days": 50,
+     "never_placed": 6,
+     "days_placed_per_person": 2.38
+    }
+   },
+   "age_band": {
+    "35-44": {
+     "people": 42,
+     "placed_days": 111,
+     "never_placed": 7,
+     "days_placed_per_person": 2.64
+    },
+    "25-34": {
+     "people": 48,
+     "placed_days": 116,
+     "never_placed": 10,
+     "days_placed_per_person": 2.42
+    },
+    "65+": {
+     "people": 22,
+     "placed_days": 94,
+     "never_placed": 0,
+     "days_placed_per_person": 4.27
+    },
+    "45-54": {
+     "people": 37,
+     "placed_days": 85,
+     "never_placed": 5,
+     "days_placed_per_person": 2.3
+    },
+    "18-24": {
+     "people": 14,
+     "placed_days": 61,
+     "never_placed": 0,
+     "days_placed_per_person": 4.36
+    },
+    "55-64": {
+     "people": 37,
+     "placed_days": 116,
+     "never_placed": 4,
+     "days_placed_per_person": 3.14
+    }
+   },
+   "budget": {
+    "low": {
+     "people": 70,
+     "placed_days": 214,
+     "never_placed": 10,
+     "days_placed_per_person": 3.06
+    },
+    "free": {
+     "people": 27,
+     "placed_days": 55,
+     "never_placed": 9,
+     "days_placed_per_person": 2.04
+    },
+    "any": {
+     "people": 103,
+     "placed_days": 314,
+     "never_placed": 7,
+     "days_placed_per_person": 3.05
+    }
+   },
+   "kids_at_home": {
+    "True": {
+     "people": 65,
+     "placed_days": 123,
+     "never_placed": 18,
+     "days_placed_per_person": 1.89
+    },
+    "False": {
+     "people": 135,
+     "placed_days": 460,
+     "never_placed": 8,
+     "days_placed_per_person": 3.41
+    }
+   },
+   "avoid_count": {
+    "2": {
+     "people": 79,
+     "placed_days": 215,
+     "never_placed": 12,
+     "days_placed_per_person": 2.72
+    },
+    "0": {
+     "people": 68,
+     "placed_days": 218,
+     "never_placed": 8,
+     "days_placed_per_person": 3.21
+    },
+    "1": {
+     "people": 53,
+     "placed_days": 150,
+     "never_placed": 6,
+     "days_placed_per_person": 2.83
+    }
+   },
+   "likes_count": {
+    "3": {
+     "people": 51,
+     "placed_days": 126,
+     "never_placed": 12,
+     "days_placed_per_person": 2.47
+    },
+    "4": {
+     "people": 50,
+     "placed_days": 129,
+     "never_placed": 7,
+     "days_placed_per_person": 2.58
+    },
+    "6": {
+     "people": 49,
+     "placed_days": 166,
+     "never_placed": 2,
+     "days_placed_per_person": 3.39
+    },
+    "5": {
+     "people": 50,
+     "placed_days": 162,
+     "never_placed": 5,
+     "days_placed_per_person": 3.24
+    }
+   },
+   "area": {
+    "Lake Sawyer": {
+     "people": 24,
+     "placed_days": 80,
+     "never_placed": 3,
+     "days_placed_per_person": 3.33
+    },
+    "Morgan Creek": {
+     "people": 42,
+     "placed_days": 135,
+     "never_placed": 3,
+     "days_placed_per_person": 3.21
+    },
+    "Lawson Hills": {
+     "people": 33,
+     "placed_days": 96,
+     "never_placed": 5,
+     "days_placed_per_person": 2.91
+    },
+    "Ten Trails": {
+     "people": 28,
+     "placed_days": 75,
+     "never_placed": 6,
+     "days_placed_per_person": 2.68
+    },
+    "Black Diamond Ridge": {
+     "people": 39,
+     "placed_days": 91,
+     "never_placed": 6,
+     "days_placed_per_person": 2.33
+    },
+    "Downtown": {
+     "people": 34,
+     "placed_days": 106,
+     "never_placed": 3,
+     "days_placed_per_person": 3.12
+    }
+   },
+   "id_quartile": {
+    "Q1": {
+     "people": 50,
+     "placed_days": 153,
+     "never_placed": 6,
+     "days_placed_per_person": 3.06
+    },
+    "Q2": {
+     "people": 50,
+     "placed_days": 162,
+     "never_placed": 5,
+     "days_placed_per_person": 3.24
+    },
+    "Q3": {
+     "people": 50,
+     "placed_days": 136,
+     "never_placed": 9,
+     "days_placed_per_person": 2.72
+    },
+    "Q4": {
+     "people": 50,
+     "placed_days": 132,
+     "never_placed": 6,
+     "days_placed_per_person": 2.64
+    }
+   }
+  },
+  "wk20260715": {
+   "archetype": {
+    "commuter": {
+     "people": 77,
+     "placed_days": 213,
+     "never_placed": 6,
+     "days_placed_per_person": 2.77
+    },
+    "remote worker": {
+     "people": 47,
+     "placed_days": 147,
+     "never_placed": 8,
+     "days_placed_per_person": 3.13
+    },
+    "retiree": {
+     "people": 22,
+     "placed_days": 103,
+     "never_placed": 1,
+     "days_placed_per_person": 4.68
+    },
+    "shift worker": {
+     "people": 23,
+     "placed_days": 79,
+     "never_placed": 0,
+     "days_placed_per_person": 3.43
+    },
+    "student": {
+     "people": 10,
+     "placed_days": 45,
+     "never_placed": 0,
+     "days_placed_per_person": 4.5
+    },
+    "parent at home": {
+     "people": 21,
+     "placed_days": 61,
+     "never_placed": 3,
+     "days_placed_per_person": 2.9
+    }
+   },
+   "age_band": {
+    "35-44": {
+     "people": 42,
+     "placed_days": 125,
+     "never_placed": 3,
+     "days_placed_per_person": 2.98
+    },
+    "25-34": {
+     "people": 48,
+     "placed_days": 133,
+     "never_placed": 7,
+     "days_placed_per_person": 2.77
+    },
+    "65+": {
+     "people": 22,
+     "placed_days": 98,
+     "never_placed": 0,
+     "days_placed_per_person": 4.45
+    },
+    "45-54": {
+     "people": 37,
+     "placed_days": 95,
+     "never_placed": 5,
+     "days_placed_per_person": 2.57
+    },
+    "18-24": {
+     "people": 14,
+     "placed_days": 67,
+     "never_placed": 0,
+     "days_placed_per_person": 4.79
+    },
+    "55-64": {
+     "people": 37,
+     "placed_days": 130,
+     "never_placed": 3,
+     "days_placed_per_person": 3.51
+    }
+   },
+   "budget": {
+    "low": {
+     "people": 70,
+     "placed_days": 234,
+     "never_placed": 8,
+     "days_placed_per_person": 3.34
+    },
+    "free": {
+     "people": 27,
+     "placed_days": 75,
+     "never_placed": 5,
+     "days_placed_per_person": 2.78
+    },
+    "any": {
+     "people": 103,
+     "placed_days": 339,
+     "never_placed": 5,
+     "days_placed_per_person": 3.29
+    }
+   },
+   "kids_at_home": {
+    "True": {
+     "people": 65,
+     "placed_days": 143,
+     "never_placed": 13,
+     "days_placed_per_person": 2.2
+    },
+    "False": {
+     "people": 135,
+     "placed_days": 505,
+     "never_placed": 5,
+     "days_placed_per_person": 3.74
+    }
+   },
+   "avoid_count": {
+    "2": {
+     "people": 79,
+     "placed_days": 240,
+     "never_placed": 10,
+     "days_placed_per_person": 3.04
+    },
+    "0": {
+     "people": 68,
+     "placed_days": 242,
+     "never_placed": 6,
+     "days_placed_per_person": 3.56
+    },
+    "1": {
+     "people": 53,
+     "placed_days": 166,
+     "never_placed": 2,
+     "days_placed_per_person": 3.13
+    }
+   },
+   "likes_count": {
+    "3": {
+     "people": 51,
+     "placed_days": 137,
+     "never_placed": 12,
+     "days_placed_per_person": 2.69
+    },
+    "4": {
+     "people": 50,
+     "placed_days": 139,
+     "never_placed": 4,
+     "days_placed_per_person": 2.78
+    },
+    "6": {
+     "people": 49,
+     "placed_days": 192,
+     "never_placed": 0,
+     "days_placed_per_person": 3.92
+    },
+    "5": {
+     "people": 50,
+     "placed_days": 180,
+     "never_placed": 2,
+     "days_placed_per_person": 3.6
+    }
+   },
+   "area": {
+    "Lake Sawyer": {
+     "people": 24,
+     "placed_days": 88,
+     "never_placed": 3,
+     "days_placed_per_person": 3.67
+    },
+    "Morgan Creek": {
+     "people": 42,
+     "placed_days": 159,
+     "never_placed": 3,
+     "days_placed_per_person": 3.79
+    },
+    "Lawson Hills": {
+     "people": 33,
+     "placed_days": 102,
+     "never_placed": 3,
+     "days_placed_per_person": 3.09
+    },
+    "Ten Trails": {
+     "people": 28,
+     "placed_days": 85,
+     "never_placed": 4,
+     "days_placed_per_person": 3.04
+    },
+    "Black Diamond Ridge": {
+     "people": 39,
+     "placed_days": 101,
+     "never_placed": 3,
+     "days_placed_per_person": 2.59
+    },
+    "Downtown": {
+     "people": 34,
+     "placed_days": 113,
+     "never_placed": 2,
+     "days_placed_per_person": 3.32
+    }
+   },
+   "id_quartile": {
+    "Q1": {
+     "people": 50,
+     "placed_days": 174,
+     "never_placed": 5,
+     "days_placed_per_person": 3.48
+    },
+    "Q2": {
+     "people": 50,
+     "placed_days": 176,
+     "never_placed": 4,
+     "days_placed_per_person": 3.52
+    },
+    "Q3": {
+     "people": 50,
+     "placed_days": 150,
+     "never_placed": 5,
+     "days_placed_per_person": 3.0
+    },
+    "Q4": {
+     "people": 50,
+     "placed_days": 148,
+     "never_placed": 4,
+     "days_placed_per_person": 2.96
+    }
+   }
+  }
+ }
+}

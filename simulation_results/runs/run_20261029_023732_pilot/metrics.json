@@ -1,0 +1,28 @@
+{
+ "replies_from": "Claude (live Anthropic API)",
+ "agents": 30,
+ "days": 2,
+ "groups_proposed": 12,
+ "groups_locked": 12,
+ "groups_dropped": 0,
+ "invitations_sent": 69,
+ "agent_replies": 69,
+ "answers": {
+  "yes": 67,
+  "no": 1,
+  "counter": 1
+ },
+ "acceptance_rate": 0.971,
+ "hard_constraint_violations": 0,
+ "agents_accepting_a_conflict_they_were_shown": 0,
+ "orchestration_failures": 0,
+ "days_not_done": 0,
+ "findings_by_check": {
+  "hub told others who declined": 2,
+  "re-asked a yes about an unchanged plan": 6
+ },
+ "simulation_cost_usd": 0.509644,
+ "audit_cost_usd": 2.25627,
+ "ai_audit_coverage": "12 of 12 groups, 0 of 2 days",
+ "ai_inconsistent_agents": 0
+}

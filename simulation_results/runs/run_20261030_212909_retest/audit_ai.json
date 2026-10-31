@@ -1,0 +1,439 @@
+{
+ "auditor": "claude-fable-5-1",
+ "effort": "medium",
+ "sampling": "all 1 groups code flagged or that didn't lock, plus 7 of the other 29 drawn with seed 7",
+ "groups": [
+  {
+   "group": "2026-11-01/g4",
+   "verdict": "weak",
+   "summary": "The matchmaker built a 'hike' around three retired anglers none of whom list hiking, pitched it to them with fishing-flavored language the event doesn't support, and then spent two more asks on alternates who also don't hike. All agents answered in line with their profiles, four of five declining for exactly that reason, and the group was dropped with only one yes. No hard rule was broken, but the selection and framing were poor and keen hikers in the break room were ignored.",
+   "compatibility": "The three members share fishing, retirement and age, and all are free Sunday afternoon, so they'd plausibly get along—but the activity is a hike and none of them list hiking [765, 840, 850]. The break room held several people with hiking as a top interest and keenness 3 (e171, e132, e104) who would clearly have fit the actual activity better.",
+   "agents": [
+    {
+     "id": "e190",
+     "consistent": true,
+     "note": "Declined because hiking isn't among Tom's interests, which matches his profile and is a reasonable call [850]."
+    },
+    {
+     "id": "e186",
+     "consistent": true,
+     "note": "Declined on the same profile-based grounds, correctly noting the time worked [840]."
+    },
+    {
+     "id": "e069",
+     "consistent": true,
+     "note": "Accepted citing fishing, which the proposed hike doesn't actually offer, though nothing in Noah's profile conflicts and the matchmaker's message invited that reading [855, 833]."
+    },
+    {
+     "id": "e188",
+     "consistent": true,
+     "note": "Declined because hiking isn't a listed interest, consistent with her profile and with her yes to coffee elsewhere [967, 304]."
+    },
+    {
+     "id": "e038",
+     "consistent": true,
+     "note": "Declined for lack of hiking interest, consistent with his profile and his birding yes elsewhere [979, 349]."
+    }
+   ],
+   "matchmaker": "The proposal matched people to a shared interest (fishing) that the activity (a hike) doesn't deliver, and the first-round messages leaned on 'river access' and 'try the river together' to sell it [823, 833]. Both alternates likewise lack hiking and don't fit the 'retirees in their 70s' concept, so the round-2 asks were predictably wasted [957, 967, 979]. No final messages were sent since the group was dropped [985, 995].",
+   "conversation": "Messages were clear and the agents' replies were direct and well-reasoned; the only confusion was the matchmaker's fishing framing of a hike, which produced one yes on a mistaken premise [833, 855]."
+  },
+  {
+   "group": "2026-11-01/g10",
+   "verdict": "good",
+   "summary": "A clean, all-yes round: four craft-beer fans were proposed, each agent accepted on grounds that match its person's profile, and the group locked without needing alternates. The matchmaker's invitations addressed each person's sensitivities (noise, late nights, cost) and the final messages name only attendees with mostly accurate facts. Only minor wording overstatements and one unsupported claim appear.",
+   "compatibility": "All four love or really like craft beer, the low cost suits Mateo's and Ava's budgets, and the 5-7pm slot fits Ava's avoidance of late nights; the small-table framing addresses Karen's and Cody's dislike of loud places. The 29-59 age spread is wide but unproblematic for a brewery round. No one in the break room (Linda R. at craft beer 2 is the keenest) would clearly have fit better than four people who rate craft beer as a love or strong like.",
+   "agents": [
+    {
+     "id": "e189",
+     "consistent": true,
+     "note": "Yes grounded in free Sunday evening, love of craft beer and the small low-key framing that fits her avoidance of loud places [948]."
+    },
+    {
+     "id": "e173",
+     "consistent": true,
+     "note": "Yes grounded in free Sunday evening and love of craft beer; low cost fits his budget [940]."
+    },
+    {
+     "id": "e085",
+     "consistent": true,
+     "note": "Yes grounded in free Sunday evening, love of craft beer and the relaxed small group matching his avoidance of loud places [951]."
+    },
+    {
+     "id": "e117",
+     "consistent": true,
+     "note": "Yes correctly cites free evening, 'really likes' craft beer, low cost and early finish avoiding late nights [954]."
+    }
+   ],
+   "matchmaker": "The proposal and tailored invitations follow the profiles, with explicit reassurance on noise for Karen and Cody, cost for Mateo, and early finish for Ava [928][933][938][943]; keeping the all-yes group with no asks was correct [957]. The final messages name only attendees and use real profile facts, though 'shares your love of book club' overstates Ava's 'up for' rating and 'close by' for Mateo is not supported by anything in the log.",
+   "conversation": "Clear, concise, and natural with no misunderstandings or wasted asks; one round was sufficient."
+  }
+ ],
+ "days": [
+  {
+   "day": "2026-10-30",
+   "verdict": "good",
+   "summary": "The matchmaker built ten small groups that tracked the break-room evidence closely: every member was a keen or listed participant in the chosen room, times were set to respect late-night and early-morning avoidances, and no one with a competitive or crowd aversion was placed in a poorly matched activity [204]. All 41 people asked accepted in round one and all ten groups locked at their original times, so the resolve step correctly needed no changes [431][433]-[452]. The main weakness is reach: despite stating a goal of spreading plans to as many neighbors as possible, it formed only 10 of the 18 viable rooms and left several people with strong interests (fishing, cribbage, basketball, evening mountain biking, extra pickleball players) unplaced [203][204]. A few proposals also asserted short drives or proximity to drive-averse neighbors without any supporting evidence in the room data [204]. Overall the day's outcome is defensible and well executed, but it under-used the available demand."
+  },
+  {
+   "day": "2026-11-01",
+   "verdict": "acceptable",
+   "summary": "Nine of ten groups locked and 33 of 41 people asked were placed, and most groups were built from the keenest people in each room with times that respected stated avoidances [750][992]-[1001]. The main weaknesses are in what the matchmaker chose not to build and how it handled g4: the cribbage room held four strong card/coffee fans with no plans this week yet was never mentioned or formed, while g4 was assembled from three fishing/photography retirees for an event the room defines as a hike, then patched with two more non-hikers after the first two declined for exactly that reason [750][840][850][957][967][979][985]. A zero-plan keenest hiker (e059) was passed over in g8 in favour of alternates who already had plans, and the g8 follow-up was pitched as a 'walk' to a runner after members had been pitched a 'run' [750][957][973]. The day's outcome is defensible overall, but the misallocated group and the overlooked cluster cost several well-fitting neighbors a plan."
+  }
+ ],
+ "kept": [
+  {
+   "severity": "medium",
+   "kind": "quality issue",
+   "check": "AI audit",
+   "agents": [
+    "e190",
+    "e111",
+    "e161",
+    "e125",
+    "e091",
+    "e077",
+    "e012",
+    "e037",
+    "e113",
+    "e032"
+   ],
+   "groups": [],
+   "what": "Eight of the 18 rooms that met the minimum (two strong-interest people) were not formed, and several keen neighbors were left out entirely or only as alternates: sawyer-fishing (e190:3, e111:2), cribbage (e161:3, e125:2 plus six mild), hoops (e077:3, e091:2), mtb evening (e091:3), lumber-house afternoon (e037:2), sawyer-paddle (e012:2), and three keen pickleball players (e113, e032) were left as alternates while only one court was planned.",
+   "why": "The matchmaker's own stated goal was to spread one plan across as many neighbors as possible, yet only 41 of 83 people in rooms were asked; the fishing and cribbage rooms in particular had enough keen and mild members to form a small group, and the pickleball room had 7 keen players for a single 4-person court.",
+   "expected": "Form additional small groups where two strong-interest people plus mild alternates exist (fishing, cribbage), consider a second pickleball court or a 6-player rotation, and find a slot for e091 (strong in both mtb and hoops).",
+   "fix": "Review every room meeting the minimum before finalizing; where a room is dropped, record a reason, and offer unplaced keen people a seat in a related room where they appear as alternates.",
+   "evidence": [
+    203,
+    204
+   ],
+   "source": "AI audit of day 2026-10-30"
+  },
+  {
+   "severity": "low",
+   "kind": "insufficient evidence",
+   "check": "AI audit",
+   "agents": [
+    "e058",
+    "e008",
+    "e180",
+    "e198"
+   ],
+   "groups": [
+    "2026-10-30/g8",
+    "2026-10-30/g5",
+    "2026-10-30/g2"
+   ],
+   "what": "Proposals told drive-averse neighbors that venues were 'not a long drive', 'not far', 'close', or 'no long drive' (e058 for Maple Valley courts, e008/e180 for the Green River Gorge Rd trail, e198 for Lumber House).",
+   "why": "The break-room data gives locations but no distances or travel-time information, so these reassurances were not grounded in anything the matchmaker saw; several of these people explicitly avoid long drives.",
+   "expected": "Describe the location factually without asserting proximity, or only claim it when the room data supports it.",
+   "fix": "Only include distance claims when the planning input contains distance or neighborhood-adjacency information.",
+   "evidence": [
+    204
+   ],
+   "source": "AI audit of day 2026-10-30"
+  },
+  {
+   "severity": "low",
+   "kind": "subjective concern",
+   "check": "AI audit",
+   "agents": [
+    "e109",
+    "e116"
+   ],
+   "groups": [
+    "2026-10-30/g3",
+    "2026-10-30/g7"
+   ],
+   "what": "Framing drifted between members of the same group: e109 was pitched a 'run/walk' while others in g3 were pitched a 'walk' or 'hike'; e116 was told another member 'loves local history' when e143's history interest is only level 1.",
+   "why": "Mixed framing within one outing risks mismatched expectations (a runner expecting pace vs. walkers), and the history overstatement is a small inaccuracy; both agents accepted, so impact appears minor.",
+   "expected": "Consistent description of the activity's pace for all members and accurate characterization of co-members' interests.",
+   "fix": "Use one shared activity description per group and describe others' interests at the level the profile supports.",
+   "evidence": [
+    204,
+    294,
+    369
+   ],
+   "source": "AI audit of day 2026-10-30"
+  },
+  {
+   "severity": "high",
+   "kind": "quality issue",
+   "check": "AI audit",
+   "agents": [
+    "e128",
+    "e061",
+    "e047",
+    "e133",
+    "e188"
+   ],
+   "groups": [],
+   "what": "The cribbage-and-coffee afternoon room had five keen people (e128, e061, e047, e133, e188), three of them with no plans this week, but no group was planned there and the matchmaker's thoughts never mention it.",
+   "why": "The brief is to spread invitations fairly and not pass over people who clearly fit. e061 (83, cards 2, no plans), e047 (cards 2, no plans) and e128 (coffee 2, no plans) were a ready-made low-cost cluster, while a group slot went instead to g4, built from people whose stated interests did not match a hike [750][985].",
+   "expected": "Within the 10-group cap, form the cribbage group (or at least weigh it explicitly) ahead of a hike group staffed by non-hikers.",
+   "fix": "Plan a cribbage/coffee group for e128, e061, e047, e133 with e188 as alternate; drop or re-staff g4.",
+   "evidence": [
+    750,
+    985
+   ],
+   "source": "AI audit of day 2026-11-01"
+  },
+  {
+   "severity": "medium",
+   "kind": "quality issue",
+   "check": "AI audit",
+   "agents": [
+    "e190",
+    "e186",
+    "e069",
+    "e188",
+    "e038",
+    "e171",
+    "e132"
+   ],
+   "groups": [
+    "2026-11-01/g4"
+   ],
+   "what": "g4 was built as 'three retired anglers' for an event the break room defines as a Green River Gorge hike; two of three declined because it is a hike, and the round-2 asks went to two more people (e188 fishing/coffee, e038 photography) with no hiking interest, who also declined, so the group was dropped.",
+   "why": "The room listed hiking-keen people (e171:3, e132 in the room, e031/e099/e169) and the matchmaker's own messages described a hike with 'river access'. Re-framing a hike as a fishing outing and then re-asking non-hikers after hike-based declines was unlikely to succeed and cost e069 his only plan [750][840][850][957][967][979][985].",
+   "expected": "Staff a hike with at least some hiking-keen members (e.g. e171, free Sunday afternoon and alternate in two groups where he was not needed, or e132), and after two 'not a hiker' declines ask hikers rather than more anglers/photographers.",
+   "fix": "In round 2 ask e171 or e132 for g4 instead of e188/e038, or merge e069 into another afternoon outing.",
+   "evidence": [
+    750,
+    840,
+    850,
+    957,
+    967,
+    979,
+    985
+   ],
+   "source": "AI audit of day 2026-11-01"
+  },
+  {
+   "severity": "medium",
+   "kind": "quality issue",
+   "check": "AI audit",
+   "agents": [
+    "e059",
+    "e109",
+    "e170",
+    "e177"
+   ],
+   "groups": [
+    "2026-11-01/g8"
+   ],
+   "what": "e059 (hiking 2, no plans this week) was in g8's keenest list but was neither invited nor made an alternate; alternates e109 and e170 both already had a plan this week. After e177 declined, e109 was asked instead of e059.",
+   "why": "The matchmaker stated that tight seats went to people with fewer plans, but applied the opposite here, passing over a zero-plan keenest neighbor for people with plans [749][750][957].",
+   "expected": "Use e059 as first alternate (or member) for g8 consistent with the fewer-plans rule.",
+   "fix": "Ask e059 for the g8 vacancy before e109/e170.",
+   "evidence": [
+    749,
+    750,
+    957,
+    973
+   ],
+   "source": "AI audit of day 2026-11-01"
+  },
+  {
+   "severity": "low",
+   "kind": "quality issue",
+   "check": "AI audit",
+   "agents": [
+    "e109",
+    "e177"
+   ],
+   "groups": [
+    "2026-11-01/g8"
+   ],
+   "what": "Members of g8 were pitched a 'group run' while the room and the round-2 ask describe an 'evening walk'; e177 declined because 'a walk' isn't a draw and e109 (running 3) declined because 'walking' isn't something she loves.",
+   "why": "Inconsistent framing between the plan's proposals and the follow-up ask likely contributed to two declines from people whose running interest fit the original pitch [750][930][957][973].",
+   "expected": "Describe the activity the same way in every message, matching what the room actually is.",
+   "fix": "Pitch the round-2 ask as the same relaxed group run offered to the original members, or label it a walk throughout.",
+   "evidence": [
+    750,
+    930,
+    957,
+    973
+   ],
+   "source": "AI audit of day 2026-11-01"
+  },
+  {
+   "severity": "low",
+   "kind": "subjective concern",
+   "check": "AI audit",
+   "agents": [
+    "e077",
+    "e160",
+    "e003"
+   ],
+   "groups": [],
+   "what": "Hoops (e077 basketball 3 with no plans, e160 basketball 3) and the Seahawks afternoon room (e003, e115, e139 — three keen, not two) were dropped as 'two-person options' under the group cap.",
+   "why": "The matchmaker's stated reason mischaracterises the Seahawks room's size, and a two-person group is explicitly allowed by the room rule; whether these should have displaced g4 is a judgment call [748][750].",
+   "expected": "Accurate counting of room strength when deciding which rooms to drop.",
+   "fix": "Reconsider hoops or Seahawks before a hike group with no hikers.",
+   "evidence": [
+    748,
+    750
+   ],
+   "source": "AI audit of day 2026-11-01"
+  },
+  {
+   "severity": "high",
+   "kind": "quality issue",
+   "check": "AI audit",
+   "agents": [],
+   "groups": [
+    "2026-11-01/g4"
+   ],
+   "what": "The matchmaker proposed a Green River Gorge hike to three people whose profiles list fishing but not hiking, explicitly reasoning 'three retired anglers'.",
+   "why": "The group was selected for an interest the activity doesn't involve; two of three declined for exactly that reason and the group collapsed, while keen hikers (e171, e132, e104, keenness 3) sat unused in the same break room.",
+   "expected": "Fill a hike with people who list hiking, or propose a fishing outing for the anglers.",
+   "fix": "Swap the activity to a riverside fishing afternoon for e190/e186/e069, or build the hike from e171/e132/e104.",
+   "evidence": [
+    755,
+    765,
+    840,
+    850
+   ],
+   "source": "AI audit of 2026-11-01/g4"
+  },
+  {
+   "severity": "medium",
+   "kind": "quality issue",
+   "check": "AI audit",
+   "agents": [],
+   "groups": [
+    "2026-11-01/g4"
+   ],
+   "what": "Round-1 invitations described the hike with fishing-oriented language ('good river access', 'a chance to try the river together').",
+   "why": "The proposed event is a hike, not a fishing trip; the framing misrepresents the activity and led e069's agent to say yes on the basis of fishing.",
+   "expected": "Describe the activity as what it is.",
+   "fix": "Remove the river/fishing pitch and state it is a 1-4pm hike along the gorge.",
+   "evidence": [
+    823,
+    833,
+    834,
+    855
+   ],
+   "source": "AI audit of 2026-11-01/g4"
+  },
+  {
+   "severity": "medium",
+   "kind": "quality issue",
+   "check": "AI audit",
+   "agents": [],
+   "groups": [
+    "2026-11-01/g4"
+   ],
+   "what": "Both alternates asked in round 2 (e188, e038) have no hiking interest and neither fits the stated 'retirees in their 70s' concept.",
+   "why": "Two more asks were spent on people whose profiles gave no reason to expect a yes, and the group was dropped anyway.",
+   "expected": "Ask alternates whose profiles support the activity, such as the keen hikers listed in the break room.",
+   "fix": "Replace e188/e038 with e171 or e132 or e104 as alternates.",
+   "evidence": [
+    957,
+    961,
+    963,
+    967,
+    979,
+    985
+   ],
+   "source": "AI audit of 2026-11-01/g4"
+  },
+  {
+   "severity": "low",
+   "kind": "subjective concern",
+   "check": "AI audit",
+   "agents": [
+    "e069"
+   ],
+   "groups": [
+    "2026-11-01/g4"
+   ],
+   "what": "Noah's agent accepted a hike citing his love of fishing and 'a free river outing with fellow anglers'.",
+   "why": "The yes rests on an activity the event doesn't include; Noah doesn't list hiking, so the acceptance is weakly grounded, though prompted by the matchmaker's wording.",
+   "expected": "Judge the proposal as a hike and either accept on Noah's general outdoor fit or ask whether fishing is actually part of it.",
+   "fix": "Base the reply on the stated activity rather than the invitation's river framing.",
+   "evidence": [
+    834,
+    855
+   ],
+   "source": "AI audit of 2026-11-01/g4"
+  },
+  {
+   "severity": "low",
+   "kind": "quality issue",
+   "check": "AI audit",
+   "agents": [
+    "e117",
+    "e085"
+   ],
+   "groups": [
+    "2026-11-01/g10"
+   ],
+   "what": "Final messages say Ava 'shares your love of book club' and 'the whole crew loves craft beer' although Ava's profile lists book club as only 'up for' and craft beer as 'really likes'.",
+   "why": "The final messages should only state facts from the profiles; these mildly overstate Ava's interest.",
+   "expected": "Describe Ava as 'up for book club' / 'also into craft beer'.",
+   "fix": "Soften the wording to match the profile ratings.",
+   "evidence": [
+    1018
+   ],
+   "source": "AI audit of 2026-11-01/g10"
+  },
+  {
+   "severity": "low",
+   "kind": "insufficient evidence",
+   "check": "AI audit",
+   "agents": [
+    "e173"
+   ],
+   "groups": [
+    "2026-11-01/g10"
+   ],
+   "what": "The invitation to Mateo claims Lumber House is 'close by'.",
+   "why": "Nothing in the log gives the brewery's location relative to Morgan Creek, so the claim is unsupported (though Mateo does not avoid long drives, so no harm).",
+   "expected": "Invitations should use only facts the matchmaker can support.",
+   "fix": "Drop 'and close by' or replace with a supported detail such as the early finish.",
+   "evidence": [
+    933
+   ],
+   "source": "AI audit of 2026-11-01/g10"
+  },
+  {
+   "severity": "low",
+   "kind": "subjective concern",
+   "check": "AI audit",
+   "agents": [
+    "e117",
+    "e085"
+   ],
+   "groups": [
+    "2026-11-01/g10"
+   ],
+   "what": "Ava and Cody also said yes to Pints at Lumber House on the two preceding days of the run.",
+   "why": "Proposing the same venue and activity to the same people on consecutive days may reduce variety, though the log does not show whether those earlier groups locked.",
+   "expected": "Vary activities or venues across days for the same person where possible.",
+   "fix": "Check prior-day assignments before repeating an identical outing.",
+   "evidence": [
+    269,
+    642,
+    1001
+   ],
+   "source": "AI audit of 2026-11-01/g10"
+  }
+ ],
+ "unsupported": [],
+ "failures": [
+  "day 2026-10-31: the auditor's reply wasn't JSON",
+  "2026-10-30/g6: spending ceiling reached; the simulation made no further calls",
+  "2026-11-01/g5: spending ceiling reached; the simulation made no further calls",
+  "2026-10-30/g10: spending ceiling reached; the simulation made no further calls",
+  "2026-10-30/g8: spending ceiling reached; the simulation made no further calls",
+  "2026-11-01/g9: spending ceiling reached; the simulation made no further calls",
+  "2026-10-30/g1: spending ceiling reached; the simulation made no further calls"
+ ],
+ "cost_usd": 2.19538,
+ "groups_audited": 2,
+ "days_audited": 2,
+ "inconsistent_agents": 0,
+ "inconsistent_agent_notes": []
+}

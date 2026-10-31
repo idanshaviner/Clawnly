@@ -1,0 +1,278 @@
+{
+ "findings": [
+  {
+   "severity": "medium",
+   "kind": "quality issue",
+   "check": "hub told others who declined",
+   "agents": [
+    "e075",
+    "e148"
+   ],
+   "groups": [
+    "2026-10-31/g4"
+   ],
+   "what": "The hub's round-2 message to e075 in 2026-10-31/g4 names e148 ('Grace'), who had said no.",
+   "why": "Whether someone declined is their private answer; the group only needs to know who is coming.",
+   "expected": "Messages before the lock say who is coming, never who said no.",
+   "fix": "Say in the resolve prompt never to name decliners, and check hub messages in code.",
+   "evidence": [
+    433,
+    452
+   ],
+   "source": "code"
+  },
+  {
+   "severity": "medium",
+   "kind": "quality issue",
+   "check": "hub told others who declined",
+   "agents": [
+    "e133",
+    "e148"
+   ],
+   "groups": [
+    "2026-10-31/g4"
+   ],
+   "what": "The hub's round-2 message to e133 in 2026-10-31/g4 names e148 ('Grace'), who had said no.",
+   "why": "Whether someone declined is their private answer; the group only needs to know who is coming.",
+   "expected": "Messages before the lock say who is coming, never who said no.",
+   "fix": "Say in the resolve prompt never to name decliners, and check hub messages in code.",
+   "evidence": [
+    433,
+    454
+   ],
+   "source": "code"
+  },
+  {
+   "severity": "low",
+   "kind": "quality issue",
+   "check": "re-asked a yes about an unchanged plan",
+   "agents": [
+    "e081",
+    "e043",
+    "e078",
+    "e167"
+   ],
+   "groups": [
+    "2026-10-28/g1"
+   ],
+   "what": "In round 2 the hub asked 4 people in 2026-10-28/g1 (e081, e043, e078, e167) again although they had said yes and the time hadn't changed.",
+   "why": "Each is another agent call that can only confirm or, worse, flip a settled yes.",
+   "expected": "Round 2 asks only alternates, people who countered, and yeses whose time changed.",
+   "fix": "Tell the resolve step that confirmations go out after the lock; have code skip re-asks of an unchanged yes.",
+   "evidence": [
+    172,
+    174,
+    176,
+    178
+   ],
+   "source": "code"
+  },
+  {
+   "severity": "low",
+   "kind": "quality issue",
+   "check": "re-asked a yes about an unchanged plan",
+   "agents": [
+    "e123",
+    "e049",
+    "e074",
+    "e170",
+    "e075"
+   ],
+   "groups": [
+    "2026-10-28/g2"
+   ],
+   "what": "In round 2 the hub asked 5 people in 2026-10-28/g2 (e123, e049, e074, e170, e075) again although they had said yes and the time hadn't changed.",
+   "why": "Each is another agent call that can only confirm or, worse, flip a settled yes.",
+   "expected": "Round 2 asks only alternates, people who countered, and yeses whose time changed.",
+   "fix": "Tell the resolve step that confirmations go out after the lock; have code skip re-asks of an unchanged yes.",
+   "evidence": [
+    185,
+    191,
+    197,
+    203,
+    209
+   ],
+   "source": "code"
+  },
+  {
+   "severity": "low",
+   "kind": "quality issue",
+   "check": "re-asked a yes about an unchanged plan",
+   "agents": [
+    "e082",
+    "e046",
+    "e067"
+   ],
+   "groups": [
+    "2026-10-28/g3"
+   ],
+   "what": "In round 2 the hub asked 3 people in 2026-10-28/g3 (e082, e046, e067) again although they had said yes and the time hadn't changed.",
+   "why": "Each is another agent call that can only confirm or, worse, flip a settled yes.",
+   "expected": "Round 2 asks only alternates, people who countered, and yeses whose time changed.",
+   "fix": "Tell the resolve step that confirmations go out after the lock; have code skip re-asks of an unchanged yes.",
+   "evidence": [
+    215,
+    221,
+    227
+   ],
+   "source": "code"
+  },
+  {
+   "severity": "low",
+   "kind": "quality issue",
+   "check": "re-asked a yes about an unchanged plan",
+   "agents": [
+    "e038",
+    "e069",
+    "e111"
+   ],
+   "groups": [
+    "2026-10-28/g5"
+   ],
+   "what": "In round 2 the hub asked 3 people in 2026-10-28/g5 (e038, e069, e111) again although they had said yes and the time hadn't changed.",
+   "why": "Each is another agent call that can only confirm or, worse, flip a settled yes.",
+   "expected": "Round 2 asks only alternates, people who countered, and yeses whose time changed.",
+   "fix": "Tell the resolve step that confirmations go out after the lock; have code skip re-asks of an unchanged yes.",
+   "evidence": [
+    257,
+    263,
+    269
+   ],
+   "source": "code"
+  },
+  {
+   "severity": "low",
+   "kind": "quality issue",
+   "check": "re-asked a yes about an unchanged plan",
+   "agents": [
+    "e124",
+    "e143",
+    "e055",
+    "e148",
+    "e105"
+   ],
+   "groups": [
+    "2026-10-28/g6"
+   ],
+   "what": "In round 2 the hub asked 5 people in 2026-10-28/g6 (e124, e143, e055, e148, e105) again although they had said yes and the time hadn't changed.",
+   "why": "Each is another agent call that can only confirm or, worse, flip a settled yes.",
+   "expected": "Round 2 asks only alternates, people who countered, and yeses whose time changed.",
+   "fix": "Tell the resolve step that confirmations go out after the lock; have code skip re-asks of an unchanged yes.",
+   "evidence": [
+    275,
+    281,
+    287,
+    293,
+    299
+   ],
+   "source": "code"
+  },
+  {
+   "severity": "low",
+   "kind": "quality issue",
+   "check": "re-asked a yes about an unchanged plan",
+   "agents": [
+    "e075",
+    "e133"
+   ],
+   "groups": [
+    "2026-10-31/g4"
+   ],
+   "what": "In round 2 the hub asked 2 people in 2026-10-31/g4 (e075, e133) again although they had said yes and the time hadn't changed.",
+   "why": "Each is another agent call that can only confirm or, worse, flip a settled yes.",
+   "expected": "Round 2 asks only alternates, people who countered, and yeses whose time changed.",
+   "fix": "Tell the resolve step that confirmations go out after the lock; have code skip re-asks of an unchanged yes.",
+   "evidence": [
+    452,
+    454
+   ],
+   "source": "code"
+  }
+ ],
+ "fairness": {
+  "by_kind": {
+   "all": {
+    "people": 30,
+    "in_a_room": 30,
+    "asked": 27,
+    "placed": 27,
+    "placements": 42
+   },
+   "archetype: shift worker": {
+    "people": 5,
+    "in_a_room": 5,
+    "asked": 4,
+    "placed": 4,
+    "placements": 5
+   },
+   "budget: low": {
+    "people": 13,
+    "in_a_room": 13,
+    "asked": 12,
+    "placed": 12,
+    "placements": 20
+   },
+   "kids at home": {
+    "people": 5,
+    "in_a_room": 5,
+    "asked": 5,
+    "placed": 5,
+    "placements": 7
+   },
+   "archetype: retiree": {
+    "people": 7,
+    "in_a_room": 7,
+    "asked": 5,
+    "placed": 5,
+    "placements": 8
+   },
+   "budget: any": {
+    "people": 14,
+    "in_a_room": 14,
+    "asked": 12,
+    "placed": 12,
+    "placements": 17
+   },
+   "archetype: parent at home": {
+    "people": 4,
+    "in_a_room": 4,
+    "asked": 4,
+    "placed": 4,
+    "placements": 6
+   },
+   "archetype: commuter": {
+    "people": 10,
+    "in_a_room": 10,
+    "asked": 10,
+    "placed": 10,
+    "placements": 17
+   },
+   "budget: free": {
+    "people": 3,
+    "in_a_room": 3,
+    "asked": 3,
+    "placed": 3,
+    "placements": 5
+   },
+   "archetype: remote worker": {
+    "people": 3,
+    "in_a_room": 3,
+    "asked": 3,
+    "placed": 3,
+    "placements": 5
+   },
+   "archetype: student": {
+    "people": 1,
+    "in_a_room": 1,
+    "asked": 1,
+    "placed": 1,
+    "placements": 1
+   }
+  },
+  "in_a_room_but_never_asked": [
+   "e008",
+   "e061",
+   "e116"
+  ]
+ }
+}

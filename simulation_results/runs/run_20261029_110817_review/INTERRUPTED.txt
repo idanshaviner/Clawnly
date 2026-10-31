@@ -1,0 +1,9 @@
+This attempt was interrupted during retry sleep after network/DNS failures in
+restricted execution. No matching group was produced and it is not counted.
+The in-memory simulation had not written its final run files, so a full simulation
+transcript is unavailable for this interrupted attempt. The unused $1.25 reservation
+was released with an explanation in spend_ledger.json. Previous failed attempts
+have their complete error logs in their own run folders.
+
+The paid batch was then restarted with network access. Successful later runs keep
+their own manifests, prompts, replies and per-call costs.

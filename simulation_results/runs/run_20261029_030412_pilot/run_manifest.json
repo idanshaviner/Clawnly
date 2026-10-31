@@ -1,0 +1,100 @@
+{
+ "sim_id": "run_20261029_030412_pilot",
+ "stage": "pilot",
+ "started": "2026-10-29T07:04:12.169068+00:00",
+ "finished": "2026-10-29T07:07:21.148089+00:00",
+ "replies_from": "Claude (live Anthropic API)",
+ "command": "src/orchestration_sim.py run pilot --ceiling 0.9",
+ "seed": 7,
+ "week_start": "2026-10-28",
+ "days": [
+  "2026-10-28",
+  "2026-10-31"
+ ],
+ "max_groups": 6,
+ "people": 30,
+ "person_ids": [
+  "e008",
+  "e035",
+  "e038",
+  "e041",
+  "e043",
+  "e046",
+  "e047",
+  "e049",
+  "e052",
+  "e055",
+  "e061",
+  "e067",
+  "e069",
+  "e074",
+  "e075",
+  "e078",
+  "e081",
+  "e082",
+  "e088",
+  "e105",
+  "e111",
+  "e116",
+  "e123",
+  "e124",
+  "e127",
+  "e133",
+  "e143",
+  "e148",
+  "e167",
+  "e170"
+ ],
+ "models": {
+  "hub plan and resolve": "claude-opus-5-5",
+  "agents and final messages": "claude-sonnet-5"
+ },
+ "effort": {
+  "hub": "medium",
+  "agents": "medium"
+ },
+ "harness_request_changes": [
+  "thinking={type: adaptive, display: summarized} on every call, so the model's thinking summary is kept. Thinking is on and billed the same without it; only what is returned differs."
+ ],
+ "ceiling_usd": 0.9,
+ "spent_usd": 0.43068,
+ "calls_without_usage": 0,
+ "stopped_by_ceiling": false,
+ "days_run": [
+  {
+   "day": "2026-10-28",
+   "status": "done",
+   "log_check": {
+    "run_calls": 31,
+    "harness_calls": 31,
+    "db_ai_calls": 31,
+    "blocked_by_ceiling": 0,
+    "complete": true
+   }
+  },
+  {
+   "day": "2026-10-31",
+   "status": "done",
+   "log_check": {
+    "run_calls": 28,
+    "harness_calls": 28,
+    "db_ai_calls": 28,
+    "blocked_by_ceiling": 0,
+    "complete": true
+   }
+  }
+ ],
+ "groups_proposed": 12,
+ "groups_locked": 12,
+ "events": 333,
+ "code": {
+  "commit": "33ce5c76329107c24342c5f58c77e25d3b3d987d",
+  "dirty": true
+ },
+ "environment": {
+  "python": "3.15.2",
+  "anthropic_sdk": "2.3.0",
+  "platform": "macOS-26.6-arm64-arm-64bit-Mach-O",
+  "db": "/Users/idan/Documents/GitHub/Clawnly/simulation_results/simulation.db"
+ }
+}

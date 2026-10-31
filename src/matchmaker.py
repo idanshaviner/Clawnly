@@ -5,12 +5,15 @@ Hub and spoke, never agent to agent. For one day in the neighborhood:
   1. break rooms (code, demand.break_room): one per activity and time of day,
      holding every neighbor who is free, keen, can afford it and doesn't avoid it.
   2. plan (Opus): the matchmaker picks groups from the break rooms, with
-     alternates and a personal proposal to each person's agent. Code keeps only
-     people who are in that break room and never books anyone twice.
+     alternates and a personal proposal to each person's agent. Rooms list the
+     people with fewer plans this week first. Code keeps only people who are in
+     that break room and never books anyone twice; a member needs a strong
+     interest, so someone only up for it becomes an alternate.
   3. round 1 (Sonnet, one call per agent): the matchmaker asks each agent one
      to one; the agent checks the plan against its person's full profile (likes,
      dislikes, what they avoid, budget, the week's calendar) plus what code found
-     in it (plan_checks), and answers yes / no / counter.
+     in it (plan_checks), and answers yes / no / counter. Code takes a yes only
+     with a reason from the profile and nothing in it that rules the plan out.
   4. resolve (Opus): accept counters by moving the time, call alternates. Code
      only lets it ask the group's own members or alternates, never someone who
      already said yes elsewhere, and never one person for two groups.
@@ -45,6 +48,9 @@ AGENT_CONCURRENCY = 4
 # the keenest people in a break room, listed with keenness and a profile line (once each,
 # in PEOPLE); the rest of the room by id only. Keeps what Opus reads, and pays for, small.
 PROFILES_PER_ROOM = 8
+# a member needs a strong interest (really likes or loves one of the activity's tags); someone
+# only up for it is an alternate: in 200 live groups, agents said yes to a mild interest 4 times in 6
+STRONG = 2
 
 
 def _now():
@@ -74,7 +80,7 @@ def _index(items):
 
 # ----- prompts: each system prompt carries one marker phrase (ai_log.PURPOSES) -----
 
-def _person_line(p):
+def _person_line(p, plans=0):
     # one compact line per person; the plan lists each person once, however many rooms they're in
     likes = []
     i = 0
@@ -84,7 +90,33 @@ def _person_line(p):
     kids = ""
     if p["kids_at_home"]:
         kids = ", kids"
-    return "  " + p["id"] + " " + p["name"] + ", " + str(p["age"]) + ", " + p["archetype"] + kids + ", " + p["area"] + ": " + ", ".join(likes)
+    avoid = ""
+    if len(p["avoid"]) > 0:
+        words = []
+        i = 0
+        while i < len(p["avoid"]):
+            words.append(_words(p["avoid"][i]))
+            i += 1
+        # the hub can't see the profile otherwise, and a fixed late event can still reach a late-night avoider
+        avoid = "; avoids " + ", ".join(words)
+    already = ""
+    if plans > 0:
+        already = "; plans this week: " + str(plans)
+    return "  " + p["id"] + " " + p["name"] + ", " + str(p["age"]) + ", " + p["archetype"] + kids + ", " + p["area"] + ": " + ", ".join(likes) + avoid + already
+
+
+def _liked_here(person, activity):
+    # which of this activity's tags the person likes: what their keenness is made of
+    out = []
+    i = 0
+    while i < len(activity["tags"]):
+        j = 0
+        while j < len(person["likes"]):
+            if person["likes"][j]["tag"] == activity["tags"][i]:
+                out.append(_words(activity["tags"][i]))
+            j += 1
+        i += 1
+    return ", ".join(out)
 
 
 def _plan_system(day, max_groups):
@@ -92,31 +124,69 @@ def _plan_system(day, max_groups):
         "You are the Clawnly matchmaker: the orchestrator for " + catalog.NEIGHBORHOOD + ". Task: plan the day's activity groups for " + day_label(day) + ".",
         "Each neighbor has told their own agent what they like, what they don't, and when they're free. You talk to each person's agent one to one. Agents never talk to each other. The goal is not friendship matching: it is a good small group doing something real together, so neighbors get to know each other.",
         "",
-        "The break rooms were built by code: one per activity and time of day that can run that day, holding every neighbor who is free then, interested, can afford it and doesn't avoid anything about it. Each room lists its keenest people as id:keenness (higher is better), then everyone else in it by id. PEOPLE has one line per listed person, once each.",
+        "The break rooms were built by code: one per activity and time of day that can run that day, holding every neighbor who is free then, interested, can afford it and doesn't avoid anything about it. Each room lists the people with a strong interest, fewest plans this week first, as id:keenness [which of the activity's tags they like] (higher is better), then the rest of them by id, then the people only mildly interested. PEOPLE has one line per listed person, once each, with what they avoid and any plans they already have this week.",
         "",
         "Plan up to " + str(max_groups) + " groups:",
         "- Size each group to fit the activity and the people. You decide: two neighbors having a beer over the game is a group, and so is a bigger hike. Small groups are often where people actually meet each other.",
         "- Each person in at most one group. Use only people in that break room.",
+        "- Members need a strong interest. People listed as mild can be alternates, never members.",
         "- Prefer groups whose members share more than the activity (overlapping likes, similar stage of life), so they'd enjoy each other.",
-        "- Spread plans across many people rather than stacking the keenest into one group.",
+        "- Favor people with fewer plans this week: when two people fit, the place goes to the one with fewer. Spread plans across many people rather than stacking the keenest into one group.",
         "- Pick a specific time inside the day part (morning " + PART_HOURS["morning"] + ", afternoon " + PART_HOURS["afternoon"] + ", evening " + PART_HOURS["evening"] + "). A room marked FIXED is a real event (a game, a concert): use exactly that time.",
         "- Name up to 2 alternates per group from the same break room, in case someone declines.",
         "- Write a short, personal proposal to each member's agent: what, when, where, how many others, and why it fits this person. Don't name the other people yet.",
+        "- In the why and the proposals, describe only interests people actually have: someone in a trivia room for the craft beer isn't a trivia fan. Check what a person avoids against a FIXED time.",
         "",
         "Reply with only this JSON object:",
         '{"thoughts": "your reasoning about the day, 3-6 sentences", "groups": [{"activity": "activity id", "part": "morning|afternoon|evening", "time": "e.g. 10:30am-12pm", "members": ["person id"], "alternates": ["person id"], "why": "one sentence: why this group", "proposals": {"person id": "the message to that person\'s agent"}}]}',
     ])
 
 
-def _plan_payload(rooms, people):
+def split_room(room, people):
+    # (strong, mild): the room's candidates who can be members, and the ones who can only be alternates
+    activity = catalog.get(room["activity"])
+    strong = []
+    mild = []
+    i = 0
+    while i < len(room["candidates"]):
+        c = room["candidates"][i]
+        if keenness(people[c["id"]], activity) >= STRONG:
+            strong.append(c)
+        else:
+            mild.append(c)
+        i += 1
+    return strong, mild
+
+
+def _fewest_plans_first(rooms, plans):
+    # within each room, people with fewer plans this week come first; keenness still orders the rest
+    i = 0
+    while i < len(rooms):
+        rooms[i]["candidates"].sort(key=lambda c: plans.get(c["id"], 0))
+        i += 1
+
+
+def _plan_payload(rooms, people, plans=None):
+    if plans is None:
+        plans = {}
     lines = ["BREAK ROOMS:"]
     listed = []
     seen = {}
     i = 0
     while i < len(rooms):
         room = rooms[i]
+        i += 1
+        strong, mild = split_room(room, people)
+        # no group can form without two members who really want it
+        if len(strong) < 2:
+            continue
         a = catalog.get(room["activity"])
-        header = "[" + a["id"] + " | " + room["part"] + "] " + a["name"] + " at " + a["where"] + ", cost " + a["cost"]
+        tags = []
+        t = 0
+        while t < len(a["tags"]):
+            tags.append(_words(a["tags"][t]))
+            t += 1
+        header = "[" + a["id"] + " | " + room["part"] + "] " + a["name"] + " at " + a["where"] + ", cost " + a["cost"] + ", about: " + ", ".join(tags)
         fixed = fixed_time(a, room["part"])
         if fixed is not None:
             header = header + ", FIXED " + fixed
@@ -125,25 +195,31 @@ def _plan_payload(rooms, people):
         top = []
         rest = []
         j = 0
-        while j < len(room["candidates"]):
-            c = room["candidates"][j]
+        while j < len(strong):
+            c = strong[j]
             if j < PROFILES_PER_ROOM:
-                top.append(c["id"] + ":" + str(c["score"]))
+                top.append(c["id"] + ":" + str(c["score"]) + " [" + _liked_here(people[c["id"]], a) + "]")
                 if c["id"] not in seen:
                     seen[c["id"]] = True
                     listed.append(c["id"])
             else:
                 rest.append(c["id"])
             j += 1
-        lines.append("  keenest: " + " ".join(top))
+        lines.append("  keenest: " + "; ".join(top))
         if len(rest) > 0:
             lines.append("  also: " + " ".join(rest))
-        i += 1
+        if len(mild) > 0:
+            ids = []
+            j = 0
+            while j < len(mild):
+                ids.append(mild[j]["id"])
+                j += 1
+            lines.append("  mild, alternates only: " + " ".join(ids))
     lines.append("")
     lines.append("PEOPLE:")
     k = 0
     while k < len(listed):
-        lines.append(_person_line(people[listed[k]]))
+        lines.append(_person_line(people[listed[k]], plans.get(listed[k], 0)))
         k += 1
     return "\n".join(lines)
 
@@ -183,6 +259,16 @@ def parse_hours(text):
     if start_half == "":
         start_half = end_half
     return _to_hours(found[0], start_half), _to_hours(found[-1], end_half)
+
+
+def inside_part(time_text, part):
+    # calendars and break rooms are checked per day part, so a time outside it was never checked;
+    # a time code can't read is left alone (the simulation audit flags it)
+    hours = parse_hours(time_text)
+    if hours is None:
+        return True
+    bounds = parse_hours(PART_HOURS[part])
+    return hours[0] >= bounds[0] and hours[1] <= bounds[1]
 
 
 def agent_profile(person):
@@ -232,8 +318,19 @@ def agent_profile(person):
     return "\n".join(lines)
 
 
-def plan_checks(person, activity, part, time_text, day):
-    # what code can see in the profile that argues against this plan; the agent weighs it
+def keenness(person, activity):
+    # their strongest like among the activity's tags: 3 loves, 2 really likes, 1 only up for it, 0 none
+    keen = 0
+    i = 0
+    while i < len(person["likes"]):
+        if person["likes"][i]["tag"] in activity["tags"] and person["likes"][i]["weight"] > keen:
+            keen = person["likes"][i]["weight"]
+        i += 1
+    return keen
+
+
+def conflicts(person, activity, part, time_text, day):
+    # what in the profile rules this plan out: code refuses a yes that runs into any of it
     first = _first(person)
     out = []
     if part not in person["calendar"].get(day.isoformat(), []):
@@ -257,12 +354,14 @@ def plan_checks(person, activity, part, time_text, day):
         i += 1
     if activity["cost"] not in demand.BUDGET_OK[person["budget"]]:
         out.append("It costs more than " + first + "'s budget (" + BUDGET_WORDS[person["budget"]] + ").")
-    keen = 0
-    i = 0
-    while i < len(person["likes"]):
-        if person["likes"][i]["tag"] in activity["tags"] and person["likes"][i]["weight"] > keen:
-            keen = person["likes"][i]["weight"]
-        i += 1
+    return out
+
+
+def plan_checks(person, activity, part, time_text, day):
+    # what code can see in the profile that argues against this plan; the agent weighs it
+    first = _first(person)
+    out = conflicts(person, activity, part, time_text, day)
+    keen = keenness(person, activity)
     if keen == 0:
         out.append(first + " never said they like this.")
     if keen == 1:
@@ -279,10 +378,11 @@ def _agent_system(person):
         agent_profile(person),
         "",
         "Check the plan against everything above before you answer: the time against their calendar and what they avoid, the activity against their likes and dislikes, the cost against their budget. Code has listed what it found; weigh it, and look for anything it missed.",
-        '- "no" if something clearly conflicts and no small change fixes it, or if ' + first + " just wouldn't be keen. A mild interest is a fair reason to pass. Saying no is normal and helps the matchmaker.",
+        "What " + first + " avoids is a limit they set, not a preference to trade off: if the plan runs into it, say no (or counter, if the time can move), however much they'd enjoy the rest.",
+        '- "yes" only with a strong reason from the profile: something ' + first + ' loves or really likes that this plan gives them. Put that reason in "reason"; a yes without one counts as a no.',
+        '- "no" if something clearly conflicts and no small change fixes it, or if there is no strong reason. Being only up for it (a mild interest) is not a strong reason. Saying no is normal and helps the matchmaker.',
         '- "counter" with one concrete change that would make it a yes (for example a later start inside a day part they\'re free). A fixed-time event can\'t move, so don\'t counter its time.',
-        '- "yes" only if it genuinely fits and ' + first + " would want to go.",
-        'Reply with only this JSON object: {"answer": "yes" or "no" or "counter", "counter": "the change, if any", "say": "one or two sentences to the matchmaker, as ' + first + "'s agent\"}",
+        'Reply with only this JSON object: {"answer": "yes" or "no" or "counter", "reason": "for a yes: the strong reason, from the profile", "counter": "the change, if any", "say": "one or two sentences to the matchmaker, as ' + first + "'s agent\"}",
     ])
 
 
@@ -309,6 +409,7 @@ def _resolve_system(day):
         "You are the Clawnly matchmaker for " + catalog.NEIGHBORHOOD + ", " + day_label(day) + ". Task: finish the day's plan after each person's agent answered you privately.",
         "For each group: keep it if at least 2 people can do it. Accept a counter by moving the time if that still works for the ones who said yes (then re-ask them with the new time). Replace people who said no with alternates (ask them). Drop a group that can't reach 2.",
         "Never add anyone who is already in another group. Only ask the group's own members or its alternates.",
+        "Only ask people whose answer you still need: an alternate replacing a no, someone whose counter you're answering, or someone who said yes to a time you've now changed. Don't send confirmations: everyone gets one after the lock. Never tell anyone who declined.",
         "",
         "Reply with only this JSON object:",
         '{"thoughts": "your reasoning, 2-5 sentences", "groups": [{"id": "group id", "keep": true or false, "time": "final time", "ask": [{"id": "person id", "message": "what you say to their agent now"}]}]}',
@@ -332,6 +433,8 @@ def _resolve_payload(groups, people):
             said = m["state"]
             if m["counter"]:
                 said = said + " (" + m["counter"] + ")"
+            if m.get("refused"):
+                said = said + " (code refused their agent's yes: " + m["refused"] + ")"
             lines.append("  " + m["id"] + " " + people[m["id"]]["name"] + ": " + said)
             j += 1
         alts = []
@@ -350,6 +453,7 @@ def _message_system():
         "You are the Clawnly matchmaker for " + catalog.NEIGHBORHOOD + ". Task: write the message each person receives now that their small group is confirmed (every person's agent said yes).",
         "This is the moment people find out who they're meeting, so make it feel specific and real, never salesy.",
         "For each person: 2-3 sentences. Say what, when and where, name the others by first name, and give one concrete reason from their profiles why they'll get along (a shared interest or stage of life). Only use what's in the profiles.",
+        "Say two people share an interest only if WHAT THEY SHARE lists them both under it; people often like different things about the same activity.",
         "",
         'Reply with only this JSON object: {"headline": "one line for the whole group", "messages": {"person id": "the message"}}',
     ])
@@ -362,7 +466,42 @@ def _message_payload(group, day, people):
     while i < len(group["final"]):
         lines.append("  " + group["final"][i] + " " + people[group["final"][i]]["brief"])
         i += 1
+    lines.append("")
+    lines.append("WHAT THEY SHARE (worked out by code from their likes):")
+    shared = _shared_likes(group["final"], people)
+    if len(shared) == 0:
+        lines.append("  no like in common: give a reason from stage of life or the activity itself")
+    i = 0
+    while i < len(shared):
+        lines.append("  " + shared[i])
+        i += 1
     return "\n".join(lines)
+
+
+def _shared_likes(ids, people):
+    # every like held by at least two of these people, with who holds it, in tag order
+    holders = {}
+    order = []
+    i = 0
+    while i < len(ids):
+        person = people[ids[i]]
+        j = 0
+        while j < len(person["likes"]):
+            tag = person["likes"][j]["tag"]
+            if tag not in holders:
+                holders[tag] = []
+                order.append(tag)
+            if _first(person) not in holders[tag]:
+                holders[tag].append(_first(person))
+            j += 1
+        i += 1
+    out = []
+    k = 0
+    while k < len(order):
+        if len(holders[order[k]]) >= 2:
+            out.append(_words(order[k]) + ": " + ", ".join(holders[order[k]]))
+        k += 1
+    return out
 
 
 # ----- the run --------------------------------------------------------------------
@@ -454,6 +593,7 @@ def check_plan(raw, rooms, max_groups, people):
             continue
         activity = catalog.get(room["activity"])
         members = []
+        mild = []
         ids = r.get("members")
         if not isinstance(ids, list):
             ids = []
@@ -470,19 +610,25 @@ def check_plan(raw, rooms, max_groups, people):
             if pid in taken or pid in members:
                 rejected.append(people[pid]["name"] + " was already in another group")
                 continue
+            if keenness(people[pid], activity) < STRONG:
+                mild.append(pid)
+                rejected.append(people[pid]["name"] + " is only up for " + activity["name"] + ": an alternate, not a member")
+                continue
             members.append(pid)
         if len(members) < 2:
             rejected.append(activity["name"] + ": fewer than 2 valid people")
             continue
         alternates = []
+        # the plan's own alternates first, then anyone it named as a member who is only mildly interested
         alts = r.get("alternates")
         if not isinstance(alts, list):
             alts = []
+        alts = alts + mild
         k = 0
         while k < len(alts) and len(alternates) < 2:
             aid = str(alts[k])
             k += 1
-            if _in_room(room, aid) and aid not in taken and aid not in members:
+            if _in_room(room, aid) and aid not in taken and aid not in members and aid not in alternates:
                 alternates.append(aid)
         proposals = r.get("proposals")
         if not isinstance(proposals, dict):
@@ -497,6 +643,9 @@ def check_plan(raw, rooms, max_groups, people):
             if group["time"] != fixed:
                 group["plannedTime"] = group["time"]
                 group["time"] = fixed
+        elif not inside_part(group["time"], room["part"]):
+            group["plannedTime"] = group["time"]
+            group["time"] = PART_HOURS[room["part"]]
         m = 0
         while m < len(members):
             taken[members[m]] = group["id"]
@@ -534,6 +683,7 @@ async def _ask_agent(run, people, group, person_id, message, round_no, gate):
             member = {"id": person_id, "state": "asked", "counter": "", "proposal": message}
             group["members"].append(member)
         member["state"] = "asked"
+        member["refused"] = ""
         try:
             r = await run.ask("agent reply", config.MODEL_REASONING, _agent_system(person),
                               _agent_payload(person, group, run.day, message), 4000, config.REASONING_EFFORT)
@@ -546,19 +696,40 @@ async def _ask_agent(run, people, group, person_id, message, round_no, gate):
         answer = "no"
         counter = ""
         say = ""
+        reason = ""
         if isinstance(r, dict):
             answer = str(r.get("answer") or "no").lower()
             counter = str(r.get("counter") or "")
             say = str(r.get("say") or "")
+            reason = str(r.get("reason") or "").strip()
         if answer != "yes" and answer != "counter":
             answer = "no"
         member["state"] = answer
         member["counter"] = counter
         group["thread"].append({"t": _now(), "from": "agent", "by": person_id, "round": round_no,
-                                "answer": answer, "counter": counter, "text": say})
+                                "answer": answer, "reason": reason, "counter": counter, "text": say})
         run.log("agent", "reply", _first(person) + "'s agent to the matchmaker: " + answer.upper() +
                 " (" + catalog.get(group["activity"])["name"] + ")", group["id"])
+        # the agent's yes is a claim; code takes it only if nothing in the profile rules the plan out
+        if answer == "yes":
+            refused = refusal(person, group, run.day, reason)
+            if refused:
+                member["state"] = "no"
+                member["refused"] = refused
+                group["thread"].append({"t": _now(), "from": "system", "round": round_no,
+                                        "text": "Code turned " + _first(person) + "'s yes into a no: " + refused})
+                run.log("code", "check", "Refused " + _first(person) + "'s yes to " + group["id"] + ": " + refused, group["id"])
         run.progress()
+
+
+def refusal(person, group, day, reason):
+    # why code won't take this yes, or "" when it stands
+    found = conflicts(person, catalog.get(group["activity"]), group["part"], group["time"], day)
+    if len(found) > 0:
+        return found[0]
+    if reason == "":
+        return "the agent gave no reason from " + _first(person) + "'s profile."
+    return ""
 
 
 async def _ask_all(run, people, jobs):
@@ -567,10 +738,13 @@ async def _ask_all(run, people, jobs):
     await asyncio.gather(*[_ask_agent(run, people, j[0], j[1], j[2], j[3], gate) for j in jobs])
 
 
-async def run_day(day, max_groups=10, people_list=None, client=None, on_progress=None):
-    # plans `day` for the neighborhood and returns the run dict
+async def run_day(day, max_groups=10, people_list=None, client=None, on_progress=None, plans=None):
+    # plans `day` for the neighborhood and returns the run dict. plans: {person id: how many plans
+    # they already have this week}, so the matchmaker favors the people with fewer
     if people_list is None:
         people_list = demand_people(day)
+    if plans is None:
+        plans = {}
     people = _index(people_list)
     if client is None:
         client = config.get_client()
@@ -580,22 +754,38 @@ async def run_day(day, max_groups=10, people_list=None, client=None, on_progress
         # 1. break rooms, in code
         rooms = demand.break_room(people_list, catalog.ACTIVITIES, day)
         rooms.sort(key=_room_strength, reverse=True)
+        _fewest_plans_first(rooms, plans)
         in_any = {}
+        usable = 0
         i = 0
         while i < len(rooms):
             j = 0
             while j < len(rooms[i]["candidates"]):
                 in_any[rooms[i]["candidates"][j]["id"]] = True
                 j += 1
+            strong, mild = split_room(rooms[i], people)
+            if len(strong) >= 2:
+                usable += 1
             i += 1
-        data["breakRoom"] = {"slots": len(rooms), "people": len(in_any)}
+        data["breakRoom"] = {"slots": len(rooms), "people": len(in_any), "usable": usable}
         run.log("code", "check", "Built " + str(len(rooms)) + " break rooms for " + day_label(day) + " (one per activity and time of day); " +
-                str(len(in_any)) + " of " + str(len(people_list)) + " neighbors are in at least one.")
+                str(len(in_any)) + " of " + str(len(people_list)) + " neighbors are in at least one. " + str(usable) +
+                " have at least 2 people with a strong interest; only those can form a group.")
+        already = 0
+        ids = list(plans.keys())
+        i = 0
+        while i < len(ids):
+            if ids[i] in people and plans[ids[i]] > 0:
+                already += 1
+            i += 1
+        if already > 0:
+            run.log("code", "check", "Neighbors who already have a plan this week: " + str(already) +
+                    ". Each break room lists them after people with fewer.")
         run.progress()
 
         # 2. the plan
         raw = await run.ask("orchestrator plan", config.MODEL_PREMIUM, _plan_system(day, max_groups),
-                            _plan_payload(rooms, people), 16000, config.HUB_EFFORT)
+                            _plan_payload(rooms, people, plans), 16000, config.HUB_EFFORT)
         thoughts = ""
         if isinstance(raw, dict):
             thoughts = str(raw.get("thoughts") or "")
@@ -609,9 +799,13 @@ async def run_day(day, max_groups=10, people_list=None, client=None, on_progress
         data["groups"] = groups
         g = 0
         while g < len(groups):
-            if groups[g].get("plannedTime"):
+            if groups[g].get("plannedTime") and groups[g].get("fixed"):
                 run.log("code", "check", "Set " + groups[g]["id"] + " to the event's real time, " + groups[g]["time"] +
                         " (the plan said " + groups[g]["plannedTime"] + ").", groups[g]["id"])
+            elif groups[g].get("plannedTime"):
+                run.log("code", "check", "Set " + groups[g]["id"] + " to its " + groups[g]["part"] + ", " + groups[g]["time"] +
+                        ": the plan's " + groups[g]["plannedTime"] + " is outside it, when nobody's calendar was checked.",
+                        groups[g]["id"])
             run.log("hub", "decision", "Proposed " + groups[g]["id"] + ": " + catalog.get(groups[g]["activity"])["name"] + ", " +
                     groups[g]["time"] + ", " + str(len(groups[g]["members"])) + " people. " + groups[g]["why"], groups[g]["id"])
             g += 1
@@ -739,12 +933,18 @@ def _resolve_jobs(run, res, groups, people):
             group["dropReason"] = "the matchmaker dropped it"
             run.log("hub", "decision", "Dropped " + group["id"] + " (" + name + ").", group["id"])
             continue
+        moved = False
         if dec.get("time") and str(dec["time"]) != group["time"]:
             if group.get("fixed"):
                 run.log("code", "check", "Kept " + group["id"] + " at " + group["time"] + ": " + name +
                         " is a real event, so the matchmaker can't move it to " + str(dec["time"]) + ".", group["id"])
+            elif not inside_part(str(dec["time"]), group["part"]):
+                run.log("code", "check", "Kept " + group["id"] + " at " + group["time"] + ": " + str(dec["time"]) +
+                        " is outside the " + group["part"] + " (" + PART_HOURS[group["part"]] +
+                        "), when nobody's calendar was checked.", group["id"])
             else:
                 group["time"] = str(dec["time"])
+                moved = True
                 run.log("hub", "decision", group["id"] + " moves to " + group["time"] + ".", group["id"])
         asks = dec.get("ask")
         if not isinstance(asks, list):
@@ -765,12 +965,30 @@ def _resolve_jobs(run, res, groups, people):
             if pid in placed and placed[pid] != group["id"]:
                 run.log("code", "check", "Rejected: " + who + " already said yes to " + placed[pid] + ".")
                 continue
+            # a yes to the same time is settled: asking again can only repeat it or undo it
+            member = _member(group, pid)
+            if member is not None and member["state"] == "yes" and not moved:
+                run.log("code", "check", "Skipped asking " + who + " again: they already said yes to " + group["id"] +
+                        " at this time, and everyone gets a confirmation after the lock.", group["id"])
+                continue
             # one person is only ever asked for one group in a round
             if pid in claimed and claimed[pid] != group["id"]:
                 run.log("code", "check", "Rejected: " + who + " is already being asked for " + claimed[pid] + ".")
                 continue
             claimed[pid] = group["id"]
             jobs.append((group, pid, str(ask.get("message") or ""), 2))
+        # a yes to the old time isn't a yes to the new one: anyone the hub didn't re-ask, code does
+        if moved:
+            m = 0
+            while m < len(group["members"]):
+                member = group["members"][m]
+                m += 1
+                if member["state"] == "yes" and claimed.get(member["id"]) != group["id"]:
+                    claimed[member["id"]] = group["id"]
+                    run.log("code", "check", "Asking " + people[member["id"]]["name"] + " again: they said yes to " +
+                            group["id"] + " before it moved to " + group["time"] + ".", group["id"])
+                    jobs.append((group, member["id"], name + " has moved to " + group["time"] + ", " +
+                                 day_label(run.day) + ". Does the new time still work?", 2))
     return jobs
 
 

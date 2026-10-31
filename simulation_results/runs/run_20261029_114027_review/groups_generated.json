@@ -1,0 +1,447 @@
+[
+ {
+  "group": "2026-10-28/g1",
+  "day": "2026-10-28",
+  "id": "g1",
+  "activity": "sawyer-fishing",
+  "activity_name": "Early fishing on Lake Sawyer",
+  "where": "Lake Sawyer Regional Park",
+  "cost": "free",
+  "part": "morning",
+  "time_planned": "8am-12pm",
+  "time_final": "8am-12pm",
+  "fixed_event": false,
+  "why_hub_chose_it": "Five retirees in their 70s who all rate fishing as a top love: an easy, unhurried morning on the water with peers.",
+  "proposed_members": [
+   "e069",
+   "e004",
+   "e186",
+   "e190",
+   "e025"
+  ],
+  "alternates": [
+   "e141",
+   "e121"
+  ],
+  "members": [
+   {
+    "id": "e069",
+    "name": "Noah P.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Noah's free Wednesday morning and loves fishing (with birding as a bonus) — early morning on Lake Sawyer with fellow retirees sounds great. He's in!",
+      "ask_seq": 213,
+      "reply_seq": 231,
+      "call_seq": 214,
+      "group_time_at_ask": "8am-12pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e004",
+    "name": "Kavya L.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "This sounds perfect for Kavya—free fishing on Wednesday morning with neighbors, no competition involved. Count her in!",
+      "ask_seq": 215,
+      "reply_seq": 226,
+      "call_seq": 216,
+      "group_time_at_ask": "8am-12pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e186",
+    "name": "Liam M.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Wednesday morning works great for Liam, free fishing at Lake Sawyer Regional Park with fellow retirees sounds perfect. Count him in!",
+      "ask_seq": 217,
+      "reply_seq": 236,
+      "call_seq": 218,
+      "group_time_at_ask": "8am-12pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e190",
+    "name": "Tom O.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Tom's free Wednesday morning and loves fishing — count him in for the early session at Lake Sawyer with the neighbors!",
+      "ask_seq": 219,
+      "reply_seq": 221,
+      "call_seq": 220,
+      "group_time_at_ask": "8am-12pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e025",
+    "name": "Isabel R.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "This sounds perfect for Isabel—quiet lake fishing Wednesday morning fits her free time, her love of fishing, and her need to avoid loud places. Please count her in!",
+      "ask_seq": 224,
+      "reply_seq": 246,
+      "call_seq": 225,
+      "group_time_at_ask": "8am-12pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   }
+  ],
+  "final_members": [
+   "e069",
+   "e004",
+   "e186",
+   "e190",
+   "e025"
+  ],
+  "status": "locked",
+  "drop_reason": null,
+  "signals": {
+   "shared_likes_overlap": 0.258,
+   "age_spread": 7
+  },
+  "headline": "Five anglers, one early morning at Lake Sawyer",
+  "final_messages": {
+   "e069": "Noah, your small group is set for early fishing at Lake Sawyer Regional Park, Wednesday Oct 28, 8am-12pm. You'll be with Kavya, Liam, Tom, and Isabel — fellow retirees who all love fishing just as much as you do, so expect plenty of lines in the water and good talk.",
+   "e004": "Kavya, you're confirmed for early fishing at Lake Sawyer Regional Park this Wednesday Oct 28, 8am-12pm, alongside Noah, Liam, Tom, and Isabel. You and Liam and Isabel all love crafts too, so there's plenty to chat about between casts, and everyone shares your love of fishing.",
+   "e186": "Liam, your fishing morning at Lake Sawyer Regional Park is set for Wednesday Oct 28, 8am-12pm, with Noah, Kavya, Tom, and Isabel. You, Kavya, and Isabel all love crafts, so beyond the fishing you'll have more than one thing in common.",
+   "e190": "Tom, you're joining Noah, Kavya, Liam, and Isabel for early fishing at Lake Sawyer Regional Park, Wednesday Oct 28, 8am-12pm. You and Kavya both enjoy golf, and the whole group shares your love of fishing, so it should be an easy, friendly morning.",
+   "e025": "Isabel, your group is confirmed for early fishing at Lake Sawyer Regional Park on Wednesday Oct 28, 8am-12pm, with Noah, Kavya, Liam, and Tom. You, Kavya, and Liam all love crafts, and everyone in the group shares your love of fishing, making for a relaxed, like-minded morning."
+  },
+  "evidence": {
+   "proposed_seq": 210,
+   "plan_call_seq": 204,
+   "resolve_call_seq": 283,
+   "status_seq": 299,
+   "time_change_seqs": [],
+   "message_call_seq": 302
+  }
+ },
+ {
+  "group": "2026-10-28/g2",
+  "day": "2026-10-28",
+  "id": "g2",
+  "activity": "franklin",
+  "activity_name": "Franklin ghost town hike",
+  "where": "Franklin ghost town trail, Green River Gorge Rd",
+  "cost": "free",
+  "part": "morning",
+  "time_planned": "9:30am-11:30am",
+  "time_final": "9:30am-11:30am",
+  "fixed_event": false,
+  "why_hub_chose_it": "Four neighbors in their late 30s to 40s who all love hiking, two of them also into photography, for a mid-morning ghost town hike after school drop-off.",
+  "proposed_members": [
+   "e124",
+   "e041",
+   "e100",
+   "e154"
+  ],
+  "alternates": [
+   "e008",
+   "e136"
+  ],
+  "members": [
+   {
+    "id": "e124",
+    "name": "Wei T.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Wednesday 9:30-11:30am works great for Wei—free hiking plus photography with a small, quiet group is right up their alley. Count them in!",
+      "ask_seq": 229,
+      "reply_seq": 251,
+      "call_seq": 230,
+      "group_time_at_ask": "9:30am-11:30am"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e041",
+    "name": "Imani O.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "This looks great—free, a hike, short local drive, and fits Wednesday morning. Imani's in!",
+      "ask_seq": 234,
+      "reply_seq": 241,
+      "call_seq": 235,
+      "group_time_at_ask": "9:30am-11:30am"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e100",
+    "name": "Nora W.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "This works well for Nora—free Wednesday morning, a close-to-home hike she enjoys, and a bonus photography connection. Count her in.",
+      "ask_seq": 239,
+      "reply_seq": 266,
+      "call_seq": 240,
+      "group_time_at_ask": "9:30am-11:30am"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e154",
+    "name": "Keisha A.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Keisha's free Wednesday morning and loves hiking, so a free group hike to Franklin ghost town is a great fit — count her in!",
+      "ask_seq": 244,
+      "reply_seq": 271,
+      "call_seq": 245,
+      "group_time_at_ask": "9:30am-11:30am"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   }
+  ],
+  "final_members": [
+   "e124",
+   "e041",
+   "e100",
+   "e154"
+  ],
+  "status": "locked",
+  "drop_reason": null,
+  "signals": {
+   "shared_likes_overlap": 0.194,
+   "age_spread": 12
+  },
+  "headline": "Four Black Diamond neighbors hit the Franklin ghost town trail together",
+  "final_messages": {
+   "e124": "Wei, you're set for the Franklin ghost town hike on Wednesday 28 Oct, 9:30-11:30am at the trailhead on Green River Gorge Rd. You'll be with Imani, Nora, and Keisha — Imani shares your love of farmers markets, and Nora's also into photography, so your camera should get some use on this one.",
+   "e041": "Imani, your small group for the Franklin ghost town hike is confirmed for Wednesday 28 Oct, 9:30-11:30am at the Green River Gorge Rd trailhead. Wei, Nora, and Keisha will be joining you, and Wei shares your love of farmers markets too — should be an easy connection on the trail.",
+   "e100": "Nora, you're confirmed for the Franklin ghost town hike Wednesday 28 Oct, 9:30-11:30am at the Green River Gorge Rd trailhead. You'll be hiking with Wei, Imani, and Keisha, and Wei also loves photography like you, so expect some good stops along the way.",
+   "e154": "Keisha, your group for the Franklin ghost town hike is set for Wednesday 28 Oct, 9:30-11:30am at the trailhead on Green River Gorge Rd. Wei, Imani, and Nora will be there, and all of you share a love of hiking, so this one should feel right up everyone's alley."
+  },
+  "evidence": {
+   "proposed_seq": 211,
+   "plan_call_seq": 204,
+   "resolve_call_seq": 283,
+   "status_seq": 300,
+   "time_change_seqs": [],
+   "message_call_seq": 304
+  }
+ },
+ {
+  "group": "2026-10-28/g3",
+  "day": "2026-10-28",
+  "id": "g3",
+  "activity": "trivia",
+  "activity_name": "Trivia night as one team",
+  "where": "a Black Diamond taproom",
+  "cost": "low",
+  "part": "evening",
+  "time_planned": "7pm-9pm",
+  "time_final": "7pm-9pm",
+  "fixed_event": true,
+  "why_hub_chose_it": "Five neighbors in their 20s and about 30 forming one trivia team: two real trivia buffs plus craft beer fans who'll enjoy the taproom.",
+  "proposed_members": [
+   "e170",
+   "e196",
+   "e078",
+   "e123",
+   "e049"
+  ],
+  "alternates": [
+   "e167",
+   "e075"
+  ],
+  "members": [
+   {
+    "id": "e170",
+    "name": "Kavya T.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Kavya's free Wednesday evening and loves trivia, so a low-cost taproom trivia night fits perfectly - count her in!",
+      "ask_seq": 249,
+      "reply_seq": 261,
+      "call_seq": 250,
+      "group_time_at_ask": "7pm-9pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e196",
+    "name": "Arjun S.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Wednesday 7-9pm works great, Arjun loves trivia and the low-cost taproom setup fits his budget. He's in!",
+      "ask_seq": 254,
+      "reply_seq": 256,
+      "call_seq": 255,
+      "group_time_at_ask": "7pm-9pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e078",
+    "name": "Kevin N.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "counter",
+      "counter": "Could we do this trivia night at a taproom closer to Lawson Hills instead of Black Diamond, to avoid a long drive?",
+      "said": "Wednesday evening works and Kevin's up for trivia, but Black Diamond might be a longer trip than he'd like since he avoids long drives — if there's a similar trivia night closer to Lawson Hills, he'd be in.",
+      "ask_seq": 259,
+      "reply_seq": 277,
+      "call_seq": 260,
+      "group_time_at_ask": "7pm-9pm"
+     },
+     {
+      "round": 2,
+      "answer": "no",
+      "counter": "",
+      "said": "Kevin's free Wednesday evening, but Black Diamond is a long drive from Lawson Hills, which he avoids, and trivia is only a mild interest for him—not enough to offset the trip. Thanks for thinking of him!",
+      "ask_seq": 285,
+      "reply_seq": 289,
+      "call_seq": 286,
+      "group_time_at_ask": "7pm-9pm"
+     }
+    ],
+    "final_state": "no",
+    "code_checks_at_final_time": [
+     "Interest is mild: Kevin is only up for it."
+    ]
+   },
+   {
+    "id": "e123",
+    "name": "Rachel P.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "no",
+      "counter": "",
+      "said": "Rachel's not really a trivia person—it's too close to board games for her, even with the craft beer draw. She'd pass on this one, but thanks for thinking of her!",
+      "ask_seq": 264,
+      "reply_seq": 280,
+      "call_seq": 265,
+      "group_time_at_ask": "7pm-9pm"
+     }
+    ],
+    "final_state": "no",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e049",
+    "name": "Lauren P.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Wednesday evening works great for Lauren, and craft beer plus a low-cost social outing is right up her alley. Count her in for trivia night!",
+      "ask_seq": 269,
+      "reply_seq": 274,
+      "call_seq": 270,
+      "group_time_at_ask": "7pm-9pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e167",
+    "name": "Heather P.",
+    "answers": [
+     {
+      "round": 2,
+      "answer": "yes",
+      "counter": "",
+      "said": "Heather's free Wednesday evening and a taproom trivia night fits her love of craft beer and low-cost hangouts — she'd love to join the team!",
+      "ask_seq": 287,
+      "reply_seq": 293,
+      "call_seq": 288,
+      "group_time_at_ask": "7pm-9pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   }
+  ],
+  "final_members": [
+   "e170",
+   "e196",
+   "e049",
+   "e167"
+  ],
+  "status": "locked",
+  "drop_reason": null,
+  "signals": {
+   "shared_likes_overlap": 0.154,
+   "age_spread": 9
+  },
+  "headline": "Four trivia-loving locals, one taproom table, Wed Oct 28 at 7pm",
+  "final_messages": {
+   "e170": "Kavya, your trivia night is set for Wednesday 28 Oct, 7-9pm at a Black Diamond taproom, teaming up with Arjun, Lauren, and Heather. You and Arjun both love trivia, so expect some friendly competitiveness over who's got the better buzzer finger.",
+   "e196": "Arjun, you're on the team for trivia night this Wednesday 28 Oct, 7-9pm at a Black Diamond taproom, alongside Kavya, Lauren, and Heather. You and Kavya share a real love of trivia, so you two will probably be the ones pushing for the win.",
+   "e049": "Lauren, your trivia night is confirmed for Wednesday 28 Oct, 7-9pm at a Black Diamond taproom, with Kavya, Arjun, and Heather on your team. You and Heather both love craft beer, so the drink order should be an easy win even if the answers aren't.",
+   "e167": "Heather, you're set for trivia night Wednesday 28 Oct, 7-9pm at a Black Diamond taproom with Kavya, Arjun, and Lauren. You and Kavya both love live music and hiking, so there's plenty to talk about between rounds, and you and Lauren can bond over craft beer while you're at it."
+  },
+  "evidence": {
+   "proposed_seq": 212,
+   "plan_call_seq": 204,
+   "resolve_call_seq": 283,
+   "status_seq": 301,
+   "time_change_seqs": [],
+   "message_call_seq": 306
+  }
+ }
+]

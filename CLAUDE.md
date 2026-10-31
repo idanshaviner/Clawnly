@@ -50,6 +50,25 @@ name-blind pitches) are enforced in code, never trusted to the model.
   `matchmaker.py` (the hub plans, negotiates with each agent one to one, code
   locks groups) -> `run_clawnly.py` serves it at `/run` (anyone watches, admins
   run it, saved in `db.matchmaker_runs`). Agents never talk to each other.
+- **Evaluating matches** (2026-10-27): `match_eval.py` runs the code-only matcher
+  (`demand.propose_groups`) on the seed-7 town for two weeks, re-checks every rule, and
+  writes `evaluation/results/` (no API calls). Read `evaluation/MATCH_QUALITY_REPORT.md`
+  before changing `demand.fit`/`break_room`, and rerun it before and after any change.
+  `src/web/run-clawnly.js` copies `fit`/`breakRoom`/`tieOrder` -- change both together.
+- **End-to-end simulation of the live matchmaker:** `orchestration_sim.py` runs the real
+  `run_day` on the emulated town with every call, message and state change recorded, under a
+  spending ceiling, into `simulation_results/runs/run_*/`. `orchestration_audit.py` adds rule checks
+  and an independent-model audit, whose findings must cite event numbers. Start with
+  `simulation_results/EXECUTIVE_SUMMARY.md`. `run_dump.py` writes each run as one plain-text
+  `run_dump.txt` (prompts, every message, groups, timeline) to read or hand to any AI. Paid runs share a total cap through
+  `simulation_results/spend_ledger.json`. The matchmaker prompt fixes from that audit (what each
+  keen person likes, avoids in the plan, WHAT THEY SHARE in messages, the agent's limit line, the
+  `inside_part` guard) are in `matchmaker.py` only, not yet in `src/web/run-clawnly.js`.
+  So are the team's fixes after the 200 live groups (2026-10-30): code refuses a yes that
+  conflicts with the profile or gives no reason, members need a strong interest (mild = alternate
+  only), rooms list people with fewer plans first (`run_day(plans=...)`; the sim carries counts
+  day to day, `/run` doesn't yet), and the `retest` stage uses a busier, pickier town
+  (`population.generate(busier=, pickier=)`). The retest hasn't been run: it needs `--total-cap`.
 - `lounge/clawnly-lounge.html` is a separate, shareable prototype of the same
   idea, published as a claude.ai Artifact. Read its `README.md` before
   republishing it: its saved state lives inside the published page.

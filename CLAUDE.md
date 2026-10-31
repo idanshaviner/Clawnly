@@ -72,7 +72,7 @@ name-blind pitches) are enforced in code, never trusted to the model.
   day to day; `/run` and the browser plan one day at a time), and the `retest` stage uses a busier, pickier town
   (`population.generate(busier=, pickier=)`). The retest ran: `simulation_results/RETEST_RESULTS.md`.
   Dropouts (2026-10-31): a group with a no shows the resolve step a free list (up to
-  `POOL_PER_GROUP` keen, unasked people from its break room, fewest plans first), and a
+  `POOL_PER_GROUP` unasked people from its break room keen on the main activity, fewest plans first), and a
   replacement's no gets one more resolve and a round 3 (`LAST_ROUND`). The browser copy in
   `run-clawnly.js` does the same, keenest first (it has no plan counts). Rebuild
   `matchmaker/run-clawnly.html` with `run_clawnly.write_artifact` after changing the page sources.

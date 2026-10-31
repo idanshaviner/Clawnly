@@ -373,7 +373,7 @@
     var lines = [
       "You are the Clawnly matchmaker for " + DATA.neighborhood + ", " + dayLabel(state.run.day) + ". You proposed these groups and each person's agent answered you privately. Now finish the plan.",
       "For each group: keep it if at least 2 people can do it. Accept a counter by moving the time if that still works for the ones who said yes (then re-ask them with the new time). Replace people who said no (ask them): an alternate, or someone from the group's free list. Drop a group that can't reach 2.",
-      "The free list is people from the group's break room who are free, have a strong interest and haven't been asked today, keenest first. Pick whoever fits the people who said yes best (shared likes, similar stage of life).",
+      "The free list is people from the group's break room who are free, have a strong interest in the main activity and haven't been asked today, keenest first. Pick whoever fits the people who said yes best (shared likes, similar stage of life).",
       "Never add anyone who is already in another group. Only ask the group's own members, its alternates or its free list.",
       "Only ask people whose answer you still need: an alternate replacing a no, someone whose counter you're answering, or someone who said yes to a time you've now changed. Don't send confirmations: everyone gets one after the lock. Never tell anyone who declined.",
       "",
@@ -556,8 +556,8 @@
     return false;
   }
   function fillPools(groups, slots) {
-    // each group with a no or a counter gets its free list: keen people in its break room who
-    // haven't been asked today and whose profile has nothing against it, keenest first
+    // each group with a no or a counter gets its free list: people in its break room keen on the
+    // main activity who haven't been asked today and whose profile has nothing against it, keenest first
     var asked = {};
     for (var g = 0; g < groups.length; g++) { for (var m = 0; m < groups[g].members.length; m++) asked[groups[g].members[m].id] = true; }
     for (var i = 0; i < groups.length; i++) {
@@ -570,7 +570,8 @@
       for (var c = 0; c < slot.candidates.length && grp.pool.length < POOL_PER_GROUP; c++) {
         var pid = slot.candidates[c].id;
         if (asked[pid] || has(grp.alternates, pid)) continue;
-        if (keenness(PEOPLE[pid], a) < STRONG) continue;
+        // a replacement takes a seat, so the same bar as members and alternates
+        if (mainKeenness(PEOPLE[pid], a) < STRONG) continue;
         if (conflicts(PEOPLE[pid], a, grp.part, grp.time, state.run.day).length > 0) continue;
         grp.pool.push(pid);
       }

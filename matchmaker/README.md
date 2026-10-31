@@ -44,8 +44,9 @@ The run, all hub and spoke (agents never talk to each other):
 3. **Round 1 (each agent, `default` tier -- never the fast one)** -- the matchmaker asks each person's agent one to
    one; the agent answers yes / no / counter from its person's brief and calendar only.
 4. **Resolve (matchmaker)** -- accepts counters by moving the time, replaces a no. A group
-   with a no also gets a free list from code: up to 4 keen people from its break room who
-   are free and haven't been asked that day, and the matchmaker picks who fits. Code
+   with a no also gets a free list from code: up to 4 people from its break room who
+   really like the main activity, are free and haven't been asked that day, and the
+   matchmaker picks who fits. Code
    rejects asking anyone outside the group, its alternates and that list, anyone who
    already said yes elsewhere, and asking one person for two groups.
 5. **Round 2** -- only the people the matchmaker needs to re-ask. If a replacement says no,

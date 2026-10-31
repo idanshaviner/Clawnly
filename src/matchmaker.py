@@ -17,8 +17,8 @@ Hub and spoke, never agent to agent. For one day in the neighborhood:
      with a reason from the profile and nothing in it that rules the plan out.
   4. resolve (Opus): accept counters by moving the time, replace a no. For each
      group with a no, code also lists up to POOL_PER_GROUP free people from its
-     break room (strong interest, not asked today, nothing in the profile against
-     it, fewest plans first), and the matchmaker picks who fits. Code only lets
+     break room (a strong interest in the main activity, not asked today, nothing
+     in the profile against it, fewest plans first), and the matchmaker picks who fits. Code only lets
      it ask the group's own members, alternates or that free list, never someone
      who already said yes elsewhere, and never one person for two groups.
   5. round 2 (Sonnet): only the people the matchmaker re-asks. If one of them
@@ -440,7 +440,7 @@ def _resolve_system(day):
     return "\n".join([
         "You are the Clawnly matchmaker for " + catalog.NEIGHBORHOOD + ", " + day_label(day) + ". Task: finish the day's plan after each person's agent answered you privately.",
         "For each group: keep it if at least 2 people can do it. Accept a counter by moving the time if that still works for the ones who said yes (then re-ask them with the new time). Replace people who said no (ask them): an alternate, or someone from the group's free list. Drop a group that can't reach 2.",
-        "The free list is people from the group's break room who are free, have a strong interest and haven't been asked today, fewest plans this week first. Pick whoever fits the people who said yes best (shared likes, similar stage of life); when two fit, pick the one with fewer plans.",
+        "The free list is people from the group's break room who are free, have a strong interest in the main activity and haven't been asked today, fewest plans this week first. Pick whoever fits the people who said yes best (shared likes, similar stage of life); when two fit, pick the one with fewer plans.",
         "Never add anyone who is already in another group. Only ask the group's own members, its alternates or its free list.",
         "Only ask people whose answer you still need: an alternate replacing a no, someone whose counter you're answering, or someone who said yes to a time you've now changed. Don't send confirmations: everyone gets one after the lock. Never tell anyone who declined.",
         "",
@@ -518,7 +518,8 @@ def _fill_pools(groups, rooms, people, day):
             c += 1
             if pid in asked or pid in group["alternates"]:
                 continue
-            if keenness(people[pid], activity) < STRONG:
+            # a replacement takes a seat, so the same bar as members and alternates
+            if main_keenness(people[pid], activity) < STRONG:
                 continue
             if len(conflicts(people[pid], activity, group["part"], group["time"], day)) > 0:
                 continue

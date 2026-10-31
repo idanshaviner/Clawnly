@@ -830,11 +830,11 @@ def test_the_free_list_puts_fewer_plans_first_and_skips_what_the_profile_rules_o
     people = town()
     index = {p["id"]: p for p in people}
     rooms = rooms_for(people)
-    # e096 really likes the museum but avoids early mornings
+    # e143 really likes history, the museum's main thing, but avoids early mornings
     room = [r for r in rooms if r["activity"] == "museum" and r["part"] == "morning"][0]
     activity = catalog.get("museum")
-    keen = [c["id"] for c in room["candidates"] if matchmaker.keenness(index[c["id"]], activity) >= matchmaker.STRONG]
-    assert "e096" in keen
+    keen = [c["id"] for c in room["candidates"] if matchmaker.main_keenness(index[c["id"]], activity) >= matchmaker.STRONG]
+    assert "e143" in keen
     group = {"id": "g1", "activity": "museum", "part": "morning", "time": "10am-12pm", "status": "negotiating",
              "alternates": [], "thread": [], "members": [{"id": keen[0], "state": "no", "counter": ""}]}
     # the room's second keenest person already has 2 plans, so 4 others come first
@@ -844,11 +844,33 @@ def test_the_free_list_puts_fewer_plans_first_and_skips_what_the_profile_rules_o
     assert len(group["pool"]) == matchmaker.POOL_PER_GROUP
     assert keen[0] not in group["pool"]
     assert busy not in group["pool"]
-    assert "e096" in group["pool"]
-    # an 8am start runs into what e096 avoids, so the next person takes the place
+    assert "e143" in group["pool"]
+    # an 8am start runs into what e143 avoids, so the next person takes the place
     group["time"] = "8-10am"
     matchmaker._fill_pools([group], rooms, index, DAY)
-    assert "e096" not in group["pool"]
+    assert "e143" not in group["pool"]
     assert len(group["pool"]) == matchmaker.POOL_PER_GROUP
     payload = matchmaker._resolve_payload([group], index, {group["pool"][0]: 1})
     assert "; plans this week: 1" in payload
+
+
+def test_the_free_list_needs_a_strong_interest_in_the_main_activity(monkeypatch):
+    # a replacement takes a seat: someone there only for a side interest (the fishing on a hike)
+    # or a mild one isn't offered, however keen they are on the side thing
+    monkeypatch.setattr(matchmaker, "POOL_PER_GROUP", 100)
+    people = town()
+    index = {p["id"]: p for p in people}
+    rooms = rooms_for(people)
+    room = [r for r in rooms if len(strong_ids(r, index)) >= 2 and all(side_and_mild(r, index))][0]
+    activity = catalog.get(room["activity"])
+    seats = strong_ids(room, index)
+    group = {"id": "g1", "activity": room["activity"], "part": room["part"], "time": matchmaker.PART_HOURS[room["part"]],
+             "status": "negotiating", "alternates": [], "thread": [], "members": [{"id": seats[0], "state": "no", "counter": ""}]}
+    matchmaker._fill_pools([group], rooms, index, DAY)
+    side, mild = side_and_mild(room, index)
+    assert len(group["pool"]) > 0
+    for pid in side + mild:
+        assert pid not in group["pool"]
+    for pid in group["pool"]:
+        assert matchmaker.main_keenness(index[pid], activity) >= matchmaker.STRONG
+    assert "a strong interest in the main activity" in matchmaker._resolve_system(DAY)

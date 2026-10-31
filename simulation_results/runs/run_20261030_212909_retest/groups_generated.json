@@ -1,0 +1,3774 @@
+[
+ {
+  "group": "2026-10-30/g1",
+  "day": "2026-10-30",
+  "id": "g1",
+  "activity": "vault-music",
+  "activity_name": "Live music in the beer garden",
+  "where": "The Vault Taphouse & Beer Garden",
+  "cost": "low",
+  "part": "evening",
+  "time_planned": "7pm-10pm",
+  "time_final": "7pm-10pm",
+  "fixed_event": true,
+  "why_hub_chose_it": "Four younger-to-midlife neighbors who are mostly there for the live music, with craft beer as a bonus for three of them, at a low-cost show.",
+  "proposed_members": [
+   "e115",
+   "e139",
+   "e183",
+   "e170"
+  ],
+  "alternates": [
+   "e152",
+   "e050"
+  ],
+  "members": [
+   {
+    "id": "e115",
+    "name": "Linda R.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Friday evening works great for Linda—live music plus craft beer at a low cost is right up her alley!",
+      "ask_seq": 226,
+      "reply_seq": 234,
+      "call_seq": 227,
+      "group_time_at_ask": "7pm-10pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e139",
+    "name": "Hannah A.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Friday 7-10pm works great—craft beer and live music at The Vault is right up Hannah's alley. Count her in!",
+      "ask_seq": 228,
+      "reply_seq": 239,
+      "call_seq": 229,
+      "group_time_at_ask": "7pm-10pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e183",
+    "name": "Susan W.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Susan would love this - live music is one of her favorites, and Friday evening works perfectly with a craft beer on the side. Count her in!",
+      "ask_seq": 230,
+      "reply_seq": 244,
+      "call_seq": 231,
+      "group_time_at_ask": "7pm-10pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e170",
+    "name": "Kavya T.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Friday 30 Oct evening works great for Kavya—live music is something she loves, and low-cost entry fits her budget. Save her a spot!",
+      "ask_seq": 232,
+      "reply_seq": 249,
+      "call_seq": 233,
+      "group_time_at_ask": "7pm-10pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   }
+  ],
+  "final_members": [
+   "e115",
+   "e139",
+   "e183",
+   "e170"
+  ],
+  "status": "locked",
+  "drop_reason": null,
+  "signals": {
+   "shared_likes_overlap": 0.199,
+   "age_spread": 22
+  },
+  "headline": "Four Black Diamond commuters, one Friday night of live music at The Vault's beer garden",
+  "final_messages": {
+   "e115": "Linda, your small group is set for live music in the beer garden at The Vault Taphouse & Beer Garden on Friday 30 Oct, 7-10pm. You'll be with Hannah, Susan, and Kavya — you, Hannah, and Susan all love craft beer, so there'll be plenty to sip on between sets.",
+   "e139": "Hannah, you're confirmed for live music in the beer garden at The Vault Taphouse & Beer Garden this Friday 30 Oct, 7-10pm, alongside Linda, Susan, and Kavya. You and Linda and Susan share a love of craft beer, so the drink menu should make for easy conversation.",
+   "e183": "Susan, your group is locked in for live music in the beer garden at The Vault Taphouse & Beer Garden on Friday 30 Oct, 7-10pm, with Linda, Hannah, and Kavya joining you. You, Linda, and Hannah all count craft beer among your favorites, which should make for a good night of trying what's on tap.",
+   "e170": "Kavya, you're set for live music in the beer garden at The Vault Taphouse & Beer Garden this Friday 30 Oct, 7-10pm, with Linda, Hannah, and Susan. All four of you love live music, so you're in good company for the night's lineup."
+  },
+  "evidence": {
+   "proposed_seq": 216,
+   "plan_call_seq": 204,
+   "resolve_call_seq": 431,
+   "status_seq": 443,
+   "time_change_seqs": [],
+   "message_call_seq": 453
+  }
+ },
+ {
+  "group": "2026-10-30/g2",
+  "day": "2026-10-30",
+  "id": "g2",
+  "activity": "lumber-house",
+  "activity_name": "Pints at Lumber House",
+  "where": "Lumber House brewery",
+  "cost": "low",
+  "part": "evening",
+  "time_planned": "5:30pm-7:30pm",
+  "time_final": "5:30pm-7:30pm",
+  "fixed_event": false,
+  "why_hub_chose_it": "Five craft beer fans for an early, unhurried round that wraps up before late night; several also share a love of watching sports.",
+  "proposed_members": [
+   "e198",
+   "e075",
+   "e117",
+   "e051",
+   "e056"
+  ],
+  "alternates": [
+   "e049",
+   "e030"
+  ],
+  "members": [
+   {
+    "id": "e198",
+    "name": "Paige A.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Paige would love this - craft beer with neighbors on Friday evening works perfectly for her.",
+      "ask_seq": 237,
+      "reply_seq": 254,
+      "call_seq": 238,
+      "group_time_at_ask": "5:30pm-7:30pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e075",
+    "name": "Rosa G.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Rosa's free Friday evening and loves craft beer, so pints at Lumber House sounds great—count her in!",
+      "ask_seq": 242,
+      "reply_seq": 259,
+      "call_seq": 243,
+      "group_time_at_ask": "5:30pm-7:30pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e117",
+    "name": "Ava B.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Ava's in for pints at Lumber House Friday 5:30-7:30pm — craft beer is a favorite and the early, small-group setup fits her schedule and vibe perfectly.",
+      "ask_seq": 247,
+      "reply_seq": 269,
+      "call_seq": 248,
+      "group_time_at_ask": "5:30pm-7:30pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e051",
+    "name": "Nora B.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Friday 5:30-7:30pm at Lumber House works great for Nora — craft beer with neighbors, low-key and nothing competitive. Count her in!",
+      "ask_seq": 252,
+      "reply_seq": 264,
+      "call_seq": 253,
+      "group_time_at_ask": "5:30pm-7:30pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e056",
+    "name": "Arjun L.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Craft beer with neighbors sounds great to Arjun — he's free Friday evening and this fits his budget and vibe. Count him in!",
+      "ask_seq": 257,
+      "reply_seq": 289,
+      "call_seq": 258,
+      "group_time_at_ask": "5:30pm-7:30pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   }
+  ],
+  "final_members": [
+   "e198",
+   "e075",
+   "e117",
+   "e051",
+   "e056"
+  ],
+  "status": "locked",
+  "drop_reason": null,
+  "signals": {
+   "shared_likes_overlap": 0.179,
+   "age_spread": 38
+  },
+  "headline": "Five craft beer lovers meet up for pints at Lumber House",
+  "final_messages": {
+   "e198": "Paige, you're set for pints at Lumber House on Friday 30 Oct, 5:30-7:30pm with Rosa, Ava, Nora, and Arjun. You and Nora both love getting out for a run, so that's a nice thread to pull on over a beer.",
+   "e075": "Rosa, you're confirmed for pints at Lumber House this Friday 30 Oct, 5:30-7:30pm with Paige, Ava, Nora, and Arjun. You and Ava both really like watching sports, so you'll have plenty to chat about besides the craft beer you all share a love for.",
+   "e117": "Ava, your small group is locked in for pints at Lumber House on Friday 30 Oct, 5:30-7:30pm, joining Paige, Rosa, Nora, and Arjun. You and Rosa are both into watching sports, which should make for easy conversation alongside the shared love of craft beer.",
+   "e051": "Nora, you're confirmed for pints at Lumber House this Friday 30 Oct, 5:30-7:30pm with Paige, Rosa, Ava, and Arjun. You and Rosa both really like hiking, so that's a great starting point beyond everyone's shared love of craft beer.",
+   "e056": "Arjun, you're set for pints at Lumber House on Friday 30 Oct, 5:30-7:30pm with Paige, Rosa, Ava, and Nora. You and Rosa both love yoga, giving you something to connect over while the whole group enjoys a shared love of craft beer."
+  },
+  "evidence": {
+   "proposed_seq": 217,
+   "plan_call_seq": 204,
+   "resolve_call_seq": 431,
+   "status_seq": 444,
+   "time_change_seqs": [],
+   "message_call_seq": 455
+  }
+ },
+ {
+  "group": "2026-10-30/g3",
+  "day": "2026-10-30",
+  "id": "g3",
+  "activity": "ten-trails-walk",
+  "activity_name": "Evening walk on the Ten Trails paths",
+  "where": "Ten Trails trail network",
+  "cost": "free",
+  "part": "evening",
+  "time_planned": "5:30pm-7pm",
+  "time_final": "5:30pm-7pm",
+  "fixed_event": false,
+  "why_hub_chose_it": "Runners and hikers, including dog-walker Isabel, out for a free early-evening loop that ends before late night.",
+  "proposed_members": [
+   "e082",
+   "e046",
+   "e132",
+   "e109",
+   "e174"
+  ],
+  "alternates": [
+   "e097",
+   "e050"
+  ],
+  "members": [
+   {
+    "id": "e082",
+    "name": "Isabel G.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Isabel's free Friday evening and would love to join this dog walk with the small, uncompetitive group at Ten Trails!",
+      "ask_seq": 262,
+      "reply_seq": 274,
+      "call_seq": 263,
+      "group_time_at_ask": "5:30pm-7pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e046",
+    "name": "Dylan B.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Friday evening works great for Dylan—he loves hiking and this local trail walk is free with no drive needed. Count him in!",
+      "ask_seq": 267,
+      "reply_seq": 279,
+      "call_seq": 268,
+      "group_time_at_ask": "5:30pm-7pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e132",
+    "name": "Hana P.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Hana loves hiking, and Friday evening works perfectly with her free schedule—count her in for the Ten Trails walk!",
+      "ask_seq": 272,
+      "reply_seq": 284,
+      "call_seq": 273,
+      "group_time_at_ask": "5:30pm-7pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e109",
+    "name": "Seo-yeon R.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Friday 5:30-7pm works great for Seo-yeon—running is something they love, and it's free and fits their open evening. Count them in!",
+      "ask_seq": 277,
+      "reply_seq": 294,
+      "call_seq": 278,
+      "group_time_at_ask": "5:30pm-7pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e174",
+    "name": "Jenna H.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Jenna's in! A free evening hike on Ten Trails Friday 5:30-7pm fits her schedule, her love of hiking, and her preference for free, early-ending plans.",
+      "ask_seq": 282,
+      "reply_seq": 299,
+      "call_seq": 283,
+      "group_time_at_ask": "5:30pm-7pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   }
+  ],
+  "final_members": [
+   "e082",
+   "e046",
+   "e132",
+   "e109",
+   "e174"
+  ],
+  "status": "locked",
+  "drop_reason": null,
+  "signals": {
+   "shared_likes_overlap": 0.203,
+   "age_spread": 36
+  },
+  "headline": "Five hikers, one trail: Ten Trails walk is a go for Friday evening",
+  "final_messages": {
+   "e082": "Isabel, your Ten Trails walk is set for Friday 30 Oct, 5:30-7pm, with Dylan, Hana, Seo-yeon, and Jenna. You and Dylan, Hana, and Jenna all love hiking, so this easy evening loop should feel right up your alley.",
+   "e046": "Dylan, you're confirmed for the Ten Trails evening walk this Friday 30 Oct, 5:30-7pm, right in your own neighborhood, alongside Isabel, Hana, Seo-yeon, and Jenna. Isabel, Hana, and Jenna share your love of hiking, so expect good trail conversation.",
+   "e132": "Hana, your evening walk on the Ten Trails paths is confirmed for Friday 30 Oct, 5:30-7pm, with Isabel, Dylan, Seo-yeon, and Jenna. Isabel, Dylan, and Jenna also love hiking, so you'll be in good company on the trail.",
+   "e109": "Seo-yeon, you're set for the Ten Trails evening walk Friday 30 Oct, 5:30-7pm, with Isabel, Dylan, Hana, and Jenna. You and Dylan both love running, so you two should have plenty to talk about on the way.",
+   "e174": "Jenna, your Ten Trails evening walk is locked in for Friday 30 Oct, 5:30-7pm, with Isabel, Dylan, Hana, and Seo-yeon. Isabel, Dylan, and Hana all share your love of hiking, making this an easy fit for your Friday evening."
+  },
+  "evidence": {
+   "proposed_seq": 218,
+   "plan_call_seq": 204,
+   "resolve_call_seq": 431,
+   "status_seq": 445,
+   "time_change_seqs": [],
+   "message_call_seq": 457
+  }
+ },
+ {
+  "group": "2026-10-30/g4",
+  "day": "2026-10-30",
+  "id": "g4",
+  "activity": "bakery",
+  "activity_name": "Coffee and pastries at the Black Diamond Bakery",
+  "where": "Black Diamond Bakery",
+  "cost": "low",
+  "part": "morning",
+  "time_planned": "10am-11:30am",
+  "time_final": "10am-11:30am",
+  "fixed_event": false,
+  "why_hub_chose_it": "Five coffee lovers, two also into baking, at a late-enough morning hour for those who avoid early starts.",
+  "proposed_members": [
+   "e188",
+   "e035",
+   "e029",
+   "e028",
+   "e088"
+  ],
+  "alternates": [
+   "e063",
+   "e016"
+  ],
+  "members": [
+   {
+    "id": "e188",
+    "name": "Katie B.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Katie would love this—coffee at Black Diamond Bakery on Friday morning works great and fits her free time. Count her in!",
+      "ask_seq": 287,
+      "reply_seq": 304,
+      "call_seq": 288,
+      "group_time_at_ask": "10am-11:30am"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e035",
+    "name": "Mark C.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Mark's free Friday morning and would love this — coffee is a favorite, and the bakery setting fits his baking interest too. Count him in!",
+      "ask_seq": 292,
+      "reply_seq": 309,
+      "call_seq": 293,
+      "group_time_at_ask": "10am-11:30am"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e029",
+    "name": "Yuki P.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Yuki would love to join the coffee and pastries morning at Black Diamond Bakery on Friday 30 Oct, 10-11:30am — coffee is a favorite and the timing works perfectly with their free morning.",
+      "ask_seq": 297,
+      "reply_seq": 314,
+      "call_seq": 298,
+      "group_time_at_ask": "10am-11:30am"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e028",
+    "name": "Mei S.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Friday 10-11:30am works great for Mei, and she loves coffee, so this bakery outing sounds perfect!",
+      "ask_seq": 302,
+      "reply_seq": 319,
+      "call_seq": 303,
+      "group_time_at_ask": "10am-11:30am"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e088",
+    "name": "Hannah R.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Friday 30 Oct, 10-11:30am works great — Hannah loves coffee, so sign her up for the bakery outing.",
+      "ask_seq": 307,
+      "reply_seq": 324,
+      "call_seq": 308,
+      "group_time_at_ask": "10am-11:30am"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   }
+  ],
+  "final_members": [
+   "e188",
+   "e035",
+   "e029",
+   "e028",
+   "e088"
+  ],
+  "status": "locked",
+  "drop_reason": null,
+  "signals": {
+   "shared_likes_overlap": 0.162,
+   "age_spread": 40
+  },
+  "headline": "Coffee and pastries for five Black Diamond neighbors, Friday 10am at the Bakery",
+  "final_messages": {
+   "e188": "Hi Katie, your small group is set for coffee and pastries at the Black Diamond Bakery, Friday 30 Oct from 10-11:30am. You'll be with Mark, Yuki, Mei, and Hannah — Mark's also into baking like you, so that's a good one to swap notes on over pastries.",
+   "e035": "Hi Mark, you're confirmed for coffee and pastries at the Black Diamond Bakery, Friday 30 Oct, 10-11:30am, with Katie, Yuki, Mei, and Hannah. Katie shares your love of baking, so you two should have plenty to chat about.",
+   "e029": "Hi Yuki, your group is locked in for coffee and pastries at the Black Diamond Bakery, Friday 30 Oct from 10-11:30am, alongside Katie, Mark, Mei, and Hannah. Hannah's a runner too, so that's an easy one to bond over.",
+   "e028": "Hi Mei, you're all set for coffee and pastries at the Black Diamond Bakery, Friday 30 Oct, 10-11:30am, with Katie, Mark, Yuki, and Hannah. Hannah also likes watch sports, so that could make for a good conversation starter.",
+   "e088": "Hi Hannah, your group is confirmed for coffee and pastries at the Black Diamond Bakery, Friday 30 Oct from 10-11:30am, with Katie, Mark, Yuki, and Mei. Yuki's a runner like you, and Mei shares your interest in watch sports, so you've got two easy threads to pull on."
+  },
+  "evidence": {
+   "proposed_seq": 219,
+   "plan_call_seq": 204,
+   "resolve_call_seq": 431,
+   "status_seq": 446,
+   "time_change_seqs": [],
+   "message_call_seq": 459
+  }
+ },
+ {
+  "group": "2026-10-30/g5",
+  "day": "2026-10-30",
+  "id": "g5",
+  "activity": "franklin",
+  "activity_name": "Franklin ghost town hike",
+  "where": "Franklin ghost town trail, Green River Gorge Rd",
+  "cost": "free",
+  "part": "morning",
+  "time_planned": "9am-11:30am",
+  "time_final": "9am-11:30am",
+  "fixed_event": false,
+  "why_hub_chose_it": "Four keen hikers for a free, uncrowded morning on the Franklin ghost town trail.",
+  "proposed_members": [
+   "e118",
+   "e104",
+   "e008",
+   "e180"
+  ],
+  "alternates": [
+   "e100",
+   "e053"
+  ],
+  "members": [
+   {
+    "id": "e118",
+    "name": "Min-jun R.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Min-jun is in for the Franklin ghost town hike Friday morning—loves hiking, it's free, and a small group works well since they avoid crowds.",
+      "ask_seq": 312,
+      "reply_seq": 329,
+      "call_seq": 313,
+      "group_time_at_ask": "9am-11:30am"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e104",
+    "name": "Susan L.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Susan's in for the Franklin ghost town hike Friday 9-11:30am—hiking is a favorite and it's free, perfect fit.",
+      "ask_seq": 317,
+      "reply_seq": 334,
+      "call_seq": 318,
+      "group_time_at_ask": "9am-11:30am"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e008",
+    "name": "Andres G.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Andres is in for the Franklin ghost town hike Friday morning — hiking's one of his favorites, and free, quiet, and low-key fits him perfectly.",
+      "ask_seq": 322,
+      "reply_seq": 339,
+      "call_seq": 323,
+      "group_time_at_ask": "9am-11:30am"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e180",
+    "name": "Dylan M.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Dylan's in for the Franklin ghost town hike Friday 9-11:30am—hiking is his favorite, it's free, and the small group keeps it low-key.",
+      "ask_seq": 327,
+      "reply_seq": 344,
+      "call_seq": 328,
+      "group_time_at_ask": "9am-11:30am"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   }
+  ],
+  "final_members": [
+   "e118",
+   "e104",
+   "e008",
+   "e180"
+  ],
+  "status": "locked",
+  "drop_reason": null,
+  "signals": {
+   "shared_likes_overlap": 0.239,
+   "age_spread": 33
+  },
+  "headline": "Four hikers, one ghost town trail — Friday morning in Black Diamond",
+  "final_messages": {
+   "e118": "Min-jun, your small group for the Franklin ghost town hike is set: you'll be joined by Susan, Andres, and Dylan at Franklin ghost town trail on Green River Gorge Rd, Friday 30 Oct, 9-11:30am. You and Susan both love hiking and craft beer, so there's a good chance a cold one comes up on the trail.",
+   "e104": "Susan, you're confirmed for the Franklin ghost town hike with Min-jun, Andres, and Dylan, Friday 30 Oct, 9-11:30am at the Franklin ghost town trail off Green River Gorge Rd. You and Min-jun share a love of hiking and craft beer, so you two should hit it off right away.",
+   "e008": "Andres, your group for the Franklin ghost town hike is confirmed — you'll be hiking with Min-jun, Susan, and Dylan on Friday 30 Oct, 9-11:30am at the trail on Green River Gorge Rd. You and Dylan both love hiking, coffee, mountain biking, and baking, so you'll have plenty to talk about along the way.",
+   "e180": "Dylan, you're set for the Franklin ghost town hike with Min-jun, Susan, and Andres, Friday 30 Oct, 9-11:30am at Franklin ghost town trail on Green River Gorge Rd. You and Andres share a love of hiking, coffee, mountain biking, and baking, so expect good conversation on this one."
+  },
+  "evidence": {
+   "proposed_seq": 220,
+   "plan_call_seq": 204,
+   "resolve_call_seq": 431,
+   "status_seq": 447,
+   "time_change_seqs": [],
+   "message_call_seq": 461
+  }
+ },
+ {
+  "group": "2026-10-30/g6",
+  "day": "2026-10-30",
+  "id": "g6",
+  "activity": "sawyer-birding",
+  "activity_name": "Birding walk at Lake Sawyer",
+  "where": "Lake Sawyer Regional Park",
+  "cost": "free",
+  "part": "morning",
+  "time_planned": "8:30am-10:30am",
+  "time_final": "8:30am-10:30am",
+  "fixed_event": false,
+  "why_hub_chose_it": "A birder and two photographers on a quiet, free lakeside walk; they'd enjoy shooting together.",
+  "proposed_members": [
+   "e038",
+   "e175",
+   "e162"
+  ],
+  "alternates": [
+   "e060",
+   "e111"
+  ],
+  "members": [
+   {
+    "id": "e038",
+    "name": "Ron B.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Ron would love to join the birding walk at Lake Sawyer Regional Park Friday morning—birding and photography are right up his alley, and it's close by too!",
+      "ask_seq": 332,
+      "reply_seq": 349,
+      "call_seq": 333,
+      "group_time_at_ask": "8:30am-10:30am"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e175",
+    "name": "Ava M.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Ava's in for the birding walk at Lake Sawyer Friday morning—it's free, quiet, and a nice chance for some photography.",
+      "ask_seq": 337,
+      "reply_seq": 354,
+      "call_seq": 338,
+      "group_time_at_ask": "8:30am-10:30am"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e162",
+    "name": "Chris A.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Chris would love this—photography is a real passion of his, and a quiet morning walk with a small group fits perfectly. Count him in for Friday 8:30-10:30am.",
+      "ask_seq": 342,
+      "reply_seq": 364,
+      "call_seq": 343,
+      "group_time_at_ask": "8:30am-10:30am"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   }
+  ],
+  "final_members": [
+   "e038",
+   "e175",
+   "e162"
+  ],
+  "status": "locked",
+  "drop_reason": null,
+  "signals": {
+   "shared_likes_overlap": 0.144,
+   "age_spread": 21
+  },
+  "headline": "Three photographers, one lake full of birds",
+  "final_messages": {
+   "e038": "Ron, your birding walk at Lake Sawyer Regional Park is set for Friday 30 Oct, 8:30-10:30am, alongside Ava and Chris. You and Ava both love photography, so expect some lens comparisons between sightings. Lake Sawyer's a quiet, close-to-home spot too, which suits your no-long-drives style.",
+   "e175": "Ava, you're confirmed for the birding walk at Lake Sawyer Regional Park this Friday 30 Oct, 8:30-10:30am, with Ron and Chris. You and Ron share a love of photography, so you'll both likely be chasing the same shots. It's free and local, right in line with what you're after.",
+   "e162": "Chris, your Lake Sawyer Regional Park birding walk is happening Friday 30 Oct, 8:30-10:30am, with Ron and Ava joining you. All three of you are into photography, so this group should move at a nice, camera-ready pace. It's calm, low-key, and budget-friendly, just how you like it."
+  },
+  "evidence": {
+   "proposed_seq": 221,
+   "plan_call_seq": 204,
+   "resolve_call_seq": 431,
+   "status_seq": 448,
+   "time_change_seqs": [],
+   "message_call_seq": 463
+  }
+ },
+ {
+  "group": "2026-10-30/g7",
+  "day": "2026-10-30",
+  "id": "g7",
+  "activity": "franklin",
+  "activity_name": "Franklin ghost town hike",
+  "where": "Franklin ghost town trail, Green River Gorge Rd",
+  "cost": "free",
+  "part": "afternoon",
+  "time_planned": "1pm-3:30pm",
+  "time_final": "1pm-3:30pm",
+  "fixed_event": false,
+  "why_hub_chose_it": "A gentle afternoon at the ghost town pairing the history fans with a photographer and a hiker, all preferring quiet outings.",
+  "proposed_members": [
+   "e143",
+   "e116",
+   "e124",
+   "e179"
+  ],
+  "alternates": [
+   "e190",
+   "e114"
+  ],
+  "members": [
+   {
+    "id": "e143",
+    "name": "Carlos T.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Carlos is happy to join the Franklin ghost town hike Friday afternoon — he loves hiking and enjoys a bit of history too.",
+      "ask_seq": 347,
+      "reply_seq": 359,
+      "call_seq": 348,
+      "group_time_at_ask": "1pm-3:30pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e116",
+    "name": "Claire L.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Claire would love this—history is a real passion of hers, and a quiet ghost town visit with neighbors on Friday afternoon fits perfectly. Count her in!",
+      "ask_seq": 352,
+      "reply_seq": 369,
+      "call_seq": 353,
+      "group_time_at_ask": "1pm-3:30pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e124",
+    "name": "Wei T.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Wei's in! The Friday 1-3:30pm Franklin ghost town hike fits their free afternoon, and the small quiet group plus photo opportunities are right up Wei's alley.",
+      "ask_seq": 357,
+      "reply_seq": 384,
+      "call_seq": 358,
+      "group_time_at_ask": "1pm-3:30pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e179",
+    "name": "Mark W.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Friday 1-3:30pm works great for Mark — he really likes hiking, and a quiet, free, non-competitive group hike is right up his alley.",
+      "ask_seq": 362,
+      "reply_seq": 374,
+      "call_seq": 363,
+      "group_time_at_ask": "1pm-3:30pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   }
+  ],
+  "final_members": [
+   "e143",
+   "e116",
+   "e124",
+   "e179"
+  ],
+  "status": "locked",
+  "drop_reason": null,
+  "signals": {
+   "shared_likes_overlap": 0.107,
+   "age_spread": 38
+  },
+  "headline": "Four Black Diamond neighbors hit the Franklin ghost town trail together",
+  "final_messages": {
+   "e143": "Carlos, you're set for the Franklin ghost town hike this Friday, Oct 30, 1-3:30pm on Green River Gorge Rd. You'll be walking with Claire, Wei, and Mark — Claire shares your love of history, and Wei and Mark are fellow hikers who'll keep the pace easy and non-competitive.",
+   "e116": "Claire, your small group for the Franklin ghost town hike is confirmed for Friday, Oct 30, 1-3:30pm at Green River Gorge Rd. You'll be joined by Carlos, Wei, and Mark, and Carlos in particular shares your interest in history, so expect some good conversation about the old townsite along the way.",
+   "e124": "Wei, you're all set for the Franklin ghost town hike on Friday, Oct 30, 1-3:30pm at Green River Gorge Rd. Carlos, Claire, and Mark will be there too — Carlos shares your enthusiasm for farmers markets, and both he and Mark are into hiking just like you, so the trail should feel easygoing and friendly.",
+   "e179": "Mark, your group for the Franklin ghost town hike is confirmed for Friday, Oct 30, 1-3:30pm on Green River Gorge Rd. You'll be hiking alongside Carlos, Claire, and Wei — Carlos and Wei both share your love of hiking, so you'll have good company setting the pace on the ghost town trail."
+  },
+  "evidence": {
+   "proposed_seq": 222,
+   "plan_call_seq": 204,
+   "resolve_call_seq": 431,
+   "status_seq": 449,
+   "time_change_seqs": [],
+   "message_call_seq": 465
+  }
+ },
+ {
+  "group": "2026-10-30/g8",
+  "day": "2026-10-30",
+  "id": "g8",
+  "activity": "pickleball",
+  "activity_name": "Pickleball doubles",
+  "where": "public courts in Maple Valley",
+  "cost": "free",
+  "part": "evening",
+  "time_planned": "5:30pm-7pm",
+  "time_final": "5:30pm-7pm",
+  "fixed_event": false,
+  "why_hub_chose_it": "Four pickleball enthusiasts for one doubles court, done early in the evening.",
+  "proposed_members": [
+   "e043",
+   "e058",
+   "e167",
+   "e182"
+  ],
+  "alternates": [
+   "e113",
+   "e032"
+  ],
+  "members": [
+   {
+    "id": "e043",
+    "name": "Quinn J.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Quinn's in! Pickleball Friday 5:30-7pm at Maple Valley courts works perfectly for them.",
+      "ask_seq": 367,
+      "reply_seq": 379,
+      "call_seq": 368,
+      "group_time_at_ask": "5:30pm-7pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e058",
+    "name": "Brooke B.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Brooke's in for pickleball doubles Friday 5:30-7pm in Maple Valley — sounds great!",
+      "ask_seq": 372,
+      "reply_seq": 389,
+      "call_seq": 373,
+      "group_time_at_ask": "5:30pm-7pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e167",
+    "name": "Heather P.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Pickleball is Heather's favorite! Friday 5:30-7pm works great for her, and free is perfect. She's in!",
+      "ask_seq": 377,
+      "reply_seq": 399,
+      "call_seq": 378,
+      "group_time_at_ask": "5:30pm-7pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e182",
+    "name": "Elena H.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Friday 5:30-7pm pickleball doubles in Maple Valley works great for Elena—she really likes pickleball and that evening is open. Count her in!",
+      "ask_seq": 382,
+      "reply_seq": 394,
+      "call_seq": 383,
+      "group_time_at_ask": "5:30pm-7pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   }
+  ],
+  "final_members": [
+   "e043",
+   "e058",
+   "e167",
+   "e182"
+  ],
+  "status": "locked",
+  "drop_reason": null,
+  "signals": {
+   "shared_likes_overlap": 0.269,
+   "age_spread": 28
+  },
+  "headline": "Four pickleball fans, one court in Maple Valley this Friday",
+  "final_messages": {
+   "e043": "Quinn, your pickleball foursome is set for Friday 10/30, 5:30-7pm at the public courts in Maple Valley, alongside Brooke, Heather, and Elena. You and Heather both run too, so you'll have plenty to talk about between games.",
+   "e058": "Brooke, you're confirmed for pickleball doubles Friday 10/30, 5:30-7pm at the Maple Valley public courts with Quinn, Heather, and Elena. You and Heather are both golf fans, so don't be surprised if the conversation drifts to the course before it's over.",
+   "e167": "Heather, your Friday 10/30 pickleball match at the Maple Valley public courts (5:30-7pm) is confirmed with Quinn, Brooke, and Elena. You and Brooke both love hiking, so you two will have more than just pickleball to bond over.",
+   "e182": "Elena, you're set for pickleball doubles this Friday 10/30, 5:30-7pm at the Maple Valley public courts with Quinn, Brooke, and Heather. You and Quinn are both into running, giving you a nice warm-up topic before the serve."
+  },
+  "evidence": {
+   "proposed_seq": 223,
+   "plan_call_seq": 204,
+   "resolve_call_seq": 431,
+   "status_seq": 450,
+   "time_change_seqs": [],
+   "message_call_seq": 467
+  }
+ },
+ {
+  "group": "2026-10-30/g9",
+  "day": "2026-10-30",
+  "id": "g9",
+  "activity": "game-night",
+  "activity_name": "Board game night",
+  "where": "a neighbor's table (the host rotates)",
+  "cost": "free",
+  "part": "evening",
+  "time_planned": "6pm-8:30pm",
+  "time_final": "6pm-8:30pm",
+  "fixed_event": false,
+  "why_hub_chose_it": "Four board game fans, three of them students, around a neighbor's table, finishing early.",
+  "proposed_members": [
+   "e133",
+   "e034",
+   "e196",
+   "e200"
+  ],
+  "alternates": [
+   "e112",
+   "e154"
+  ],
+  "members": [
+   {
+    "id": "e133",
+    "name": "Jack W.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Jack's in! Friday 6-8:30pm works great, and he loves board games (he'll bring a card game too).",
+      "ask_seq": 387,
+      "reply_seq": 404,
+      "call_seq": 388,
+      "group_time_at_ask": "6pm-8:30pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e034",
+    "name": "Dave C.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Dave's in! Board games on Friday evening works great for him.",
+      "ask_seq": 392,
+      "reply_seq": 409,
+      "call_seq": 393,
+      "group_time_at_ask": "6pm-8:30pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e196",
+    "name": "Arjun S.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Arjun's in for board game night Friday 6-8:30pm — free, early-ending, and board games are a favorite. Count him in!",
+      "ask_seq": 397,
+      "reply_seq": 419,
+      "call_seq": 398,
+      "group_time_at_ask": "6pm-8:30pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e200",
+    "name": "Hunter C.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Friday 6-8:30pm board games works great for Hunter—free, small group, home early. Count him in!",
+      "ask_seq": 402,
+      "reply_seq": 414,
+      "call_seq": 403,
+      "group_time_at_ask": "6pm-8:30pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   }
+  ],
+  "final_members": [
+   "e133",
+   "e034",
+   "e196",
+   "e200"
+  ],
+  "status": "locked",
+  "drop_reason": null,
+  "signals": {
+   "shared_likes_overlap": 0.152,
+   "age_spread": 39
+  },
+  "headline": "Four board game fans are set for Friday night at a neighbor's table",
+  "final_messages": {
+   "e133": "Hey Jack, your board game night is set for Friday 30 Oct, 6-8:30pm at a neighbor's table (host rotates). You'll be with Dave, Arjun, and Hunter, all fellow board game lovers, and Dave also shares your love of swimming.",
+   "e034": "Hey Dave, you're confirmed for board game night Friday 30 Oct, 6-8:30pm at a neighbor's table. Jack, Arjun, and Hunter will be there too, all big board game fans, and Jack also shares your love of swimming.",
+   "e196": "Hey Arjun, your board game night is locked in for Friday 30 Oct, 6-8:30pm at a neighbor's rotating table. You'll be joining Jack, Dave, and Hunter, all of whom really like board games just like you.",
+   "e200": "Hey Hunter, you're set for board game night Friday 30 Oct, 6-8:30pm at a neighbor's table. Jack, Dave, and Arjun will be there, all sharing your love of board games, for a low-key evening without the crowds or late hours."
+  },
+  "evidence": {
+   "proposed_seq": 224,
+   "plan_call_seq": 204,
+   "resolve_call_seq": 431,
+   "status_seq": 451,
+   "time_change_seqs": [],
+   "message_call_seq": 469
+  }
+ },
+ {
+  "group": "2026-10-30/g10",
+  "day": "2026-10-30",
+  "id": "g10",
+  "activity": "mtb",
+  "activity_name": "Mountain bike the Black Diamond Open Space",
+  "where": "Black Diamond Open Space singletrack",
+  "cost": "free",
+  "part": "afternoon",
+  "time_planned": "1pm-3pm",
+  "time_final": "1pm-3pm",
+  "fixed_event": false,
+  "why_hub_chose_it": "Three mountain bikers riding the local singletrack together in the afternoon.",
+  "proposed_members": [
+   "e160",
+   "e185",
+   "e176"
+  ],
+  "alternates": [
+   "e076"
+  ],
+  "members": [
+   {
+    "id": "e160",
+    "name": "Imani K.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Imani's in for mountain biking at Black Diamond Open Space on Friday 30 Oct, 1-3pm — free and fits their schedule perfectly!",
+      "ask_seq": 407,
+      "reply_seq": 422,
+      "call_seq": 408,
+      "group_time_at_ask": "1pm-3pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e185",
+    "name": "Paolo C.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Paolo's in for the Friday 1-3pm mountain bike ride at Black Diamond Open Space - fits his free afternoon and he's really into mountain biking.",
+      "ask_seq": 412,
+      "reply_seq": 425,
+      "call_seq": 413,
+      "group_time_at_ask": "1pm-3pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e176",
+    "name": "Ryan B.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Ryan's in for this one—mountain biking is a favorite of his, and Friday 1-3pm works perfectly with his schedule. Count him in!",
+      "ask_seq": 417,
+      "reply_seq": 428,
+      "call_seq": 418,
+      "group_time_at_ask": "1pm-3pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   }
+  ],
+  "final_members": [
+   "e160",
+   "e185",
+   "e176"
+  ],
+  "status": "locked",
+  "drop_reason": null,
+  "signals": {
+   "shared_likes_overlap": 0.222,
+   "age_spread": 18
+  },
+  "headline": "Three riders hit the Black Diamond Open Space singletrack",
+  "final_messages": {
+   "e160": "Hey Imani — your small group is set for mountain biking the Black Diamond Open Space singletrack this Friday 30 Oct, 1-3pm. You'll be riding alongside Paolo and Ryan, both of whom are just as into mountain biking as you are, so expect a good pace and real trail talk. Should be a solid afternoon out there in Black Diamond Ridge.",
+   "e185": "Hey Paolo — you're confirmed for mountain biking the Black Diamond Open Space singletrack, Friday 30 Oct from 1-3pm. Riding with you are Imani and Ryan, and since you and Ryan both geek out over watching sports, there's a good bet that conversation keeps going after the ride too.",
+   "e176": "Hey Ryan — your group for the Black Diamond Open Space singletrack ride is locked in: Friday 30 Oct, 1-3pm. You'll be out there with Imani and Paolo, and you and Paolo already share a love for watching sports, so that's an easy bridge before or after the trail."
+  },
+  "evidence": {
+   "proposed_seq": 225,
+   "plan_call_seq": 204,
+   "resolve_call_seq": 431,
+   "status_seq": 452,
+   "time_change_seqs": [],
+   "message_call_seq": 471
+  }
+ },
+ {
+  "group": "2026-10-31/g1",
+  "day": "2026-10-31",
+  "id": "g1",
+  "activity": "trail-cleanup",
+  "activity_name": "Trail cleanup work party",
+  "where": "Green River Gorge Conservation Area",
+  "cost": "free",
+  "part": "morning",
+  "time_planned": "9am-12pm",
+  "time_final": "9am-12pm",
+  "fixed_event": true,
+  "why_hub_chose_it": "A mix of keen volunteers and hikers, mostly Lawson Hills, Ten Trails and Ridge locals, giving back to the gorge trails together.",
+  "proposed_members": [
+   "e027",
+   "e013",
+   "e036",
+   "e086",
+   "e041"
+  ],
+  "alternates": [
+   "e170",
+   "e132"
+  ],
+  "members": [
+   {
+    "id": "e027",
+    "name": "Ananya T.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Saturday 9am-12pm works great — Ananya loves volunteering and this small, uncrowded trail cleanup fits her free morning perfectly. Count her in!",
+      "ask_seq": 499,
+      "reply_seq": 507,
+      "call_seq": 500,
+      "group_time_at_ask": "9am-12pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e013",
+    "name": "Mei T.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Saturday morning works great for Mei—she really likes volunteering, and a small, free, low-key cleanup fits her schedule and budget perfectly. She's in!",
+      "ask_seq": 501,
+      "reply_seq": 522,
+      "call_seq": 502,
+      "group_time_at_ask": "9am-12pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e036",
+    "name": "Tom B.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Saturday 9am-12pm works great for Tom—he'd love to join the trail cleanup since volunteering is something he really enjoys. Please hold a spot!",
+      "ask_seq": 503,
+      "reply_seq": 517,
+      "call_seq": 504,
+      "group_time_at_ask": "9am-12pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e086",
+    "name": "Hannah C.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Saturday morning works great—Hannah loves hiking and is free 9am-12pm, so count her in for the trail cleanup and hike.",
+      "ask_seq": 505,
+      "reply_seq": 512,
+      "call_seq": 506,
+      "group_time_at_ask": "9am-12pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e041",
+    "name": "Imani O.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Saturday morning works great for Imani—she loves hiking and this free trail cleanup fits perfectly within her free time and budget. Count her in!",
+      "ask_seq": 510,
+      "reply_seq": 527,
+      "call_seq": 511,
+      "group_time_at_ask": "9am-12pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   }
+  ],
+  "final_members": [
+   "e027",
+   "e013",
+   "e036",
+   "e086",
+   "e041"
+  ],
+  "status": "locked",
+  "drop_reason": null,
+  "signals": {
+   "shared_likes_overlap": 0.058,
+   "age_spread": 54
+  },
+  "headline": "Five volunteers hitting the trails at Green River Gorge this Halloween Saturday",
+  "final_messages": {
+   "e027": "Hi Ananya, your trail cleanup crew is set for Saturday 31 Oct, 9am-12pm at Green River Gorge Conservation Area. You'll be working alongside Mei and Tom, who also love volunteering, so you're in good company for a morning of giving back.",
+   "e013": "Hi Mei, you're confirmed for the trail cleanup at Green River Gorge Conservation Area, Saturday 31 Oct from 9am-12pm. You'll be with Ananya and Tom, fellow volunteering fans, and Hannah, who shares your love of baking if conversation drifts that way during a break.",
+   "e036": "Hi Tom, your trail cleanup work party is a go for Saturday 31 Oct, 9am-12pm at Green River Gorge Conservation Area. Ananya and Mei will be right there with you, both sharing your enthusiasm for volunteering.",
+   "e086": "Hi Hannah, you're set for the Green River Gorge trail cleanup on Saturday 31 Oct, 9am-12pm. Mei shares your love of baking, and Imani shares your love of hiking, so you'll have plenty to chat about between work tasks.",
+   "e041": "Hi Imani, your group is confirmed for the trail cleanup at Green River Gorge Conservation Area, Saturday 31 Oct, 9am-12pm. Hannah will be there too, and you both share a love of hiking, so the outdoor setting should feel right up your alley."
+  },
+  "evidence": {
+   "proposed_seq": 489,
+   "plan_call_seq": 477,
+   "resolve_call_seq": 699,
+   "status_seq": 716,
+   "time_change_seqs": [],
+   "message_call_seq": 726
+  }
+ },
+ {
+  "group": "2026-10-31/g2",
+  "day": "2026-10-31",
+  "id": "g2",
+  "activity": "gorge",
+  "activity_name": "Green River Gorge hike",
+  "where": "Green River Gorge Conservation Area",
+  "cost": "free",
+  "part": "morning",
+  "time_planned": "9am-11:30am",
+  "time_final": "9am-11:30am",
+  "fixed_event": false,
+  "why_hub_chose_it": "Three Morgan Creek and Ten Trails photographers in their 30s-40s shooting the gorge together.",
+  "proposed_members": [
+   "e136",
+   "e106",
+   "e064"
+  ],
+  "alternates": [
+   "e075",
+   "e094"
+  ],
+  "members": [
+   {
+    "id": "e136",
+    "name": "Aaliyah H.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Saturday morning works great for Aaliyah—free, small group, and a chance to combine photography with scouting fishing spots. She's in!",
+      "ask_seq": 515,
+      "reply_seq": 537,
+      "call_seq": 516,
+      "group_time_at_ask": "9am-11:30am"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e106",
+    "name": "Carol L.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Carol's free Saturday morning and would love this—photography is a passion of hers, and a relaxed, non-competitive hike with fellow photo enthusiasts sounds perfect. Count her in!",
+      "ask_seq": 520,
+      "reply_seq": 542,
+      "call_seq": 521,
+      "group_time_at_ask": "9am-11:30am"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e064",
+    "name": "Noah M.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Saturday morning works great for Noah—hold the spot for the Green River Gorge hike with the photography group.",
+      "ask_seq": 525,
+      "reply_seq": 532,
+      "call_seq": 526,
+      "group_time_at_ask": "9am-11:30am"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   }
+  ],
+  "final_members": [
+   "e136",
+   "e106",
+   "e064"
+  ],
+  "status": "locked",
+  "drop_reason": null,
+  "signals": {
+   "shared_likes_overlap": 0.132,
+   "age_spread": 10
+  },
+  "headline": "Three photographers hit the Green River Gorge trail together",
+  "final_messages": {
+   "e136": "Aaliyah, your Green River Gorge hike is set for Saturday 10/31, 9-11:30am at the Conservation Area, alongside Carol and Noah. You're all into photography, so expect some stops along the gorge for shots.",
+   "e106": "Carol, you're confirmed for the Green River Gorge hike this Saturday 10/31, 9-11:30am, with Aaliyah and Noah joining you. You three all love photography, so the gorge views should make for a good excuse to pause and snap some pics.",
+   "e064": "Noah, your hike at Green River Gorge Conservation Area is locked in for Saturday 10/31, 9-11:30am, with Aaliyah and Carol along for it. Photography's a shared interest for all three of you, so the gorge's scenery should be a nice draw for the group."
+  },
+  "evidence": {
+   "proposed_seq": 490,
+   "plan_call_seq": 477,
+   "resolve_call_seq": 699,
+   "status_seq": 717,
+   "time_change_seqs": [],
+   "message_call_seq": 728
+  }
+ },
+ {
+  "group": "2026-10-31/g3",
+  "day": "2026-10-31",
+  "id": "g3",
+  "activity": "franklin",
+  "activity_name": "Franklin ghost town hike",
+  "where": "Franklin ghost town trail, Green River Gorge Rd",
+  "cost": "free",
+  "part": "afternoon",
+  "time_planned": "1pm-3:30pm",
+  "time_final": "1pm-3:30pm",
+  "fixed_event": false,
+  "why_hub_chose_it": "History buffs, a photographer and a keen hiker exploring the Franklin ghost town in a small, quiet group.",
+  "proposed_members": [
+   "e020",
+   "e055",
+   "e016",
+   "e154"
+  ],
+  "alternates": [
+   "e102",
+   "e178"
+  ],
+  "members": [
+   {
+    "id": "e020",
+    "name": "Imani M.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "This works well—Saturday 1-3:30pm fits Imani's free afternoon, it's free, and the history angle on a hike is a great match. Count them in!",
+      "ask_seq": 530,
+      "reply_seq": 552,
+      "call_seq": 531,
+      "group_time_at_ask": "1pm-3:30pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e055",
+    "name": "Ryan M.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Ryan's in for the Franklin ghost town hike Saturday 1-3:30pm — history, free, and a small group suits him well.",
+      "ask_seq": 535,
+      "reply_seq": 557,
+      "call_seq": 536,
+      "group_time_at_ask": "1pm-3:30pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e016",
+    "name": "Paige P.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Saturday 1-3:30pm works great for Paige's free afternoon, and the ghost town ruins are perfect for her photography interest—count her in!",
+      "ask_seq": 540,
+      "reply_seq": 547,
+      "call_seq": 541,
+      "group_time_at_ask": "1pm-3:30pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e154",
+    "name": "Keisha A.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Saturday 1-3:30pm works great for Keisha's free afternoon and hiking is one of her favorites, plus it's a small group, not a crowd. Please hold the spot!",
+      "ask_seq": 545,
+      "reply_seq": 562,
+      "call_seq": 546,
+      "group_time_at_ask": "1pm-3:30pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   }
+  ],
+  "final_members": [
+   "e020",
+   "e055",
+   "e016",
+   "e154"
+  ],
+  "status": "locked",
+  "drop_reason": null,
+  "signals": {
+   "shared_likes_overlap": 0.155,
+   "age_spread": 42
+  },
+  "headline": "Your Franklin ghost town hike crew is set for Saturday 10/31, 1–3:30pm!",
+  "final_messages": {
+   "e020": "Imani, you're set for the Franklin ghost town hike on Saturday 10/31, 1-3:30pm at Green River Gorge Rd. You'll be hiking alongside Keisha, who's also into hiking and yoga, plus Ryan, who shares your love of history — perfect for exploring old ghost town ruins together.",
+   "e055": "Ryan, your Franklin ghost town hike is confirmed for Saturday 10/31, 1-3:30pm on Green River Gorge Rd. You'll be joined by Imani, who also really likes history, so you two should have plenty to talk about among the old town ruins.",
+   "e016": "Paige, you're in for the Franklin ghost town hike Saturday 10/31, 1-3:30pm at Green River Gorge Rd. You'll be with Imani and Keisha, both into kayaking like you, and Imani also shares your love of coffee — a good group to wind down with after the hike.",
+   "e154": "Keisha, your Franklin ghost town hike is a go for Saturday 10/31, 1-3:30pm on Green River Gorge Rd. You'll be hiking with Imani, who shares your love of hiking and yoga, plus Paige, who's also up for kayaking like you both."
+  },
+  "evidence": {
+   "proposed_seq": 491,
+   "plan_call_seq": 477,
+   "resolve_call_seq": 699,
+   "status_seq": 718,
+   "time_change_seqs": [],
+   "message_call_seq": 730
+  }
+ },
+ {
+  "group": "2026-10-31/g4",
+  "day": "2026-10-31",
+  "id": "g4",
+  "activity": "potluck",
+  "activity_name": "Potluck picnic",
+  "where": "Black Diamond Civic Park",
+  "cost": "low",
+  "part": "afternoon",
+  "time_planned": "12pm-2:30pm",
+  "time_final": "12pm-2:30pm",
+  "fixed_event": false,
+  "why_hub_chose_it": "Picnic-loving families and keen cooks sharing a relaxed, low-cost potluck at Civic Park.",
+  "proposed_members": [
+   "e053",
+   "e184",
+   "e025",
+   "e126",
+   "e150"
+  ],
+  "alternates": [
+   "e124"
+  ],
+  "members": [
+   {
+    "id": "e053",
+    "name": "Santiago T.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "This works great for Santiago—he loves picnics and cooking, and Saturday afternoon is open. Count him in!",
+      "ask_seq": 550,
+      "reply_seq": 572,
+      "call_seq": 551,
+      "group_time_at_ask": "12pm-2:30pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e184",
+    "name": "Mateo R.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Saturday afternoon works great for Mateo — he loves cooking, so a potluck picnic is right up his alley. He's in!",
+      "ask_seq": 555,
+      "reply_seq": 567,
+      "call_seq": 556,
+      "group_time_at_ask": "12pm-2:30pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e025",
+    "name": "Isabel R.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Isabel would love to join the potluck picnic at Black Diamond Civic Park on Saturday from 12-2:30pm — picnics are a favorite of hers and the quiet, low-cost setting suits her perfectly.",
+      "ask_seq": 560,
+      "reply_seq": 577,
+      "call_seq": 561,
+      "group_time_at_ask": "12pm-2:30pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e126",
+    "name": "Thao L.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Saturday 12-2:30pm works great—Thao loves picnics, and this small, low-cost gathering with neighbors fits perfectly. Count them in!",
+      "ask_seq": 565,
+      "reply_seq": 582,
+      "call_seq": 566,
+      "group_time_at_ask": "12pm-2:30pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e150",
+    "name": "Jim B.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Saturday 12-2:30pm works great—Jim loves picnics, and a small, relaxed neighbor gathering at Black Diamond Civic Park fits his free afternoon perfectly. Please hold the spot.",
+      "ask_seq": 570,
+      "reply_seq": 587,
+      "call_seq": 571,
+      "group_time_at_ask": "12pm-2:30pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   }
+  ],
+  "final_members": [
+   "e053",
+   "e184",
+   "e025",
+   "e126",
+   "e150"
+  ],
+  "status": "locked",
+  "drop_reason": null,
+  "signals": {
+   "shared_likes_overlap": 0.151,
+   "age_spread": 34
+  },
+  "headline": "Your Black Diamond potluck picnic is set for Saturday 31 Oct, 12-2:30pm at Black Diamond Civic Park!",
+  "final_messages": {
+   "e053": "Santiago, you're confirmed for the potluck picnic Sat 31 Oct, 12-2:30pm at Black Diamond Civic Park with Mateo, Isabel, Thao, and Jim. You and Thao both love farmers markets and baseball, and as fellow parents at home with kids, you'll have plenty to swap stories about.",
+   "e184": "Mateo, you're in for the potluck picnic Sat 31 Oct, 12-2:30pm at Black Diamond Civic Park alongside Santiago, Isabel, Thao, and Jim. You and Santiago both love cooking and hiking, and you and Jim share a taste for golf and craft beer, so conversation should flow easily.",
+   "e025": "Isabel, your potluck picnic is confirmed for Sat 31 Oct, 12-2:30pm at Black Diamond Civic Park with Santiago, Mateo, Thao, and Jim. Picnics are something everyone in this group loves, so you're in good company for a relaxed afternoon outdoors.",
+   "e126": "Thao, you're set for the potluck picnic Sat 31 Oct, 12-2:30pm at Black Diamond Civic Park with Santiago, Mateo, Isabel, and Jim. You and Santiago share a love of farmers markets and baseball, and as parents at home with kids, you'll likely find a lot in common.",
+   "e150": "Jim, you're confirmed for the potluck picnic Sat 31 Oct, 12-2:30pm at Black Diamond Civic Park with Santiago, Mateo, Isabel, and Thao. You and Mateo both enjoy golf and craft beer, and you and Santiago share a love of baseball, making for an easy, relaxed crowd."
+  },
+  "evidence": {
+   "proposed_seq": 492,
+   "plan_call_seq": 477,
+   "resolve_call_seq": 699,
+   "status_seq": 719,
+   "time_change_seqs": [],
+   "message_call_seq": 732
+  }
+ },
+ {
+  "group": "2026-10-31/g5",
+  "day": "2026-10-31",
+  "id": "g5",
+  "activity": "sawyer-paddle",
+  "activity_name": "Paddle Lake Sawyer",
+  "where": "Lake Sawyer Regional Park boat launch",
+  "cost": "low",
+  "part": "afternoon",
+  "time_planned": "1pm-3:30pm",
+  "time_final": "1pm-3:30pm",
+  "fixed_event": false,
+  "why_hub_chose_it": "Keen kayakers and a boating fan sharing an afternoon on Lake Sawyer.",
+  "proposed_members": [
+   "e023",
+   "e049",
+   "e065",
+   "e081"
+  ],
+  "alternates": [
+   "e080",
+   "e076"
+  ],
+  "members": [
+   {
+    "id": "e023",
+    "name": "Claire F.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Saturday 1-3:30pm works great for Claire — she loves kayaking, and a relaxed, non-competitive group paddle on Lake Sawyer is right up her alley. Count her in!",
+      "ask_seq": 575,
+      "reply_seq": 592,
+      "call_seq": 576,
+      "group_time_at_ask": "1pm-3:30pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e049",
+    "name": "Lauren P.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Saturday 1-3:30pm kayaking on Lake Sawyer works great for Lauren — kayaking is one of their favorite activities and it fits their budget and free afternoon. Count them in!",
+      "ask_seq": 580,
+      "reply_seq": 597,
+      "call_seq": 581,
+      "group_time_at_ask": "1pm-3:30pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e065",
+    "name": "Mark L.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Saturday 1-3:30pm kayaking at Lake Sawyer works great for Mark—he really likes kayaking, it's low-cost and laid-back. Please hold the spot!",
+      "ask_seq": 585,
+      "reply_seq": 602,
+      "call_seq": 586,
+      "group_time_at_ask": "1pm-3:30pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e081",
+    "name": "Andres T.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Saturday 1-3:30pm boating on Lake Sawyer works great for Andres—he loves boating, it's within his free afternoon, and the small neighbor group keeps it crowd-free. Count him in!",
+      "ask_seq": 590,
+      "reply_seq": 607,
+      "call_seq": 591,
+      "group_time_at_ask": "1pm-3:30pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   }
+  ],
+  "final_members": [
+   "e023",
+   "e049",
+   "e065",
+   "e081"
+  ],
+  "status": "locked",
+  "drop_reason": null,
+  "signals": {
+   "shared_likes_overlap": 0.171,
+   "age_spread": 36
+  },
+  "headline": "Four paddlers, one lake, Saturday afternoon at Sawyer",
+  "final_messages": {
+   "e023": "Claire, you're set for Paddle Lake Sawyer at the boat launch, Saturday 10/31, 1-3:30pm, alongside Lauren, Mark, and Andres. You and Lauren both love kayaking, so you two will be right at home on the water together.",
+   "e049": "Lauren, your group for Paddle Lake Sawyer is confirmed — Saturday 10/31, 1-3:30pm at Lake Sawyer Regional Park boat launch, with Claire, Mark, and Andres. You and Mark both love kayaking, so expect good company out on the lake.",
+   "e065": "Mark, you're paddling with Claire, Lauren, and Andres this Saturday 10/31, 1-3:30pm at the Lake Sawyer Regional Park boat launch. You and Lauren share a love of kayaking, so you'll have a natural paddling partner on the water.",
+   "e081": "Andres, your group is confirmed for Paddle Lake Sawyer at the boat launch, Saturday 10/31, 1-3:30pm, with Claire, Lauren, and Mark. You and Claire both really like hiking, so there's good common ground beyond the paddle itself."
+  },
+  "evidence": {
+   "proposed_seq": 493,
+   "plan_call_seq": 477,
+   "resolve_call_seq": 699,
+   "status_seq": 720,
+   "time_change_seqs": [],
+   "message_call_seq": 734
+  }
+ },
+ {
+  "group": "2026-10-31/g6",
+  "day": "2026-10-31",
+  "id": "g6",
+  "activity": "ten-trails-walk",
+  "activity_name": "Evening walk on the Ten Trails paths",
+  "where": "Ten Trails trail network",
+  "cost": "free",
+  "part": "evening",
+  "time_planned": "5:30pm-7pm",
+  "time_final": "5:30pm-7pm",
+  "fixed_event": false,
+  "why_hub_chose_it": "Hiking and running fans enjoying a quiet, free evening loop on the Ten Trails paths.",
+  "proposed_members": [
+   "e105",
+   "e171",
+   "e042"
+  ],
+  "alternates": [
+   "e174",
+   "e128"
+  ],
+  "members": [
+   {
+    "id": "e105",
+    "name": "Josh L.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Saturday evening works great for Josh — he loves hiking, so an evening walk on the Ten Trails paths is a perfect fit. Count him in!",
+      "ask_seq": 595,
+      "reply_seq": 612,
+      "call_seq": 596,
+      "group_time_at_ask": "5:30pm-7pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e171",
+    "name": "Ethan M.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Saturday evening hike works great for Ethan — he loves hiking, and a small group of 3 total keeps it crowd-free. Count him in!",
+      "ask_seq": 600,
+      "reply_seq": 617,
+      "call_seq": 601,
+      "group_time_at_ask": "5:30pm-7pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e042",
+    "name": "Elena R.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "no",
+      "counter": "",
+      "said": "Thanks, but a casual walk isn't really Elena's thing—she's into swimming, running, and golf specifically, not just walking the trails. We'll pass on this one.",
+      "ask_seq": 605,
+      "reply_seq": 637,
+      "call_seq": 606,
+      "group_time_at_ask": "5:30pm-7pm"
+     }
+    ],
+    "final_state": "no",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e174",
+    "name": "Jenna H.",
+    "answers": [
+     {
+      "round": 2,
+      "answer": "no",
+      "counter": "",
+      "said": "Thanks, but a walk isn't a strong match for Jenna's real interests (pickleball, hiking)—a casual walk doesn't quite rise to that level, so we'll pass this time.",
+      "ask_seq": 701,
+      "reply_seq": 703,
+      "call_seq": 702,
+      "group_time_at_ask": "5:30pm-7pm"
+     }
+    ],
+    "final_state": "no",
+    "code_checks_at_final_time": []
+   }
+  ],
+  "final_members": [
+   "e105",
+   "e171"
+  ],
+  "status": "locked",
+  "drop_reason": null,
+  "signals": {
+   "shared_likes_overlap": 0.111,
+   "age_spread": 14
+  },
+  "headline": "Two Black Diamond hikers hit the Ten Trails paths together",
+  "final_messages": {
+   "e105": "Hey Josh, your evening walk on the Ten Trails paths is set for Saturday 31 Oct, 5:30-7pm with Ethan. You both love hiking, so this stretch of trail should feel like easy ground to cover together.",
+   "e171": "Hey Ethan, you're confirmed for the Ten Trails evening walk Saturday 31 Oct, 5:30-7pm with Josh. You two share a love of hiking, so expect good conversation along the way."
+  },
+  "evidence": {
+   "proposed_seq": 494,
+   "plan_call_seq": 477,
+   "resolve_call_seq": 699,
+   "status_seq": 721,
+   "time_change_seqs": [],
+   "message_call_seq": 736
+  }
+ },
+ {
+  "group": "2026-10-31/g7",
+  "day": "2026-10-31",
+  "id": "g7",
+  "activity": "sawyer-dogs",
+  "activity_name": "Dog walk around the park",
+  "where": "Lake Sawyer Regional Park",
+  "cost": "free",
+  "part": "evening",
+  "time_planned": "5:30pm-6:30pm",
+  "time_final": "5:30pm-6:30pm",
+  "fixed_event": false,
+  "why_hub_chose_it": "Four dog lovers walking their dogs around Lake Sawyer park together.",
+  "proposed_members": [
+   "e045",
+   "e082",
+   "e051",
+   "e052"
+  ],
+  "alternates": [],
+  "members": [
+   {
+    "id": "e045",
+    "name": "Nora P.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Saturday 5:30-6:30pm dog walk at Lake Sawyer Regional Park works great for Nora—dog walks are one of her favorite things. Count her in!",
+      "ask_seq": 610,
+      "reply_seq": 622,
+      "call_seq": 611,
+      "group_time_at_ask": "5:30pm-6:30pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e082",
+    "name": "Isabel G.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Saturday 5:30-6:30pm dog walk at Lake Sawyer Regional Park works great for Isabel — she loves dog walks and it's free and fits her schedule. Count her in!",
+      "ask_seq": 615,
+      "reply_seq": 627,
+      "call_seq": 616,
+      "group_time_at_ask": "5:30pm-6:30pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e051",
+    "name": "Nora B.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Saturday 5:30-6:30pm dog walk at Lake Sawyer Regional Park works great — Nora loves dog walks and it's free during her open evening. Please hold the spot!",
+      "ask_seq": 620,
+      "reply_seq": 632,
+      "call_seq": 621,
+      "group_time_at_ask": "5:30pm-6:30pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e052",
+    "name": "Ron W.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Saturday evening works great for Ron — he really likes dog walks, so count him in for Lake Sawyer Regional Park at 5:30pm.",
+      "ask_seq": 625,
+      "reply_seq": 647,
+      "call_seq": 626,
+      "group_time_at_ask": "5:30pm-6:30pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   }
+  ],
+  "final_members": [
+   "e045",
+   "e082",
+   "e051",
+   "e052"
+  ],
+  "status": "locked",
+  "drop_reason": null,
+  "signals": {
+   "shared_likes_overlap": 0.275,
+   "age_spread": 41
+  },
+  "headline": "Four dog walkers, one trail around Lake Sawyer this Saturday",
+  "final_messages": {
+   "e045": "Nora, you're set for a dog walk around Lake Sawyer Regional Park this Saturday, Oct 31, 5:30–6:30pm, alongside Isabel, Nora B., and Ron. Ron's also into mountain biking and cards like you, so you two should have plenty to talk about between laps.",
+   "e082": "Isabel, your small group dog walk at Lake Sawyer Regional Park is confirmed for Saturday, Oct 31, 5:30–6:30pm, with Nora P., Nora B., and Ron joining you. Nora B. shares your love of running, hiking, and craft beer, so you two should hit it off right away.",
+   "e051": "Nora, you're walking with Isabel, Nora P., and Ron at Lake Sawyer Regional Park this Saturday, Oct 31, from 5:30–6:30pm. You and Isabel both love running, hiking, and craft beer, so expect some easy conversation on the trail.",
+   "e052": "Ron, your dog walk group meets at Lake Sawyer Regional Park this Saturday, Oct 31, 5:30–6:30pm, with Nora P., Isabel, and Nora B. Nora P. shares your love of mountain biking and cards, so you two should click fast."
+  },
+  "evidence": {
+   "proposed_seq": 495,
+   "plan_call_seq": 477,
+   "resolve_call_seq": 699,
+   "status_seq": 722,
+   "time_change_seqs": [],
+   "message_call_seq": 738
+  }
+ },
+ {
+  "group": "2026-10-31/g8",
+  "day": "2026-10-31",
+  "id": "g8",
+  "activity": "lumber-house",
+  "activity_name": "Pints at Lumber House",
+  "where": "Lumber House brewery",
+  "cost": "low",
+  "part": "evening",
+  "time_planned": "5pm-7pm",
+  "time_final": "5pm-7pm",
+  "fixed_event": false,
+  "why_hub_chose_it": "Craft beer fans, mostly 40s-60s, sharing early-evening pints at a local brewery.",
+  "proposed_members": [
+   "e085",
+   "e157",
+   "e158",
+   "e062",
+   "e033"
+  ],
+  "alternates": [
+   "e117"
+  ],
+  "members": [
+   {
+    "id": "e085",
+    "name": "Cody B.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Saturday 5-7pm at Lumber House works great—Cody loves craft beer and is free that evening. Count him in!",
+      "ask_seq": 630,
+      "reply_seq": 642,
+      "call_seq": 631,
+      "group_time_at_ask": "5pm-7pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e157",
+    "name": "Kevin B.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Kevin's in for pints at Lumber House Saturday 5-7pm—craft beer is one of his favorites and Saturday evening works great for him.",
+      "ask_seq": 635,
+      "reply_seq": 657,
+      "call_seq": 636,
+      "group_time_at_ask": "5pm-7pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e158",
+    "name": "Olivia A.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Saturday 5-7pm at Lumber House works great for Olivia — she loves craft beer and is free that evening. Please hold the spot!",
+      "ask_seq": 640,
+      "reply_seq": 652,
+      "call_seq": 641,
+      "group_time_at_ask": "5pm-7pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e062",
+    "name": "Tom N.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Saturday 5-7pm at Lumber House works great for Tom—he's a craft beer fan and that's a free evening for him, wrapping up well before late night. Count him in!",
+      "ask_seq": 645,
+      "reply_seq": 662,
+      "call_seq": 646,
+      "group_time_at_ask": "5pm-7pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e033",
+    "name": "Angelica P.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Saturday 5-7pm at Lumber House works great for Angelica — she really likes craft beer, it's low-cost, and her evening is free. Count her in, as long as it stays a laid-back, low-key gathering.",
+      "ask_seq": 650,
+      "reply_seq": 672,
+      "call_seq": 651,
+      "group_time_at_ask": "5pm-7pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   }
+  ],
+  "final_members": [
+   "e085",
+   "e157",
+   "e158",
+   "e062",
+   "e033"
+  ],
+  "status": "locked",
+  "drop_reason": null,
+  "signals": {
+   "shared_likes_overlap": 0.212,
+   "age_spread": 23
+  },
+  "headline": "Five craft beer fans meet up at Lumber House",
+  "final_messages": {
+   "e085": "Cody, your group is set for pints at Lumber House this Saturday, Oct 31, 5-7pm, with Kevin, Olivia, Tom, and Angelica. You and Tom both love craft beer and coffee, and you'll have hiking in common with Tom and Angelica too — plenty to talk about over a pint.",
+   "e157": "Kevin, you're confirmed for Lumber House brewery this Saturday, Oct 31, 5-7pm, alongside Cody, Olivia, Tom, and Angelica. You and Olivia both love running, and you and Tom share a love of golf, so there's good common ground before the craft beer even starts flowing.",
+   "e158": "Olivia, your small group pints night is locked in for Saturday, Oct 31, 5-7pm at Lumber House, with Cody, Kevin, Tom, and Angelica. You and Kevin both love running, and you and Angelica share a love of dining and live music — should make for easy conversation.",
+   "e062": "Tom, you're all set for Lumber House this Saturday, Oct 31, 5-7pm, joining Cody, Kevin, Olivia, and Angelica. You and Cody both really like coffee and hiking, and you and Kevin share a love of golf, so you'll have plenty to connect over besides the craft beer.",
+   "e033": "Angelica, your group is confirmed for pints at Lumber House this Saturday, Oct 31, 5-7pm, with Cody, Kevin, Olivia, and Tom. You and Olivia both love dining and live music, and you share a love of hiking with Cody and Tom too — a solid mix for a relaxed evening."
+  },
+  "evidence": {
+   "proposed_seq": 496,
+   "plan_call_seq": 477,
+   "resolve_call_seq": 699,
+   "status_seq": 723,
+   "time_change_seqs": [],
+   "message_call_seq": 740
+  }
+ },
+ {
+  "group": "2026-10-31/g9",
+  "day": "2026-10-31",
+  "id": "g9",
+  "activity": "game-night",
+  "activity_name": "Board game night",
+  "where": "a neighbor's table (the host rotates)",
+  "cost": "free",
+  "part": "evening",
+  "time_planned": "5:30pm-8:30pm",
+  "time_final": "5:30pm-8:30pm",
+  "fixed_event": false,
+  "why_hub_chose_it": "Board game and card fans around a neighbor's table, wrapping up before it gets late.",
+  "proposed_members": [
+   "e173",
+   "e148",
+   "e200",
+   "e196"
+  ],
+  "alternates": [
+   "e076",
+   "e100"
+  ],
+  "members": [
+   {
+    "id": "e173",
+    "name": "Mateo T.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Mateo's in! Board game night Saturday 5:30-8:30pm works great with his free evening and love of board games, and it's free.",
+      "ask_seq": 655,
+      "reply_seq": 667,
+      "call_seq": 656,
+      "group_time_at_ask": "5:30pm-8:30pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e148",
+    "name": "Grace C.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Grace is in for Saturday's game night—cards are a favorite, it's free, and the timing works well with her schedule.",
+      "ask_seq": 660,
+      "reply_seq": 677,
+      "call_seq": 661,
+      "group_time_at_ask": "5:30pm-8:30pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e200",
+    "name": "Hunter C.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Saturday evening works great for Hunter — board games are a favorite, it's free, small, and done well before late night, so please hold the spot!",
+      "ask_seq": 665,
+      "reply_seq": 690,
+      "call_seq": 666,
+      "group_time_at_ask": "5:30pm-8:30pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e196",
+    "name": "Arjun S.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Saturday 5:30-8:30pm board game night works great for Arjun — he really likes board games, it's free, and fits his free evening. Count him in!",
+      "ask_seq": 670,
+      "reply_seq": 682,
+      "call_seq": 671,
+      "group_time_at_ask": "5:30pm-8:30pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   }
+  ],
+  "final_members": [
+   "e173",
+   "e148",
+   "e200",
+   "e196"
+  ],
+  "status": "locked",
+  "drop_reason": null,
+  "signals": {
+   "shared_likes_overlap": 0.104,
+   "age_spread": 37
+  },
+  "headline": "Your Black Diamond board game table is set for Saturday, Oct 31",
+  "final_messages": {
+   "e173": "Mateo, your board game night is set for Saturday 10/31, 5:30-8:30pm at a neighbor's table (host rotates). You'll be with Grace, Hunter, and Arjun — you and Hunter both love board games and pickleball, so you'll have plenty to talk about between hands.",
+   "e148": "Grace, you're confirmed for board game night on Saturday 10/31 from 5:30-8:30pm at a neighbor's rotating table. You'll join Mateo, Hunter, and Arjun — like you, Mateo and Arjun are keeping it low-budget, so this laid-back game night fits right into your style.",
+   "e200": "Hunter, your spot is locked in for board game night, Saturday 10/31, 5:30-8:30pm at a neighbor's table. You'll be sitting down with Mateo, Grace, and Arjun — you and Mateo share a love of both board games and pickleball, so expect some good banter.",
+   "e196": "Arjun, board game night is a go for Saturday 10/31, 5:30-8:30pm at a neighbor's rotating table. You'll be playing with Mateo, Grace, and Hunter — you, Mateo, and Hunter all really like board games, so the table's in good hands."
+  },
+  "evidence": {
+   "proposed_seq": 497,
+   "plan_call_seq": 477,
+   "resolve_call_seq": 699,
+   "status_seq": 724,
+   "time_change_seqs": [],
+   "message_call_seq": 742
+  }
+ },
+ {
+  "group": "2026-10-31/g10",
+  "day": "2026-10-31",
+  "id": "g10",
+  "activity": "vault-music",
+  "activity_name": "Live music in the beer garden",
+  "where": "The Vault Taphouse & Beer Garden",
+  "cost": "low",
+  "part": "evening",
+  "time_planned": "7pm-10pm",
+  "time_final": "7pm-10pm",
+  "fixed_event": true,
+  "why_hub_chose_it": "Three live music and craft beer fans catching the beer-garden show together.",
+  "proposed_members": [
+   "e195",
+   "e139",
+   "e183"
+  ],
+  "alternates": [
+   "e084"
+  ],
+  "members": [
+   {
+    "id": "e195",
+    "name": "Luis T.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Saturday 7-10pm works great for Luis—live music plus craft beer at a beer garden is right up his alley, and a small group of 2 neighbors keeps it low-key rather than crowded. He's in!",
+      "ask_seq": 675,
+      "reply_seq": 687,
+      "call_seq": 676,
+      "group_time_at_ask": "7pm-10pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e139",
+    "name": "Hannah A.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Saturday 7-10pm at The Vault works great for Hannah — live music and craft beer are right up her alley. Count her in!",
+      "ask_seq": 680,
+      "reply_seq": 693,
+      "call_seq": 681,
+      "group_time_at_ask": "7pm-10pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e183",
+    "name": "Susan W.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Saturday 7-10pm works great for Susan — live music is something she really loves, and the low-cost beer garden setting fits her budget perfectly. Please hold the spot!",
+      "ask_seq": 685,
+      "reply_seq": 696,
+      "call_seq": 686,
+      "group_time_at_ask": "7pm-10pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   }
+  ],
+  "final_members": [
+   "e195",
+   "e139",
+   "e183"
+  ],
+  "status": "locked",
+  "drop_reason": null,
+  "signals": {
+   "shared_likes_overlap": 0.371,
+   "age_spread": 21
+  },
+  "headline": "Live Music & Craft Beer in the Beer Garden — Saturday, October 31",
+  "final_messages": {
+   "e195": "Luis, your small group is set for live music in the beer garden at The Vault Taphouse & Beer Garden, Saturday 10/31, 7-10pm. You're joining Hannah and Susan, and with craft beer being a shared favorite for all three of you, this crowd should feel right at home.",
+   "e139": "Hannah, you're confirmed for live music at The Vault Taphouse & Beer Garden this Saturday 10/31, 7-10pm, alongside Luis and Susan. Craft beer is a shared favorite across the whole group, so expect good conversation along with the music.",
+   "e183": "Susan, your group for live music in the beer garden at The Vault Taphouse & Beer Garden is set for Saturday 10/31, 7-10pm, with Luis and Hannah joining you. Craft beer is something all three of you are into, which should make for an easy, low-key night out."
+  },
+  "evidence": {
+   "proposed_seq": 498,
+   "plan_call_seq": 477,
+   "resolve_call_seq": 699,
+   "status_seq": 725,
+   "time_change_seqs": [],
+   "message_call_seq": 744
+  }
+ },
+ {
+  "group": "2026-11-01/g1",
+  "day": "2026-11-01",
+  "id": "g1",
+  "activity": "pickleball",
+  "activity_name": "Pickleball doubles",
+  "where": "public courts in Maple Valley",
+  "cost": "free",
+  "part": "morning",
+  "time_planned": "9am-11am",
+  "time_final": "9am-11am",
+  "fixed_event": false,
+  "why_hub_chose_it": "Four keen pickleball players in their 40s and 50s, all commuters with an open week, make exactly one doubles foursome.",
+  "proposed_members": [
+   "e032",
+   "e113",
+   "e163",
+   "e193"
+  ],
+  "alternates": [
+   "e043"
+  ],
+  "members": [
+   {
+    "id": "e032",
+    "name": "Ava N.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Ava's in for pickleball doubles Sunday 9-11am at the free Maple Valley courts—great timing and fits her budget.",
+      "ask_seq": 772,
+      "reply_seq": 790,
+      "call_seq": 773,
+      "group_time_at_ask": "9am-11am"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e113",
+    "name": "Seo-yeon L.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Sunday morning pickleball doubles works great for Seo-yeon—free, small group, and fits their free morning slot. They're in!",
+      "ask_seq": 774,
+      "reply_seq": 785,
+      "call_seq": 775,
+      "group_time_at_ask": "9am-11am"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e163",
+    "name": "Carol H.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Carol's in for pickleball doubles Sunday 9-11am at Maple Valley courts — free and she loves the game.",
+      "ask_seq": 776,
+      "reply_seq": 780,
+      "call_seq": 777,
+      "group_time_at_ask": "9am-11am"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e193",
+    "name": "Nora M.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Nora's in for pickleball doubles Sunday 9-11am at Maple Valley courts—free, small group, and fits her love of pickleball without the crowds she avoids.",
+      "ask_seq": 778,
+      "reply_seq": 795,
+      "call_seq": 779,
+      "group_time_at_ask": "9am-11am"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   }
+  ],
+  "final_members": [
+   "e032",
+   "e113",
+   "e163",
+   "e193"
+  ],
+  "status": "locked",
+  "drop_reason": null,
+  "signals": {
+   "shared_likes_overlap": 0.304,
+   "age_spread": 10
+  },
+  "headline": "Your Sunday pickleball foursome is set for Maple Valley",
+  "final_messages": {
+   "e032": "Ava, you're confirmed for pickleball doubles with Seo-yeon, Carol, and Nora on Sunday 1 Nov, 9-11am at the public courts in Maple Valley. You and Seo-yeon both love running too, so expect some friendly competitive energy on the court.",
+   "e113": "Seo-yeon, your pickleball match is set for Sunday 1 Nov, 9-11am at the public courts in Maple Valley, alongside Ava, Carol, and Nora. You and Carol are both into watching sports, so you'll have plenty to talk about between games.",
+   "e163": "Carol, you're all set for pickleball doubles with Ava, Seo-yeon, and Nora on Sunday 1 Nov, 9-11am at the public courts in Maple Valley. You and Seo-yeon share a love of watching sports, so that's an easy conversation starter off the court.",
+   "e193": "Nora, your pickleball group is confirmed for Sunday 1 Nov, 9-11am at the public courts in Maple Valley, with Ava, Seo-yeon, and Carol. You, Ava, and Carol all enjoy dining out, so grabbing a bite after the match could be a nice way to wrap things up."
+  },
+  "evidence": {
+   "proposed_seq": 762,
+   "plan_call_seq": 750,
+   "resolve_call_seq": 957,
+   "status_seq": 992,
+   "time_change_seqs": [],
+   "message_call_seq": 1002
+  }
+ },
+ {
+  "group": "2026-11-01/g2",
+  "day": "2026-11-01",
+  "id": "g2",
+  "activity": "gorge",
+  "activity_name": "Green River Gorge hike",
+  "where": "Green River Gorge Conservation Area",
+  "cost": "free",
+  "part": "morning",
+  "time_planned": "8:30am-11:30am",
+  "time_final": "8:30am-11:30am",
+  "fixed_event": false,
+  "why_hub_chose_it": "Hikers and photographers who like an early start share the gorge, and fishing fan e111 gets the riverbank.",
+  "proposed_members": [
+   "e046",
+   "e154",
+   "e104",
+   "e064",
+   "e111"
+  ],
+  "alternates": [
+   "e171",
+   "e187"
+  ],
+  "members": [
+   {
+    "id": "e046",
+    "name": "Dylan B.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Sunday morning works great for Dylan—he loves hiking and photography, and a free Green River Gorge hike close to home with a small group sounds perfect. Count him in!",
+      "ask_seq": 783,
+      "reply_seq": 810,
+      "call_seq": 784,
+      "group_time_at_ask": "8:30am-11:30am"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e154",
+    "name": "Keisha A.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Keisha loves hiking and this fits her free Sunday morning perfectly — a small, uncrowded group works great for her. She's a yes!",
+      "ask_seq": 788,
+      "reply_seq": 815,
+      "call_seq": 789,
+      "group_time_at_ask": "8:30am-11:30am"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e104",
+    "name": "Susan L.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "This works great for Susan—she loves hiking, it's free, and Sunday morning is open. Count her in!",
+      "ask_seq": 793,
+      "reply_seq": 800,
+      "call_seq": 794,
+      "group_time_at_ask": "8:30am-11:30am"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e064",
+    "name": "Noah M.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "no",
+      "counter": "",
+      "said": "Hiking isn't one of Noah's stated interests, so this doesn't give him a strong reason to join—thanks for thinking of him though.",
+      "ask_seq": 798,
+      "reply_seq": 805,
+      "call_seq": 799,
+      "group_time_at_ask": "8:30am-11:30am"
+     }
+    ],
+    "final_state": "no",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e111",
+    "name": "Claire B.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Claire's in for the Green River Gorge hike Sunday morning — scouting fishing spots along the river is right up her alley, and it's close to home and free.",
+      "ask_seq": 803,
+      "reply_seq": 835,
+      "call_seq": 804,
+      "group_time_at_ask": "8:30am-11:30am"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e171",
+    "name": "Ethan M.",
+    "answers": [
+     {
+      "round": 2,
+      "answer": "yes",
+      "counter": "",
+      "said": "Ethan would love to join the Green River Gorge hike Sunday morning 8:30-11:30am — hiking is one of his favorite activities and a small group works well for him.",
+      "ask_seq": 959,
+      "reply_seq": 976,
+      "call_seq": 960,
+      "group_time_at_ask": "8:30am-11:30am"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   }
+  ],
+  "final_members": [
+   "e046",
+   "e154",
+   "e104",
+   "e111",
+   "e171"
+  ],
+  "status": "locked",
+  "drop_reason": null,
+  "signals": {
+   "shared_likes_overlap": 0.134,
+   "age_spread": 45
+  },
+  "headline": "Five Black Diamond neighbors, one Green River Gorge hike — Sunday 1 Nov, 8:30-11:30am",
+  "final_messages": {
+   "e046": "Dylan, your Green River Gorge hike is set for Sunday 1 Nov, 8:30-11:30am at Green River Gorge Conservation Area, alongside Keisha, Susan, Claire, and Ethan. You and Ethan both love golf, so you'll have plenty to talk about between scenic stops on the trail.",
+   "e154": "Keisha, you're confirmed for the Green River Gorge hike this Sunday 1 Nov, 8:30-11:30am, meeting up with Dylan, Susan, Claire, and Ethan. You and Susan both really like yoga, so you'll likely be on the same wavelength about finding a calm pace on the trail.",
+   "e104": "Susan, your hike at Green River Gorge Conservation Area is confirmed for Sunday 1 Nov, 8:30-11:30am with Dylan, Keisha, Claire, and Ethan. You and Dylan both love photography, so expect a few shared stops to capture the gorge views.",
+   "e111": "Claire, you're joining the Green River Gorge hike on Sunday 1 Nov, 8:30-11:30am with Dylan, Keisha, Susan, and Ethan. You and Susan both love baseball, so that's a good one to chat about along the way.",
+   "e171": "Ethan, your Green River Gorge hike is locked in for Sunday 1 Nov, 8:30-11:30am with Dylan, Keisha, Susan, and Claire. You and Dylan both love golf, so you two should have plenty to swap stories about on the trail."
+  },
+  "evidence": {
+   "proposed_seq": 763,
+   "plan_call_seq": 750,
+   "resolve_call_seq": 957,
+   "status_seq": 993,
+   "time_change_seqs": [],
+   "message_call_seq": 1004
+  }
+ },
+ {
+  "group": "2026-11-01/g3",
+  "day": "2026-11-01",
+  "id": "g3",
+  "activity": "bakery",
+  "activity_name": "Coffee and pastries at the Black Diamond Bakery",
+  "where": "Black Diamond Bakery",
+  "cost": "low",
+  "part": "morning",
+  "time_planned": "9am-10:30am",
+  "time_final": "9am-10:30am",
+  "fixed_event": false,
+  "why_hub_chose_it": "Three parents with kids who love baking or coffee get a relaxed morning chat at the bakery.",
+  "proposed_members": [
+   "e013",
+   "e041",
+   "e086"
+  ],
+  "alternates": [
+   "e006",
+   "e067"
+  ],
+  "members": [
+   {
+    "id": "e013",
+    "name": "Mei T.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "This works great for Mei—Sunday morning is free, and bakery pastries with a small group hits her love of baking and dining without any crowd or late-night concerns.",
+      "ask_seq": 808,
+      "reply_seq": 830,
+      "call_seq": 809,
+      "group_time_at_ask": "9am-10:30am"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e041",
+    "name": "Imani O.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "This works great—Imani loves coffee, it's free Sunday morning, low-cost, and close to home. Count her in!",
+      "ask_seq": 813,
+      "reply_seq": 825,
+      "call_seq": 814,
+      "group_time_at_ask": "9am-10:30am"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e086",
+    "name": "Hannah C.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Sunday morning works great for Hannah, and chatting with a fellow baker over pastries sounds perfect—she's in!",
+      "ask_seq": 818,
+      "reply_seq": 820,
+      "call_seq": 819,
+      "group_time_at_ask": "9am-10:30am"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   }
+  ],
+  "final_members": [
+   "e013",
+   "e041",
+   "e086"
+  ],
+  "status": "locked",
+  "drop_reason": null,
+  "signals": {
+   "shared_likes_overlap": 0.072,
+   "age_spread": 11
+  },
+  "headline": "Sunday morning coffee and pastries at Black Diamond Bakery",
+  "final_messages": {
+   "e013": "Mei, your coffee and pastries meetup is set for Sunday 1 Nov, 9-10:30am at Black Diamond Bakery, with Imani and Hannah. You and Hannah both love baking, so there's plenty to swap notes on over pastries, and Imani's also a parent at home with kids like you.",
+   "e041": "Imani, you're confirmed for coffee and pastries at Black Diamond Bakery this Sunday 1 Nov, 9-10:30am, alongside Mei and Hannah. You and Hannah both really like hiking, which should make for easy conversation, and Mei's right there with you as a parent at home with kids too.",
+   "e086": "Hannah, your Sunday 1 Nov coffee and pastries date is locked in for 9-10:30am at Black Diamond Bakery, with Mei and Imani joining you. You and Mei share a love of baking, and you and Imani both really like hiking, so you've got two easy threads to pull on."
+  },
+  "evidence": {
+   "proposed_seq": 764,
+   "plan_call_seq": 750,
+   "resolve_call_seq": 957,
+   "status_seq": 994,
+   "time_change_seqs": [],
+   "message_call_seq": 1006
+  }
+ },
+ {
+  "group": "2026-11-01/g4",
+  "day": "2026-11-01",
+  "id": "g4",
+  "activity": "gorge",
+  "activity_name": "Green River Gorge hike",
+  "where": "Green River Gorge Conservation Area",
+  "cost": "free",
+  "part": "afternoon",
+  "time_planned": "1pm-4pm",
+  "time_final": "1pm-4pm",
+  "fixed_event": false,
+  "why_hub_chose_it": "Three retired anglers in their 70s get a riverside afternoon at the gorge.",
+  "proposed_members": [
+   "e190",
+   "e186",
+   "e069"
+  ],
+  "alternates": [
+   "e188",
+   "e038"
+  ],
+  "members": [
+   {
+    "id": "e190",
+    "name": "Tom O.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "no",
+      "counter": "",
+      "said": "Tom appreciates the invite, but hiking isn't something he's drawn to, and while fishing and photography are his things, this outing is really centered on the hike itself, so he'll pass.",
+      "ask_seq": 823,
+      "reply_seq": 850,
+      "call_seq": 824,
+      "group_time_at_ask": "1pm-4pm"
+     }
+    ],
+    "final_state": "no",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e186",
+    "name": "Liam M.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "no",
+      "counter": "",
+      "said": "Hiking isn't really Liam's thing—he's into fishing, crafts, and boating, so this doesn't quite fit even though the time works.",
+      "ask_seq": 828,
+      "reply_seq": 840,
+      "call_seq": 829,
+      "group_time_at_ask": "1pm-4pm"
+     }
+    ],
+    "final_state": "no",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e069",
+    "name": "Noah P.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Sunday 1-4pm works well for Noah — a free river outing with fellow anglers is right up his alley given his love of fishing.",
+      "ask_seq": 833,
+      "reply_seq": 855,
+      "call_seq": 834,
+      "group_time_at_ask": "1pm-4pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e188",
+    "name": "Katie B.",
+    "answers": [
+     {
+      "round": 2,
+      "answer": "no",
+      "counter": "",
+      "said": "Thanks, but hiking isn't among Katie's interests (loves baking, really likes book club, craft beer, coffee, fishing), so we'll pass on this one.",
+      "ask_seq": 961,
+      "reply_seq": 967,
+      "call_seq": 962,
+      "group_time_at_ask": "1pm-4pm"
+     }
+    ],
+    "final_state": "no",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e038",
+    "name": "Ron B.",
+    "answers": [
+     {
+      "round": 2,
+      "answer": "no",
+      "counter": "",
+      "said": "Thanks for the invite, but hiking isn't one of Ron's listed interests, so he'll pass on this one.",
+      "ask_seq": 963,
+      "reply_seq": 979,
+      "call_seq": 964,
+      "group_time_at_ask": "1pm-4pm"
+     }
+    ],
+    "final_state": "no",
+    "code_checks_at_final_time": []
+   }
+  ],
+  "final_members": [],
+  "status": "dropped",
+  "drop_reason": "only 1 yes",
+  "signals": {
+   "shared_likes_overlap": 0.0,
+   "age_spread": null
+  },
+  "headline": null,
+  "final_messages": null,
+  "evidence": {
+   "proposed_seq": 765,
+   "plan_call_seq": 750,
+   "resolve_call_seq": 957,
+   "status_seq": 995,
+   "time_change_seqs": [],
+   "message_call_seq": null
+  }
+ },
+ {
+  "group": "2026-11-01/g5",
+  "day": "2026-11-01",
+  "id": "g5",
+  "activity": "franklin",
+  "activity_name": "Franklin ghost town hike",
+  "where": "Franklin ghost town trail, Green River Gorge Rd",
+  "cost": "free",
+  "part": "afternoon",
+  "time_planned": "1pm-4pm",
+  "time_final": "1pm-4pm",
+  "fixed_event": false,
+  "why_hub_chose_it": "History, photography and hiking all fit the Franklin ghost town, giving a small mixed group plenty to talk about.",
+  "proposed_members": [
+   "e151",
+   "e191",
+   "e054",
+   "e169"
+  ],
+  "alternates": [
+   "e038",
+   "e132"
+  ],
+  "members": [
+   {
+    "id": "e151",
+    "name": "Sarah F.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "This sounds great for Sarah—she loves history, and a quiet, small-group outing to a historic ghost town fits perfectly with her free Sunday afternoon. Yes, let's do it.",
+      "ask_seq": 838,
+      "reply_seq": 845,
+      "call_seq": 839,
+      "group_time_at_ask": "1pm-4pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e191",
+    "name": "Matt L.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Matt's in for the Franklin ghost town hike Sunday 1-4pm — free, local, and great photo opportunities right up his alley.",
+      "ask_seq": 843,
+      "reply_seq": 860,
+      "call_seq": 844,
+      "group_time_at_ask": "1pm-4pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e054",
+    "name": "Ellie M.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "This works great — Ellie really likes hiking, it's free, and Sunday afternoon is open on her calendar. Count her in!",
+      "ask_seq": 848,
+      "reply_seq": 865,
+      "call_seq": 849,
+      "group_time_at_ask": "1pm-4pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e169",
+    "name": "Brooke O.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Sunday 1-4pm works great — Brooke loves hiking and this small-group, no-cost ghost town hike fits perfectly with no crowds or long drive.",
+      "ask_seq": 853,
+      "reply_seq": 870,
+      "call_seq": 854,
+      "group_time_at_ask": "1pm-4pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   }
+  ],
+  "final_members": [
+   "e151",
+   "e191",
+   "e054",
+   "e169"
+  ],
+  "status": "locked",
+  "drop_reason": null,
+  "signals": {
+   "shared_likes_overlap": 0.066,
+   "age_spread": 51
+  },
+  "headline": "Four Black Diamond neighbors are hiking into history at Franklin ghost town this Sunday.",
+  "final_messages": {
+   "e151": "Sarah, your Franklin ghost town hike is set for Sunday Nov 1, 1-4pm on the Green River Gorge Rd trail, alongside Matt, Ellie, and Brooke. With your love of history, you're in for a treat exploring the old townsite's remains while the group takes it at an easy, unhurried pace.",
+   "e191": "Matt, you're confirmed for the Franklin ghost town hike Sunday Nov 1, 1-4pm at the Green River Gorge Rd trailhead, meeting Sarah, Ellie, and Brooke. Ellie's also a runner like you, so expect good trail conversation about pace and routes along the way.",
+   "e054": "Ellie, your group hike to Franklin ghost town is confirmed for Sunday Nov 1, 1-4pm on Green River Gorge Rd, with Sarah, Matt, and Brooke joining in. You and Brooke both love hiking, so this historic trail should be right up both your alleys.",
+   "e169": "Brooke, you're set for the Franklin ghost town hike Sunday Nov 1, 1-4pm at the Green River Gorge Rd trail, with Sarah, Matt, and Ellie along for the walk. You and Ellie share a love of hiking, so you two should hit it off on the trail."
+  },
+  "evidence": {
+   "proposed_seq": 766,
+   "plan_call_seq": 750,
+   "resolve_call_seq": 957,
+   "status_seq": 996,
+   "time_change_seqs": [],
+   "message_call_seq": 1008
+  }
+ },
+ {
+  "group": "2026-11-01/g6",
+  "day": "2026-11-01",
+  "id": "g6",
+  "activity": "geyser-hike",
+  "activity_name": "Short hike and picnic at Flaming Geyser",
+  "where": "Flaming Geyser State Park",
+  "cost": "free",
+  "part": "afternoon",
+  "time_planned": "12:30pm-3:30pm",
+  "time_final": "12:30pm-3:30pm",
+  "fixed_event": false,
+  "why_hub_chose_it": "Picnic lovers and hikers share an easy, quiet afternoon at Flaming Geyser.",
+  "proposed_members": [
+   "e124",
+   "e025",
+   "e031",
+   "e099"
+  ],
+  "alternates": [
+   "e171",
+   "e132"
+  ],
+  "members": [
+   {
+    "id": "e124",
+    "name": "Wei T.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "This works well for Wei - a picnic with hiking and nice photo spots fits his interests perfectly, and it's free and calm with just a small group. Sunday afternoon is confirmed free on his end.",
+      "ask_seq": 858,
+      "reply_seq": 880,
+      "call_seq": 859,
+      "group_time_at_ask": "12:30pm-3:30pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e025",
+    "name": "Isabel R.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Sunday afternoon works well for Isabel - she really likes picnics, and a peaceful small gathering at Flaming Geyser sounds lovely. Let's confirm it.",
+      "ask_seq": 863,
+      "reply_seq": 875,
+      "call_seq": 864,
+      "group_time_at_ask": "12:30pm-3:30pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e031",
+    "name": "Imani B.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Sunday afternoon hike and picnic at Flaming Geyser works great for Imani — she really likes hiking, it's free, and it fits her free Sunday afternoon in a relaxed, uncompetitive setting.",
+      "ask_seq": 868,
+      "reply_seq": 890,
+      "call_seq": 869,
+      "group_time_at_ask": "12:30pm-3:30pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e099",
+    "name": "Rosa R.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "This works well — Rosa loves hiking and is free Sunday afternoon, so a relaxed hike and picnic with neighbors sounds great.",
+      "ask_seq": 873,
+      "reply_seq": 885,
+      "call_seq": 874,
+      "group_time_at_ask": "12:30pm-3:30pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   }
+  ],
+  "final_members": [
+   "e124",
+   "e025",
+   "e031",
+   "e099"
+  ],
+  "status": "locked",
+  "drop_reason": null,
+  "signals": {
+   "shared_likes_overlap": 0.103,
+   "age_spread": 38
+  },
+  "headline": "Four Black Diamond neighbors, one trail and a picnic at Flaming Geyser",
+  "final_messages": {
+   "e124": "Hi Wei, your small group is set for the short hike and picnic at Flaming Geyser State Park, Sunday Nov 1, 12:30-3:30pm. You'll be with Isabel, Imani, and Rosa, and since you and Isabel both love a good picnic, you'll have plenty to chat about once you find a spot to settle in.",
+   "e025": "Hi Isabel, you're confirmed for the Flaming Geyser hike and picnic on Sunday Nov 1, 12:30-3:30pm, alongside Wei, Imani, and Rosa. You and Wei both really like picnics, so you two will have fun picking out the best lunch spot along the trail.",
+   "e031": "Hi Imani, your group for the Flaming Geyser short hike and picnic is confirmed for Sunday Nov 1, 12:30-3:30pm, with Wei, Isabel, and Rosa. You and Rosa both love craft beer, and you and Wei and Rosa all share a love of hiking, so the trail conversation should flow easily.",
+   "e099": "Hi Rosa, you're set for the short hike and picnic at Flaming Geyser State Park on Sunday Nov 1, 12:30-3:30pm, joining Wei, Isabel, and Imani. You and Imani both love craft beer, and the two of you plus Wei all share a love of hiking, so you'll have good company on the trail."
+  },
+  "evidence": {
+   "proposed_seq": 767,
+   "plan_call_seq": 750,
+   "resolve_call_seq": 957,
+   "status_seq": 997,
+   "time_change_seqs": [],
+   "message_call_seq": 1010
+  }
+ },
+ {
+  "group": "2026-11-01/g7",
+  "day": "2026-11-01",
+  "id": "g7",
+  "activity": "crafts",
+  "activity_name": "Crafts and woodworking night",
+  "where": "a neighbor's garage workshop",
+  "cost": "free",
+  "part": "afternoon",
+  "time_planned": "1pm-4pm",
+  "time_final": "1pm-4pm",
+  "fixed_event": false,
+  "why_hub_chose_it": "Three crafters get to make things together in a neighbor's garage workshop.",
+  "proposed_members": [
+   "e004",
+   "e123",
+   "e115"
+  ],
+  "alternates": [],
+  "members": [
+   {
+    "id": "e004",
+    "name": "Kavya L.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Kavya would love this — crafts are a favorite, it's free, and Sunday afternoon works great with her schedule.",
+      "ask_seq": 878,
+      "reply_seq": 895,
+      "call_seq": 879,
+      "group_time_at_ask": "1pm-4pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e123",
+    "name": "Rachel P.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "This works well—Rachel really likes crafts, and Sunday 1-4pm is free for her. A quiet garage workshop setting is a great fit since she avoids loud places. Count her in!",
+      "ask_seq": 883,
+      "reply_seq": 900,
+      "call_seq": 884,
+      "group_time_at_ask": "1pm-4pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e115",
+    "name": "Linda R.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Linda's free Sunday afternoon and loves crafts, so this free neighborhood crafts workshop sounds great—she's in!",
+      "ask_seq": 888,
+      "reply_seq": 905,
+      "call_seq": 889,
+      "group_time_at_ask": "1pm-4pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   }
+  ],
+  "final_members": [
+   "e004",
+   "e123",
+   "e115"
+  ],
+  "status": "locked",
+  "drop_reason": null,
+  "signals": {
+   "shared_likes_overlap": 0.369,
+   "age_spread": 41
+  },
+  "headline": "Three crafters, one Sunday afternoon in a garage workshop",
+  "final_messages": {
+   "e004": "Kavya, you're set for crafts and woodworking night on Sunday, Nov 1st from 1-4pm at a neighbor's garage workshop. You'll be joined by Rachel and Linda, and all three of you count crafts among your favorite things, so this group was an easy match.",
+   "e123": "Rachel, your small group for crafts and woodworking night is confirmed for Sunday, Nov 1st, 1-4pm at a neighbor's garage workshop. You'll be with Kavya and Linda, and crafts is something all three of you really enjoy, so expect good conversation while you work.",
+   "e115": "Linda, you're in for crafts and woodworking night this Sunday, Nov 1st from 1-4pm at a neighbor's garage workshop. Kavya and Rachel will be there too, and since crafts is a shared favorite for all three of you, it's a solid fit for an afternoon of making things together."
+  },
+  "evidence": {
+   "proposed_seq": 768,
+   "plan_call_seq": 750,
+   "resolve_call_seq": 957,
+   "status_seq": 998,
+   "time_change_seqs": [],
+   "message_call_seq": 1012
+  }
+ },
+ {
+  "group": "2026-11-01/g8",
+  "day": "2026-11-01",
+  "id": "g8",
+  "activity": "ten-trails-walk",
+  "activity_name": "Evening walk on the Ten Trails paths",
+  "where": "Ten Trails trail network",
+  "cost": "free",
+  "part": "evening",
+  "time_planned": "5:30pm-7pm",
+  "time_final": "5:30pm-7pm",
+  "fixed_event": false,
+  "why_hub_chose_it": "Four commuter runners in their 40s and 50s get a relaxed group run on local trails.",
+  "proposed_members": [
+   "e042",
+   "e192",
+   "e093",
+   "e177"
+  ],
+  "alternates": [
+   "e109",
+   "e170"
+  ],
+  "members": [
+   {
+    "id": "e042",
+    "name": "Elena R.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Elena would love this — Sunday evening works for her and running is something she really enjoys, especially since it's uncompetitive and small.",
+      "ask_seq": 893,
+      "reply_seq": 910,
+      "call_seq": 894,
+      "group_time_at_ask": "5:30pm-7pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e192",
+    "name": "Tyler F.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Sunday evening works great for Tyler—he really likes running, and a free, quiet group run on the Ten Trails paths fits his schedule and budget perfectly.",
+      "ask_seq": 898,
+      "reply_seq": 915,
+      "call_seq": 899,
+      "group_time_at_ask": "5:30pm-7pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e093",
+    "name": "Matt W.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Sunday evening works great for Matt—he's free then and loves running, so this small group run fits perfectly.",
+      "ask_seq": 903,
+      "reply_seq": 920,
+      "call_seq": 904,
+      "group_time_at_ask": "5:30pm-7pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e177",
+    "name": "Dylan C.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "no",
+      "counter": "",
+      "said": "A walk doesn't match what Dylan is into—he's really into swimming, running, and bmx, but a leisurely walk isn't a strong draw for him, so we'll pass on this one.",
+      "ask_seq": 908,
+      "reply_seq": 930,
+      "call_seq": 909,
+      "group_time_at_ask": "5:30pm-7pm"
+     }
+    ],
+    "final_state": "no",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e109",
+    "name": "Seo-yeon R.",
+    "answers": [
+     {
+      "round": 2,
+      "answer": "no",
+      "counter": "",
+      "said": "Thanks for the invite, but walking isn't something Seo-yeon loves or is really into, so we'll pass this time.",
+      "ask_seq": 965,
+      "reply_seq": 973,
+      "call_seq": 966,
+      "group_time_at_ask": "5:30pm-7pm"
+     }
+    ],
+    "final_state": "no",
+    "code_checks_at_final_time": []
+   }
+  ],
+  "final_members": [
+   "e042",
+   "e192",
+   "e093"
+  ],
+  "status": "locked",
+  "drop_reason": null,
+  "signals": {
+   "shared_likes_overlap": 0.227,
+   "age_spread": 11
+  },
+  "headline": "Three Ten Trails runners meet for a Sunday evening walk",
+  "final_messages": {
+   "e042": "Hi Elena, your small group is set for the Ten Trails evening walk on Sunday, Nov 1, 5:30-7pm at the Ten Trails trail network. You'll be walking with Tyler and Matt, and with your love of running you three will have plenty to chat about on the trail, plus you and Tyler both share a passion for golf.",
+   "e192": "Hi Tyler, you're confirmed for the Ten Trails evening walk this Sunday, Nov 1, 5:30-7pm at the Ten Trails trail network. You're joining Elena and Matt, and since all three of you enjoy running, the pace of conversation should match the pace of the walk, plus you and Matt can swap notes on the farmers market.",
+   "e093": "Hi Matt, your group for the Ten Trails evening walk is confirmed for Sunday, Nov 1, 5:30-7pm at the Ten Trails trail network. You'll be walking alongside Elena and Tyler, all three of you runners, so expect an easy rapport, and you and Tyler can also talk farmers market finds."
+  },
+  "evidence": {
+   "proposed_seq": 769,
+   "plan_call_seq": 750,
+   "resolve_call_seq": 957,
+   "status_seq": 999,
+   "time_change_seqs": [],
+   "message_call_seq": 1014
+  }
+ },
+ {
+  "group": "2026-11-01/g9",
+  "day": "2026-11-01",
+  "id": "g9",
+  "activity": "sawyer-dogs",
+  "activity_name": "Dog walk around the park",
+  "where": "Lake Sawyer Regional Park",
+  "cost": "free",
+  "part": "evening",
+  "time_planned": "5:30pm-7pm",
+  "time_final": "5:30pm-7pm",
+  "fixed_event": false,
+  "why_hub_chose_it": "Three young dog lovers get to loop Lake Sawyer with their dogs.",
+  "proposed_members": [
+   "e045",
+   "e052",
+   "e082"
+  ],
+  "alternates": [],
+  "members": [
+   {
+    "id": "e045",
+    "name": "Nora P.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Sunday evening works great for Nora—she loves dog walks, so count her in for Lake Sawyer Regional Park at 5:30pm!",
+      "ask_seq": 913,
+      "reply_seq": 925,
+      "call_seq": 914,
+      "group_time_at_ask": "5:30pm-7pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e052",
+    "name": "Ron W.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Sunday evening works great for Ron—he really enjoys dog walks, and this is free and fits his schedule perfectly.",
+      "ask_seq": 918,
+      "reply_seq": 935,
+      "call_seq": 919,
+      "group_time_at_ask": "5:30pm-7pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e082",
+    "name": "Isabel G.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Sunday evening dog walk at Lake Sawyer works great for Isabel — she loves dog walks, it's free, and the small relaxed group fits her preference to avoid crowds.",
+      "ask_seq": 923,
+      "reply_seq": 945,
+      "call_seq": 924,
+      "group_time_at_ask": "5:30pm-7pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   }
+  ],
+  "final_members": [
+   "e045",
+   "e052",
+   "e082"
+  ],
+  "status": "locked",
+  "drop_reason": null,
+  "signals": {
+   "shared_likes_overlap": 0.275,
+   "age_spread": 10
+  },
+  "headline": "Your Lake Sawyer dog walk crew is set for Sunday!",
+  "final_messages": {
+   "e045": "Hi Nora, your dog walk group is confirmed for Lake Sawyer Regional Park this Sunday, Nov 1, 5:30-7pm. You'll be walking with Ron and Isabel — you and Ron both love dog walks (and could swap notes on mountain biking and cards too), so it should be an easy fit.",
+   "e052": "Hey Ron, you're set for the dog walk at Lake Sawyer Regional Park on Sunday, Nov 1, 5:30-7pm with Nora and Isabel. You and Nora are both into dog walks, mountain biking, and cards, and you and Isabel both love craft beer, so there's plenty to talk about on the trail.",
+   "e082": "Hi Isabel, your dog walk at Lake Sawyer Regional Park is confirmed for Sunday, Nov 1, 5:30-7pm, with Nora and Ron. All three of you love dog walks, and you and Ron share a love of craft beer, so expect good conversation along the lake."
+  },
+  "evidence": {
+   "proposed_seq": 770,
+   "plan_call_seq": 750,
+   "resolve_call_seq": 957,
+   "status_seq": 1000,
+   "time_change_seqs": [],
+   "message_call_seq": 1016
+  }
+ },
+ {
+  "group": "2026-11-01/g10",
+  "day": "2026-11-01",
+  "id": "g10",
+  "activity": "lumber-house",
+  "activity_name": "Pints at Lumber House",
+  "where": "Lumber House brewery",
+  "cost": "low",
+  "part": "evening",
+  "time_planned": "5pm-7pm",
+  "time_final": "5pm-7pm",
+  "fixed_event": false,
+  "why_hub_chose_it": "Four keen craft-beer fans get an early-evening round at a local brewery.",
+  "proposed_members": [
+   "e189",
+   "e173",
+   "e085",
+   "e117"
+  ],
+  "alternates": [
+   "e059",
+   "e165"
+  ],
+  "members": [
+   {
+    "id": "e189",
+    "name": "Karen W.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Karen's free Sunday evening and loves craft beer, so pints at Lumber House with a small, low-key group sounds great to her.",
+      "ask_seq": 928,
+      "reply_seq": 948,
+      "call_seq": 929,
+      "group_time_at_ask": "5pm-7pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e173",
+    "name": "Mateo T.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Mateo's free Sunday evening and loves craft beer, so pints at Lumber House sounds great—count him in.",
+      "ask_seq": 933,
+      "reply_seq": 940,
+      "call_seq": 934,
+      "group_time_at_ask": "5pm-7pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e085",
+    "name": "Cody B.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Sunday 5-7pm at Lumber House works great—Cody loves craft beer and a relaxed small group sounds perfect.",
+      "ask_seq": 938,
+      "reply_seq": 951,
+      "call_seq": 939,
+      "group_time_at_ask": "5pm-7pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   },
+   {
+    "id": "e117",
+    "name": "Ava B.",
+    "answers": [
+     {
+      "round": 1,
+      "answer": "yes",
+      "counter": "",
+      "said": "Sunday evening 5-7pm at Lumber House works great for Ava—she's free then and really likes craft beer, plus it's low-cost and wraps up early, avoiding late nights. Let's book it!",
+      "ask_seq": 943,
+      "reply_seq": 954,
+      "call_seq": 944,
+      "group_time_at_ask": "5pm-7pm"
+     }
+    ],
+    "final_state": "yes",
+    "code_checks_at_final_time": []
+   }
+  ],
+  "final_members": [
+   "e189",
+   "e173",
+   "e085",
+   "e117"
+  ],
+  "status": "locked",
+  "drop_reason": null,
+  "signals": {
+   "shared_likes_overlap": 0.161,
+   "age_spread": 30
+  },
+  "headline": "Four Black Diamond regulars, one table at Lumber House",
+  "final_messages": {
+   "e189": "Karen, your small group is set for pints at Lumber House this Sunday, Nov 1, 5-7pm. You'll be with Mateo, Cody, and Ava — Cody's another mountain biker like you, so you two will have plenty to swap stories about over a cold one.",
+   "e173": "Mateo, you're confirmed for Lumber House this Sunday, Nov 1, 5-7pm, alongside Karen, Cody, and Ava. Craft beer is the common thread for this whole group, so you're in good company for sampling the taps.",
+   "e085": "Cody, your group meets at Lumber House this Sunday, Nov 1, 5-7pm, with Karen, Mateo, and Ava. Karen's into mountain biking too, and Ava shares your love of book club, so you'll have two easy conversations ready to go.",
+   "e117": "Ava, you're set for pints at Lumber House this Sunday, Nov 1, 5-7pm with Karen, Mateo, and Cody. Cody's also a book club fan, and the whole crew loves craft beer, so it should be an easy, relaxed evening."
+  },
+  "evidence": {
+   "proposed_seq": 771,
+   "plan_call_seq": 750,
+   "resolve_call_seq": 957,
+   "status_seq": 1001,
+   "time_change_seqs": [],
+   "message_call_seq": 1018
+  }
+ }
+]

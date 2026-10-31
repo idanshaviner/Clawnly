@@ -425,6 +425,14 @@ def test_a_probe_replays_an_agent_call_with_the_old_and_the_current_prompt(tmp_p
     assert seen[2] == audit.matchmaker._agent_system(loaded["by_id"][call["person"]])
     assert "| " + str(call["seq"]) + " " + call["person"] + " | current code | {\"no\": 2} |" in audit.probe_table(result["rows"])
 
+    # a yes with no reason is shown as what the current code makes of it
+    rows = [{"seq": 5, "person": "e001", "prompt": "current code", "answer": "yes", "reason": "", "said": "ok"},
+            {"seq": 5, "person": "e001", "prompt": "current code", "answer": "yes", "reason": "loves hiking", "said": "in"},
+            {"seq": 5, "person": "e001", "prompt": "as run", "answer": "yes", "said": "in"}]
+    table = audit.probe_table(rows)
+    assert '| 5 e001 | current code | {"yes without a reason (counts as no)": 1, "yes": 1} |' in table
+    assert '| 5 e001 | as run | {"yes": 1} |' in table
+
 
 def test_rerunning_the_rule_checks_keeps_the_ai_audit_already_done(tmp_path):
     reset_db()
@@ -442,3 +450,24 @@ def test_rerunning_the_rule_checks_keeps_the_ai_audit_already_done(tmp_path):
     again = audit.audit(out)
     assert again["metrics"]["ai_audit_coverage"] == "2 of 2 groups, 1 of 1 days"
     assert "Independent AI audit" in open(os.path.join(out, "audit_report.md")).read()
+
+
+def test_a_paid_audit_or_probe_needs_room_under_the_total_cap(tmp_path, monkeypatch, capsys):
+    import orchestration_sim
+    path = str(tmp_path / "ledger.json")
+    orchestration_sim.ledger_settle(orchestration_sim.ledger_reserve("earlier", "run_x", 10.0, path), 10.0, path)
+    monkeypatch.setattr(audit.config, "resolve_api_key", lambda: "sk-test-not-real")
+    seen = []
+
+    def budget(ceiling, total_cap):
+        seen.append(total_cap)
+        return min(ceiling, total_cap - orchestration_sim.ledger_spent(path))
+
+    monkeypatch.setattr(orchestration_sim, "budget_for", budget)
+    assert audit.main(["orchestration_audit.py", str(tmp_path), "--ai"]) == 1
+    assert "$10.0 total cap is used up" in capsys.readouterr().out
+    assert audit.main(["orchestration_audit.py", "probe", str(tmp_path), "1,2", "3", "--total-cap", "10"]) == 1
+    assert "total cap is used up" in capsys.readouterr().out
+    # a higher total only comes from the command line
+    assert seen == [orchestration_sim.TOTAL_CAP, 10.0]
+    assert audit._total_cap(["x", "--sample", "4", "--total-cap", "18.41"]) == 18.41

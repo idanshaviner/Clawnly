@@ -1348,6 +1348,7 @@ async def probe(run, seqs, times, client, ceiling):
                 k += 1
                 answer = None
                 said = None
+                reason = ""
                 try:
                     message = await logged.messages.create(
                         model=call["request"]["model"], max_tokens=call["request"]["max_tokens"],
@@ -1357,10 +1358,11 @@ async def probe(run, seqs, times, client, ceiling):
                     if isinstance(raw, dict):
                         answer = raw.get("answer")
                         said = raw.get("say")
+                        reason = str(raw.get("reason") or "").strip()
                 except Exception as error:
                     said = "failed: " + orchestration_sim.scrub(str(error))[:200]
                 rows.append({"seq": call["seq"], "person": call["person"], "prompt": versions[v][0],
-                             "answer": answer, "said": said})
+                             "answer": answer, "reason": reason, "said": said})
             v += 1
     return {"rows": rows, "events": orchestration_sim._ordered(rec.events), "cost_usd": round(rec.spent, 6)}
 
@@ -1374,7 +1376,11 @@ def probe_table(rows):
         if key not in counts:
             counts[key] = {}
             order.append(key)
-        counts[key][str(rows[i]["answer"])] = counts[key].get(str(rows[i]["answer"]), 0) + 1
+        answer = str(rows[i]["answer"])
+        # the current code turns a yes without a reason into a no (matchmaker.refusal)
+        if answer == "yes" and rows[i]["prompt"] == "current code" and not rows[i].get("reason"):
+            answer = "yes without a reason (counts as no)"
+        counts[key][answer] = counts[key].get(answer, 0) + 1
         i += 1
     lines = ["| Call, person, prompt | Answers |", "|---|---|"]
     i = 0
@@ -1491,14 +1497,25 @@ def compare(before_dir, after_dir, day=None):
     return "\n".join(lines) + "\n"
 
 
+def _total_cap(argv):
+    # a higher total than orchestration_sim.TOTAL_CAP only from the command line, where Idan approved it
+    i = 0
+    while i + 1 < len(argv):
+        if argv[i] == "--total-cap":
+            return float(argv[i + 1])
+        i += 1
+    return orchestration_sim.TOTAL_CAP
+
+
 def main(argv):
+    total_cap = _total_cap(argv)
     if len(argv) >= 5 and argv[1] == "probe":
         # probe <run> <seq,seq> <times>: replay agent calls with the old and current prompt
         key = config.resolve_api_key()
         if not key:
             print("No Anthropic API key.")
             return 1
-        ceiling = orchestration_sim.budget_for(0.25)
+        ceiling = orchestration_sim.budget_for(0.25, total_cap)
         if ceiling <= 0:
             print("The total cap is used up.")
             return 1
@@ -1529,7 +1546,7 @@ def main(argv):
         print(compare(argv[2], argv[3], day))
         return 0
     if len(argv) < 2:
-        print("usage: orchestration_audit.py <run folder> [--ai] [--sample N] [--auditor MODEL] [--ceiling DOLLARS]")
+        print("usage: orchestration_audit.py <run folder> [--ai] [--sample N] [--auditor MODEL] [--ceiling DOLLARS] [--total-cap DOLLARS]")
         return 2
     use_ai = False
     size = None
@@ -1551,6 +1568,8 @@ def main(argv):
             i += 1
         elif argv[i] == "--no-days":
             days = False
+        elif argv[i] == "--total-cap":
+            i += 1
         i += 1
     client = None
     entry = None
@@ -1559,9 +1578,9 @@ def main(argv):
         if not key:
             print("No Anthropic API key: the AI audit needs one. Run without --ai for the rule checks only.")
             return 1
-        ceiling = orchestration_sim.budget_for(ceiling)
+        ceiling = orchestration_sim.budget_for(ceiling, total_cap)
         if ceiling <= 0:
-            print("The $" + str(orchestration_sim.TOTAL_CAP) + " total cap is used up. Run without --ai for the rule checks only.")
+            print("The $" + str(total_cap) + " total cap is used up. Run without --ai for the rule checks only.")
             return 1
         client = anthropic.AsyncAnthropic(api_key=key, base_url="https://api.anthropic.com", timeout=600.0, max_retries=0)
         entry = orchestration_sim.ledger_reserve("audit " + model, os.path.basename(os.path.normpath(argv[1])), ceiling)

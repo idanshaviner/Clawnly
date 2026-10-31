@@ -471,3 +471,23 @@ def test_a_paid_audit_or_probe_needs_room_under_the_total_cap(tmp_path, monkeypa
     # a higher total only comes from the command line
     assert seen == [orchestration_sim.TOTAL_CAP, 10.0]
     assert audit._total_cap(["x", "--sample", "4", "--total-cap", "18.41"]) == 18.41
+
+
+def test_re_asking_a_round_two_yes_in_round_three_is_flagged_too():
+    # a replacement who said yes in round 2 is settled just like a round-1 yes
+    def event(seq, kind, **fields):
+        base = {"seq": seq, "type": kind, "day": DAY, "group": "g1", "person": "e001"}
+        base.update(fields)
+        return base
+
+    events = [
+        event(1, "hub_to_agent", round=2, text="A spot opened: want in?"),
+        event(2, "model_call", purpose="matchmaker_agent", round=2, group_time_at_ask="9-11am"),
+        event(3, "agent_to_hub", round=2, answer="yes", text="in"),
+        event(4, "hub_to_agent", round=3, text="Confirmed!"),
+        event(5, "model_call", purpose="matchmaker_agent", round=3, group_time_at_ask="9-11am"),
+        event(6, "agent_to_hub", round=3, answer="yes", text="in"),
+    ]
+    found = audit._check_round_two(events, {"e001": {"name": "Ann B."}})
+    assert [f["check"] for f in found] == ["re-asked a yes about an unchanged plan"]
+    assert found[0]["evidence"] == [4]

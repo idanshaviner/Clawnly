@@ -222,8 +222,8 @@ def mechanical(run):
 
 
 def _check_round_two(events, by_id):
-    # round 2 is for questions: re-asking a yes about an unchanged plan wastes a call, and
-    # telling people who declined shares a private answer
+    # rounds 2 and 3 are for questions: re-asking a yes about an unchanged plan wastes a call,
+    # and telling people who declined shares a private answer
     out = []
     replies = _of(events, "agent_to_hub")
     calls = _of(events, "model_call")
@@ -234,10 +234,15 @@ def _check_round_two(events, by_id):
         ask = asks[i]
         i += 1
         key = ask["day"] + "/" + ask["group"]
-        if ask["round"] == 2:
-            first = _answer_in(replies, ask["day"], ask["group"], ask["person"], 1)
-            first_call = _agent_call(calls, ask["day"], ask["group"], ask["person"], 1)
-            second_call = _agent_call(calls, ask["day"], ask["group"], ask["person"], 2)
+        if ask["round"] >= 2:
+            # their latest answer before this round
+            before = ask["round"] - 1
+            first = _answer_in(replies, ask["day"], ask["group"], ask["person"], before)
+            while first is None and before > 1:
+                before -= 1
+                first = _answer_in(replies, ask["day"], ask["group"], ask["person"], before)
+            first_call = _agent_call(calls, ask["day"], ask["group"], ask["person"], before)
+            second_call = _agent_call(calls, ask["day"], ask["group"], ask["person"], ask["round"])
             same_time = first_call is not None and second_call is not None and \
                 first_call["group_time_at_ask"] == second_call["group_time_at_ask"]
             if first is not None and first["answer"] == "yes" and same_time:
@@ -268,10 +273,10 @@ def _check_round_two(events, by_id):
     while i < len(keys):
         entry = wasted[keys[i]]
         out.append(_finding("low", "quality issue", "re-asked a yes about an unchanged plan",
-                            "In round 2 the hub asked " + str(len(entry["people"])) + " people in " + keys[i] + " (" +
+                            "After round 1 the hub asked " + str(len(entry["people"])) + " people in " + keys[i] + " (" +
                             ", ".join(entry["people"]) + ") again although they had said yes and the time hadn't changed.",
                             "Each is another agent call that can only confirm or, worse, flip a settled yes.",
-                            "Round 2 asks only alternates, people who countered, and yeses whose time changed.",
+                            "Rounds 2 and 3 ask only replacements, people who countered, and yeses whose time changed.",
                             "Tell the resolve step that confirmations go out after the lock; have code skip re-asks of "
                             "an unchanged yes.",
                             entry["people"], [keys[i]], entry["refs"]))

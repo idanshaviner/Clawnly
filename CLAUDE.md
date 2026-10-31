@@ -68,7 +68,11 @@ name-blind pitches) are enforced in code, never trusted to the model.
   conflicts with the profile or gives no reason, members need a strong interest (mild = alternate
   only), rooms list people with fewer plans first (`run_day(plans=...)`; the sim carries counts
   day to day, `/run` doesn't yet), and the `retest` stage uses a busier, pickier town
-  (`population.generate(busier=, pickier=)`). The retest hasn't been run: it needs `--total-cap`.
+  (`population.generate(busier=, pickier=)`). The retest ran: `simulation_results/RETEST_RESULTS.md`.
+  Dropouts (2026-10-31): a group with a no shows the resolve step a free list (up to
+  `POOL_PER_GROUP` keen, unasked people from its break room, fewest plans first), and a
+  replacement's no gets one more resolve and a round 3 (`LAST_ROUND`). The page shows both
+  resolve notes, but the JS matchmaker in `run-clawnly.js` still has only alternates and round 2.
 - `lounge/clawnly-lounge.html` is a separate, shareable prototype of the same
   idea, published as a claude.ai Artifact. Read its `README.md` before
   republishing it: its saved state lives inside the published page.

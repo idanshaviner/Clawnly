@@ -14,10 +14,14 @@ Hub and spoke, never agent to agent. For one day in the neighborhood:
      dislikes, what they avoid, budget, the week's calendar) plus what code found
      in it (plan_checks), and answers yes / no / counter. Code takes a yes only
      with a reason from the profile and nothing in it that rules the plan out.
-  4. resolve (Opus): accept counters by moving the time, call alternates. Code
-     only lets it ask the group's own members or alternates, never someone who
-     already said yes elsewhere, and never one person for two groups.
-  5. round 2 (Sonnet): only the people the matchmaker re-asks.
+  4. resolve (Opus): accept counters by moving the time, replace a no. For each
+     group with a no, code also lists up to POOL_PER_GROUP free people from its
+     break room (strong interest, not asked today, nothing in the profile against
+     it, fewest plans first), and the matchmaker picks who fits. Code only lets
+     it ask the group's own members, alternates or that free list, never someone
+     who already said yes elsewhere, and never one person for two groups.
+  5. round 2 (Sonnet): only the people the matchmaker re-asks. If one of them
+     says no, steps 4 and 5 run once more (round 3), while there's anyone left.
   6. lock (code): a group goes ahead once at least 2 people said yes.
   7. the message (Sonnet): the one message each person receives.
 
@@ -51,6 +55,11 @@ PROFILES_PER_ROOM = 8
 # a member needs a strong interest (really likes or loves one of the activity's tags); someone
 # only up for it is an alternate: in 200 live groups, agents said yes to a mild interest 4 times in 6
 STRONG = 2
+# a group with a no also sees this many free, keen people from its break room besides its
+# alternates: in the retest, 5 of 6 no's went unfilled, each after both alternates said no too
+POOL_PER_GROUP = 4
+# round 1 asks the plan; rounds 2 and 3 replace whoever said no
+LAST_ROUND = 3
 
 
 def _now():
@@ -412,8 +421,9 @@ def _agent_payload(person, group, day, message):
 def _resolve_system(day):
     return "\n".join([
         "You are the Clawnly matchmaker for " + catalog.NEIGHBORHOOD + ", " + day_label(day) + ". Task: finish the day's plan after each person's agent answered you privately.",
-        "For each group: keep it if at least 2 people can do it. Accept a counter by moving the time if that still works for the ones who said yes (then re-ask them with the new time). Replace people who said no with alternates (ask them). Drop a group that can't reach 2.",
-        "Never add anyone who is already in another group. Only ask the group's own members or its alternates.",
+        "For each group: keep it if at least 2 people can do it. Accept a counter by moving the time if that still works for the ones who said yes (then re-ask them with the new time). Replace people who said no (ask them): an alternate, or someone from the group's free list. Drop a group that can't reach 2.",
+        "The free list is people from the group's break room who are free, have a strong interest and haven't been asked today, fewest plans this week first. Pick whoever fits the people who said yes best (shared likes, similar stage of life); when two fit, pick the one with fewer plans.",
+        "Never add anyone who is already in another group. Only ask the group's own members, its alternates or its free list.",
         "Only ask people whose answer you still need: an alternate replacing a no, someone whose counter you're answering, or someone who said yes to a time you've now changed. Don't send confirmations: everyone gets one after the lock. Never tell anyone who declined.",
         "",
         "Reply with only this JSON object:",
@@ -421,7 +431,9 @@ def _resolve_system(day):
     ])
 
 
-def _resolve_payload(groups, people):
+def _resolve_payload(groups, people, plans=None):
+    if plans is None:
+        plans = {}
     lines = ["GROUPS:"]
     i = 0
     while i < len(groups):
@@ -449,8 +461,104 @@ def _resolve_payload(groups, people):
             k += 1
         if len(alts) > 0:
             lines.append("  alternates: " + ", ".join(alts))
+        pool = g.get("pool", [])
+        if len(pool) > 0:
+            lines.append("  free list:")
+            k = 0
+            while k < len(pool):
+                lines.append("  " + _person_line(people[pool[k]], plans.get(pool[k], 0)))
+                k += 1
         i += 1
     return "\n".join(lines)
+
+
+def _fill_pools(groups, rooms, people, day):
+    # each group with a no or a counter gets its free list: keen people in its break room
+    # who haven't been asked today and whose profile has nothing against it, fewest plans first
+    asked = {}
+    g = 0
+    while g < len(groups):
+        m = 0
+        while m < len(groups[g]["members"]):
+            asked[groups[g]["members"][m]["id"]] = True
+            m += 1
+        g += 1
+    g = 0
+    while g < len(groups):
+        group = groups[g]
+        g += 1
+        group["pool"] = []
+        if group["status"] == "dropped" or not _has_open_answer(group):
+            continue
+        room = _room_for(rooms, group["activity"], group["part"])
+        if room is None:
+            continue
+        activity = catalog.get(group["activity"])
+        c = 0
+        while c < len(room["candidates"]) and len(group["pool"]) < POOL_PER_GROUP:
+            pid = room["candidates"][c]["id"]
+            c += 1
+            if pid in asked or pid in group["alternates"]:
+                continue
+            if keenness(people[pid], activity) < STRONG:
+                continue
+            if len(conflicts(people[pid], activity, group["part"], group["time"], day)) > 0:
+                continue
+            group["pool"].append(pid)
+
+
+def _log_pools(run, groups, people):
+    g = 0
+    while g < len(groups):
+        group = groups[g]
+        g += 1
+        if len(group["pool"]) == 0:
+            continue
+        names = []
+        k = 0
+        while k < len(group["pool"]):
+            names.append(people[group["pool"][k]]["name"])
+            k += 1
+        run.log("code", "check", "Free list for " + group["id"] + " (" + catalog.get(group["activity"])["name"] +
+                "), free, keen, not asked today, fewest plans first: " + ", ".join(names), group["id"])
+
+
+def _has_open_answer(group):
+    i = 0
+    while i < len(group["members"]):
+        if group["members"][i]["state"] in ("no", "counter"):
+            return True
+        i += 1
+    return False
+
+
+def _needs_another_round(groups, round_no):
+    # someone asked in round_no said no or countered, and the group still has someone to ask
+    g = 0
+    while g < len(groups):
+        group = groups[g]
+        g += 1
+        if group["status"] == "dropped":
+            continue
+        open_now = False
+        t = 0
+        while t < len(group["thread"]):
+            entry = group["thread"][t]
+            t += 1
+            if entry["from"] == "agent" and entry["round"] == round_no:
+                member = _member(group, entry["by"])
+                if member is not None and member["state"] in ("no", "counter"):
+                    open_now = True
+        if not open_now:
+            continue
+        if len(group["pool"]) > 0:
+            return True
+        a = 0
+        while a < len(group["alternates"]):
+            if _member(group, group["alternates"][a]) is None:
+                return True
+            a += 1
+    return False
 
 
 def _message_system():
@@ -832,19 +940,29 @@ async def run_day(day, max_groups=10, people_list=None, client=None, on_progress
             g += 1
         await _ask_all(run, people, jobs)
 
-        # 4. resolve counters and declines
-        res = await run.ask("orchestrator resolve", config.MODEL_PREMIUM, _resolve_system(day),
-                            _resolve_payload(groups, people), 16000, config.HUB_EFFORT)
-        thoughts = ""
-        if isinstance(res, dict):
-            thoughts = str(res.get("thoughts") or "")
-        data["resolve"] = {"thoughts": thoughts}
-        run.log("hub", "thought", "Matchmaker after round 1: " + thoughts)
-        jobs = _resolve_jobs(run, res, groups, people)
-        run.progress()
-        # 5. round 2
-        if len(jobs) > 0:
+        # 4-5. resolve counters and declines, then ask; again if a replacement said no
+        data["resolve"] = {"thoughts": "", "rounds": []}
+        round_no = 2
+        while round_no <= LAST_ROUND:
+            _fill_pools(groups, rooms, people, day)
+            if round_no > 2 and not _needs_another_round(groups, round_no - 1):
+                break
+            _log_pools(run, groups, people)
+            res = await run.ask("orchestrator resolve", config.MODEL_PREMIUM, _resolve_system(day),
+                                _resolve_payload(groups, people, plans), 16000, config.HUB_EFFORT)
+            thoughts = ""
+            if isinstance(res, dict):
+                thoughts = str(res.get("thoughts") or "")
+            if round_no == 2:
+                data["resolve"]["thoughts"] = thoughts
+            data["resolve"]["rounds"].append({"round": round_no, "thoughts": thoughts})
+            run.log("hub", "thought", "Matchmaker after round " + str(round_no - 1) + ": " + thoughts)
+            jobs = _resolve_jobs(run, res, groups, people, round_no)
+            run.progress()
+            if len(jobs) == 0:
+                break
             await _ask_all(run, people, jobs)
+            round_no += 1
 
         # 6. lock, in code only
         g = 0
@@ -904,8 +1022,8 @@ def _room_strength(room):
     return total
 
 
-def _resolve_jobs(run, res, groups, people):
-    # the matchmaker's round-2 asks, kept only where they follow the rules
+def _resolve_jobs(run, res, groups, people, round_no=2):
+    # the matchmaker's asks for round_no, kept only where they follow the rules
     placed = {}
     g = 0
     while g < len(groups):
@@ -964,8 +1082,9 @@ def _resolve_jobs(run, res, groups, people):
             who = pid
             if pid in people:
                 who = people[pid]["name"]
-            if _member(group, pid) is None and pid not in group["alternates"]:
-                run.log("code", "check", "Rejected: the matchmaker tried to ask " + who + ", who isn't in " + group["id"] + " or its alternates.")
+            if _member(group, pid) is None and pid not in group["alternates"] and pid not in group.get("pool", []):
+                run.log("code", "check", "Rejected: the matchmaker tried to ask " + who + ", who isn't in " + group["id"] +
+                        ", its alternates or its free list.")
                 continue
             if pid in placed and placed[pid] != group["id"]:
                 run.log("code", "check", "Rejected: " + who + " already said yes to " + placed[pid] + ".")
@@ -981,7 +1100,7 @@ def _resolve_jobs(run, res, groups, people):
                 run.log("code", "check", "Rejected: " + who + " is already being asked for " + claimed[pid] + ".")
                 continue
             claimed[pid] = group["id"]
-            jobs.append((group, pid, str(ask.get("message") or ""), 2))
+            jobs.append((group, pid, str(ask.get("message") or ""), round_no))
         # a yes to the old time isn't a yes to the new one: anyone the hub didn't re-ask, code does
         if moved:
             m = 0
@@ -993,7 +1112,7 @@ def _resolve_jobs(run, res, groups, people):
                     run.log("code", "check", "Asking " + people[member["id"]]["name"] + " again: they said yes to " +
                             group["id"] + " before it moved to " + group["time"] + ".", group["id"])
                     jobs.append((group, member["id"], name + " has moved to " + group["time"] + ", " +
-                                 day_label(run.day) + ". Does the new time still work?", 2))
+                                 day_label(run.day) + ". Does the new time still work?", round_no))
     return jobs
 
 

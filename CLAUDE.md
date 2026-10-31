@@ -50,6 +50,8 @@ name-blind pitches) are enforced in code, never trusted to the model.
   `matchmaker.py` (the hub plans, negotiates with each agent one to one, code
   locks groups) -> `run_clawnly.py` serves it at `/run` (anyone watches, admins
   run it, saved in `db.matchmaker_runs`). Agents never talk to each other.
+  A seat (member or alternate) needs a strong interest in the activity's first tag, its main
+  thing (`matchmaker.main_keenness`, `mainKeenness` in the JS), so tag order in `catalog.py` matters.
 - **Evaluating matches** (2026-10-27): `match_eval.py` runs the code-only matcher
   (`demand.propose_groups`) on the seed-7 town for two weeks, re-checks every rule, and
   writes `evaluation/results/` (no API calls). Read `evaluation/MATCH_QUALITY_REPORT.md`
@@ -70,7 +72,7 @@ name-blind pitches) are enforced in code, never trusted to the model.
   day to day; `/run` and the browser plan one day at a time), and the `retest` stage uses a busier, pickier town
   (`population.generate(busier=, pickier=)`). The retest ran: `simulation_results/RETEST_RESULTS.md`.
   Dropouts (2026-10-31): a group with a no shows the resolve step a free list (up to
-  `POOL_PER_GROUP` keen, unasked people from its break room, fewest plans first), and a
+  `POOL_PER_GROUP` unasked people from its break room keen on the main activity, fewest plans first), and a
   replacement's no gets one more resolve and a round 3 (`LAST_ROUND`). The browser copy in
   `run-clawnly.js` does the same, keenest first (it has no plan counts). Rebuild
   `matchmaker/run-clawnly.html` with `run_clawnly.write_artifact` after changing the page sources.

@@ -14,6 +14,7 @@ import pytest
 
 import catalog
 import demand
+import matchmaker
 import orchestration_sim as sim
 from conftest import FakeClient, reset_db, run
 
@@ -31,8 +32,10 @@ def plan_from_rooms(people, day=DAY, groups=2, size=3):
     rooms = demand.break_room(people, catalog.ACTIVITIES, datetime.date.fromisoformat(day))
     used = set()
     out = []
+    index = {p["id"]: p for p in people}
     for room in rooms:
-        ids = [c["id"] for c in room["candidates"] if c["id"] not in used]
+        # people who can take a seat: a strong interest in what the activity is mainly about
+        ids = [c["id"] for c in matchmaker.split_room(room, index)[0] if c["id"] not in used]
         if len(ids) < size + 1:
             continue
         used.update(ids[:size + 1])

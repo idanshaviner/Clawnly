@@ -7,8 +7,9 @@ Hub and spoke, never agent to agent. For one day in the neighborhood:
   2. plan (Opus): the matchmaker picks groups from the break rooms, with
      alternates and a personal proposal to each person's agent. Rooms list the
      people with fewer plans this week first. Code keeps only people who are in
-     that break room and never books anyone twice; a member needs a strong
-     interest, so someone only up for it becomes an alternate.
+     that break room and never books anyone twice; a seat (member or alternate)
+     needs a strong interest in what the activity is mainly about, its first tag,
+     so someone there only for a side interest or a mild one gets no seat.
   3. round 1 (Sonnet, one call per agent): the matchmaker asks each agent one
      to one; the agent checks the plan against its person's full profile (likes,
      dislikes, what they avoid, budget, the week's calendar) plus what code found
@@ -48,8 +49,9 @@ AGENT_CONCURRENCY = 4
 # the keenest people in a break room, listed with keenness and a profile line (once each,
 # in PEOPLE); the rest of the room by id only. Keeps what Opus reads, and pays for, small.
 PROFILES_PER_ROOM = 8
-# a member needs a strong interest (really likes or loves one of the activity's tags); someone
-# only up for it is an alternate: in 200 live groups, agents said yes to a mild interest 4 times in 6
+# a seat needs a strong interest (really likes or loves) in what the activity is mainly about, its
+# first tag. In 200 live groups agents said yes to a mild interest 4 times in 6, and in the Sunday
+# 1 Nov browser run the Green River Gorge hike went to three people who were there for the fishing
 STRONG = 2
 
 
@@ -124,12 +126,12 @@ def _plan_system(day, max_groups):
         "You are the Clawnly matchmaker: the orchestrator for " + catalog.NEIGHBORHOOD + ". Task: plan the day's activity groups for " + day_label(day) + ".",
         "Each neighbor has told their own agent what they like, what they don't, and when they're free. You talk to each person's agent one to one. Agents never talk to each other. The goal is not friendship matching: it is a good small group doing something real together, so neighbors get to know each other.",
         "",
-        "The break rooms were built by code: one per activity and time of day that can run that day, holding every neighbor who is free then, interested, can afford it and doesn't avoid anything about it. Each room lists the people with a strong interest, fewest plans this week first, as id:keenness [which of the activity's tags they like] (higher is better), then the rest of them by id, then the people only mildly interested. PEOPLE has one line per listed person, once each, with what they avoid and any plans they already have this week.",
+        "The break rooms were built by code: one per activity and time of day that can run that day, holding every neighbor who is free then, interested, can afford it and doesn't avoid anything about it. Each room lists only the people who can take a seat: they really like or love what the activity is mainly about (marked main), fewest plans this week first, as id:keenness [which of the activity's tags they like] (higher is better), then the rest of them by id. PEOPLE has one line per listed person, once each, with what they avoid and any plans they already have this week.",
         "",
         "Plan up to " + str(max_groups) + " groups:",
         "- Size each group to fit the activity and the people. You decide: two neighbors having a beer over the game is a group, and so is a bigger hike. Small groups are often where people actually meet each other.",
         "- Each person in at most one group. Use only people in that break room.",
-        "- Members need a strong interest. People listed as mild can be alternates, never members.",
+        "- Members and alternates come only from the people listed. Someone in the room only for a side interest (the beer at a trivia night, the fishing on a hike) or a mild one gets no seat.",
         "- Prefer groups whose members share more than the activity (overlapping likes, similar stage of life), so they'd enjoy each other.",
         "- Favor people with fewer plans this week: when two people fit, the place goes to the one with fewer. Spread plans across many people rather than stacking the keenest into one group.",
         "- Pick a specific time inside the day part (morning " + PART_HOURS["morning"] + ", afternoon " + PART_HOURS["afternoon"] + ", evening " + PART_HOURS["evening"] + "). A room marked FIXED is a real event (a game, a concert): use exactly that time.",
@@ -143,19 +145,20 @@ def _plan_system(day, max_groups):
 
 
 def split_room(room, people):
-    # (strong, mild): the room's candidates who can be members, and the ones who can only be alternates
+    # (seats, rest): the room's candidates who can be members or alternates, and the ones who are
+    # there only for a side interest or a mild one
     activity = catalog.get(room["activity"])
-    strong = []
-    mild = []
+    seats = []
+    rest = []
     i = 0
     while i < len(room["candidates"]):
         c = room["candidates"][i]
-        if keenness(people[c["id"]], activity) >= STRONG:
-            strong.append(c)
+        if main_keenness(people[c["id"]], activity) >= STRONG:
+            seats.append(c)
         else:
-            mild.append(c)
+            rest.append(c)
         i += 1
-    return strong, mild
+    return seats, rest
 
 
 def _fewest_plans_first(rooms, plans):
@@ -176,13 +179,13 @@ def _plan_payload(rooms, people, plans=None):
     while i < len(rooms):
         room = rooms[i]
         i += 1
-        strong, mild = split_room(room, people)
+        strong, others = split_room(room, people)
         # no group can form without two members who really want it
         if len(strong) < 2:
             continue
         a = catalog.get(room["activity"])
-        tags = []
-        t = 0
+        tags = [_words(a["tags"][0]) + " (main)"]
+        t = 1
         while t < len(a["tags"]):
             tags.append(_words(a["tags"][t]))
             t += 1
@@ -208,13 +211,6 @@ def _plan_payload(rooms, people, plans=None):
         lines.append("  keenest: " + "; ".join(top))
         if len(rest) > 0:
             lines.append("  also: " + " ".join(rest))
-        if len(mild) > 0:
-            ids = []
-            j = 0
-            while j < len(mild):
-                ids.append(mild[j]["id"])
-                j += 1
-            lines.append("  mild, alternates only: " + " ".join(ids))
     lines.append("")
     lines.append("PEOPLE:")
     k = 0
@@ -332,6 +328,28 @@ def keenness(person, activity):
             keen = person["likes"][i]["weight"]
         i += 1
     return keen
+
+
+def main_keenness(person, activity):
+    # how much they like what the activity is mainly about, its first tag: only this earns a seat
+    keen = 0
+    i = 0
+    while i < len(person["likes"]):
+        if person["likes"][i]["tag"] == activity["tags"][0]:
+            keen = person["likes"][i]["weight"]
+        i += 1
+    return keen
+
+
+def no_seat(person, activity):
+    # why someone in the break room can't be a member or an alternate, or "" when they can
+    main = _words(activity["tags"][0])
+    keen = main_keenness(person, activity)
+    if keen >= STRONG:
+        return ""
+    if keen == 1:
+        return person["name"] + " is only up for " + main
+    return person["name"] + " is in the room for the " + _liked_here(person, activity) + ", not the " + main
 
 
 def conflicts(person, activity, part, time_text, day):
@@ -598,7 +616,6 @@ def check_plan(raw, rooms, max_groups, people):
             continue
         activity = catalog.get(room["activity"])
         members = []
-        mild = []
         ids = r.get("members")
         if not isinstance(ids, list):
             ids = []
@@ -615,26 +632,30 @@ def check_plan(raw, rooms, max_groups, people):
             if pid in taken or pid in members:
                 rejected.append(people[pid]["name"] + " was already in another group")
                 continue
-            if keenness(people[pid], activity) < STRONG:
-                mild.append(pid)
-                rejected.append(people[pid]["name"] + " is only up for " + activity["name"] + ": an alternate, not a member")
+            why = no_seat(people[pid], activity)
+            if why:
+                rejected.append(why + ": no seat in " + activity["name"])
                 continue
             members.append(pid)
         if len(members) < 2:
             rejected.append(activity["name"] + ": fewer than 2 valid people")
             continue
         alternates = []
-        # the plan's own alternates first, then anyone it named as a member who is only mildly interested
         alts = r.get("alternates")
         if not isinstance(alts, list):
             alts = []
-        alts = alts + mild
         k = 0
         while k < len(alts) and len(alternates) < 2:
             aid = str(alts[k])
             k += 1
-            if _in_room(room, aid) and aid not in taken and aid not in members and aid not in alternates:
-                alternates.append(aid)
+            if not _in_room(room, aid) or aid in taken or aid in members or aid in alternates:
+                continue
+            # an alternate who steps in takes a seat, so the same bar applies
+            why = no_seat(people[aid], activity)
+            if why:
+                rejected.append(why + ": not an alternate for " + activity["name"])
+                continue
+            alternates.append(aid)
         proposals = r.get("proposals")
         if not isinstance(proposals, dict):
             proposals = {}
@@ -768,14 +789,14 @@ async def run_day(day, max_groups=10, people_list=None, client=None, on_progress
             while j < len(rooms[i]["candidates"]):
                 in_any[rooms[i]["candidates"][j]["id"]] = True
                 j += 1
-            strong, mild = split_room(rooms[i], people)
+            strong, others = split_room(rooms[i], people)
             if len(strong) >= 2:
                 usable += 1
             i += 1
         data["breakRoom"] = {"slots": len(rooms), "people": len(in_any), "usable": usable}
         run.log("code", "check", "Built " + str(len(rooms)) + " break rooms for " + day_label(day) + " (one per activity and time of day); " +
                 str(len(in_any)) + " of " + str(len(people_list)) + " neighbors are in at least one. " + str(usable) +
-                " have at least 2 people with a strong interest; only those can form a group.")
+                " have at least 2 people with a strong interest in the main activity; only those can form a group.")
         already = 0
         ids = list(plans.keys())
         i = 0

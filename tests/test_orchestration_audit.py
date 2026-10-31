@@ -9,6 +9,7 @@ import re
 
 import catalog
 import demand
+import matchmaker
 import orchestration_audit as audit
 import orchestration_sim as sim
 from conftest import FakeClient, reset_db, run
@@ -25,8 +26,10 @@ def rooms(people):
 def plan(people, groups=2, size=3, time_for=None):
     out = []
     used = set()
+    index = {p["id"]: p for p in people}
     for room in rooms(people):
-        ids = [c["id"] for c in room["candidates"] if c["id"] not in used]
+        # people who can take a seat: a strong interest in what the activity is mainly about
+        ids = [c["id"] for c in matchmaker.split_room(room, index)[0] if c["id"] not in used]
         if len(ids) < size + 1:
             continue
         used.update(ids[:size + 1])

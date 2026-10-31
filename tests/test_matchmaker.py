@@ -671,3 +671,15 @@ def test_a_day_says_who_already_has_a_plan_and_shows_it_to_the_matchmaker():
     assert len(line) == 1 and line[0].endswith("; plans this week: 1")
     assert plan_payload.count("plans this week:") == 1
     assert data["breakRoom"]["usable"] <= data["breakRoom"]["slots"]
+
+
+def test_a_time_past_midnight_is_late_and_outside_the_evening():
+    assert matchmaker.parse_hours("11pm-12am") == (23.0, 24.0)
+    assert matchmaker.parse_hours("10pm-1am") == (22.0, 25.0)
+    assert not matchmaker.inside_part("11pm-12am", "evening")
+    assert matchmaker.inside_part("7pm-9:30pm", "evening")
+    person = dict(town()[0], avoid=["late_nights"])
+    day = datetime.date.fromisoformat(sorted(person["calendar"])[0])
+    person["calendar"] = {day.isoformat(): ["evening"]}
+    found = matchmaker.conflicts(person, catalog.get("book-club"), "evening", "10pm-12am", day)
+    assert any("9pm or later" in c for c in found)

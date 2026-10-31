@@ -220,7 +220,8 @@ def test_round_two_only_asks_members_or_alternates_and_never_a_yes_elsewhere():
     g2["proposals"][both] = "join?"
     g1["alternates"].append(both)
     names = {p["id"]: p["name"] for p in people}
-    outsider = [p["id"] for p in people if p["id"] not in g1["members"] + g1["alternates"] + g2["members"] + g2["alternates"]][0]
+    # not in g1's break room, so not on its free list either
+    outsider = [p["id"] for p in people if p["id"] not in in1 and p["id"] not in g1["members"] + g1["alternates"] + g2["members"] + g2["alternates"]][0]
     no_one = g1["members"][0]
 
     def agent(system, content):
@@ -246,7 +247,7 @@ def test_round_two_only_asks_members_or_alternates_and_never_a_yes_elsewhere():
     assert outsider not in group["final"]
     assert g2["members"][0] not in group["final"]
     checks = [e["text"] for e in data["log"] if e["kind"] == "check"]
-    assert any("isn't in g1 or its alternates" in c for c in checks)
+    assert any("isn't in g1, its alternates or its free list" in c for c in checks)
     assert any("already said yes to g2" in c for c in checks)
     # 6 round-one asks + the one valid round-two ask + the 2 yeses code re-asks because the time moved
     assert client.kinds().count("mm_agent") == 9
@@ -671,3 +672,145 @@ def test_a_day_says_who_already_has_a_plan_and_shows_it_to_the_matchmaker():
     assert len(line) == 1 and line[0].endswith("; plans this week: 1")
     assert plan_payload.count("plans this week:") == 1
     assert data["breakRoom"]["usable"] <= data["breakRoom"]["slots"]
+
+
+# ----- dropouts: the matchmaker fishes for the next person from the break room ---------
+
+def no_from(people, ids):
+    # an agent that says no for these people and yes, with a reason, for everyone else
+    names = [p["name"] for p in people if p["id"] in ids]
+
+    def agent(system, content):
+        if any(("personal agent of " + name + ".") in system for name in names):
+            return json.dumps({"answer": "no", "say": "not for me"})
+        return json.dumps({"answer": "yes", "reason": "loves it", "say": "in"})
+    return agent
+
+
+def first_on_free_list(content):
+    # the first person on the first free list the matchmaker was shown
+    return content.split("  free list:\n")[1].splitlines()[0].split()[0]
+
+
+def test_a_no_shows_the_matchmaker_free_keen_people_from_the_break_room():
+    reset_db()
+    people = town()
+    index = {p["id"]: p for p in people}
+    rooms = rooms_for(people)
+    plan = two_group_plan(rooms)
+    g1 = plan["groups"][0]
+    client = fake(plan, agent=no_from(people, [g1["members"][0]]))
+    data = run(matchmaker.run_day(DAY, 5, people, client))
+    group = data["groups"][0]
+    room = [r for r in rooms if r["activity"] == g1["activity"] and r["part"] == g1["part"]][0]
+    activity = catalog.get(g1["activity"])
+    asked = [m["id"] for g in data["groups"] for m in g["members"]]
+    assert 0 < len(group["pool"]) <= matchmaker.POOL_PER_GROUP
+    for pid in group["pool"]:
+        assert pid in [c["id"] for c in room["candidates"]]
+        assert matchmaker.keenness(index[pid], activity) >= matchmaker.STRONG
+        assert pid not in asked and pid not in group["alternates"]
+        assert matchmaker.conflicts(index[pid], activity, group["part"], group["time"], DAY) == []
+    # only a group with a no gets one
+    assert data["groups"][1]["pool"] == []
+    payload = [kwargs["messages"][0]["content"] for kind, kwargs in client.calls if kind == "mm_resolve"][0]
+    assert "  free list:\n  " + matchmaker._person_line(index[group["pool"][0]]) in payload
+    assert any(e["text"].startswith("Free list for g1 (") for e in data["log"])
+    # the matchmaker asked no one, so there's nothing for another round to fix
+    assert client.kinds().count("mm_resolve") == 1
+    assert "or someone from the group's free list" in matchmaker._resolve_system(DAY)
+
+
+def test_when_a_replacement_says_no_too_the_matchmaker_fishes_again():
+    # the retest's dropped hike: both alternates said no in round 2, and there was no round 3
+    reset_db()
+    people = town()
+    plan = two_group_plan(rooms_for(people))
+    g1 = plan["groups"][0]
+    backup = g1["alternates"][0]
+    picked = []
+
+    def resolve(system, content):
+        if len(picked) == 0:
+            picked.append(backup)
+        else:
+            picked.append(first_on_free_list(content))
+        return json.dumps({"thoughts": "replace the no", "groups": [
+            {"id": "g1", "keep": True, "ask": [{"id": picked[-1], "message": "a spot opened"}]},
+            {"id": "g2", "keep": True, "ask": []}]})
+
+    client = fake(plan, agent=no_from(people, [g1["members"][0], backup]), resolve=resolve)
+    data = run(matchmaker.run_day(DAY, 5, people, client))
+    group = data["groups"][0]
+    assert client.kinds().count("mm_resolve") == 2
+    assert group["status"] == "locked"
+    assert picked[1] in group["final"] and backup not in group["final"]
+    assert any(m["from"] == "hub" and m["to"] == picked[1] and m["round"] == 3 for m in group["thread"])
+    assert [r["round"] for r in data["resolve"]["rounds"]] == [2, 3]
+    assert any(e["text"].startswith("Matchmaker after round 2: ") for e in data["log"])
+
+
+def test_fishing_stops_after_round_three():
+    reset_db()
+    people = town()
+    plan = two_group_plan(rooms_for(people))
+    g1 = plan["groups"][0]
+    # everyone the matchmaker brings in says no, and it keeps trying
+    stays = g1["members"][1:] + plan["groups"][1]["members"]
+
+    def agent(system, content):
+        if any(("personal agent of " + p["name"] + ".") in system for p in people if p["id"] in stays):
+            return json.dumps({"answer": "yes", "reason": "loves it", "say": "in"})
+        return json.dumps({"answer": "no", "say": "not for me"})
+
+    def resolve(system, content):
+        return json.dumps({"thoughts": "try the next one", "groups": [
+            {"id": "g1", "keep": True, "ask": [{"id": first_on_free_list(content), "message": "a spot opened"}]},
+            {"id": "g2", "keep": True, "ask": []}]})
+
+    client = fake(plan, agent=agent, resolve=resolve)
+    data = run(matchmaker.run_day(DAY, 5, people, client))
+    assert client.kinds().count("mm_resolve") == 2
+    assert max(m["round"] for m in data["groups"][0]["thread"]) == matchmaker.LAST_ROUND
+    # the two who said yes still make a group
+    assert data["groups"][0]["status"] == "locked"
+    assert data["groups"][0]["final"] == g1["members"][1:]
+
+
+def test_no_extra_round_when_no_one_is_left_to_ask():
+    group = {"id": "g1", "status": "negotiating", "alternates": ["e002"], "pool": [],
+             "members": [{"id": "e001", "state": "yes"}, {"id": "e002", "state": "no"}],
+             "thread": [{"from": "agent", "by": "e002", "round": 2, "answer": "no"}]}
+    assert matchmaker._needs_another_round([group], 2) is False
+    group["pool"] = ["e003"]
+    assert matchmaker._needs_another_round([group], 2) is True
+    # a no from an earlier round was already the matchmaker's to handle
+    assert matchmaker._needs_another_round([group], 3) is False
+
+
+def test_the_free_list_puts_fewer_plans_first_and_skips_what_the_profile_rules_out():
+    people = town()
+    index = {p["id"]: p for p in people}
+    rooms = rooms_for(people)
+    # e096 really likes the museum but avoids early mornings
+    room = [r for r in rooms if r["activity"] == "museum" and r["part"] == "morning"][0]
+    activity = catalog.get("museum")
+    keen = [c["id"] for c in room["candidates"] if matchmaker.keenness(index[c["id"]], activity) >= matchmaker.STRONG]
+    assert "e096" in keen
+    group = {"id": "g1", "activity": "museum", "part": "morning", "time": "10am-12pm", "status": "negotiating",
+             "alternates": [], "thread": [], "members": [{"id": keen[0], "state": "no", "counter": ""}]}
+    # the room's second keenest person already has 2 plans, so 4 others come first
+    busy = keen[1]
+    matchmaker._fewest_plans_first(rooms, {busy: 2})
+    matchmaker._fill_pools([group], rooms, index, DAY)
+    assert len(group["pool"]) == matchmaker.POOL_PER_GROUP
+    assert keen[0] not in group["pool"]
+    assert busy not in group["pool"]
+    assert "e096" in group["pool"]
+    # an 8am start runs into what e096 avoids, so the next person takes the place
+    group["time"] = "8-10am"
+    matchmaker._fill_pools([group], rooms, index, DAY)
+    assert "e096" not in group["pool"]
+    assert len(group["pool"]) == matchmaker.POOL_PER_GROUP
+    payload = matchmaker._resolve_payload([group], index, {group["pool"][0]: 1})
+    assert "; plans this week: 1" in payload

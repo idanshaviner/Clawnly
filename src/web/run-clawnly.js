@@ -784,6 +784,9 @@
     var out = ["<h2>Negotiation</h2>", '<p class="lede">Every message between the matchmaker and an agent, word for word. Lines go only from the hub to each agent: agents never see or talk to each other.</p>'];
     if (state.run.plan && state.run.plan.thoughts) out.push('<p class="thoughts"><b>Matchmaker, planning:</b> ' + esc(state.run.plan.thoughts) + "</p>");
     if (state.run.resolve && state.run.resolve.thoughts) out.push('<p class="thoughts"><b>Matchmaker, after round 1:</b> ' + esc(state.run.resolve.thoughts) + "</p>");
+    // a server run resolves once more when a replacement said no (matchmaker.LAST_ROUND)
+    var later = (state.run.resolve && state.run.resolve.rounds) || [];
+    for (var r = 1; r < later.length; r++) out.push('<p class="thoughts"><b>Matchmaker, after round ' + (later[r].round - 1) + ':</b> ' + esc(later[r].thoughts) + "</p>");
     for (var i = 0; i < state.run.groups.length; i++) {
       var g = state.run.groups[i], a = ACTS[g.activity];
       var chip = '<span class="chip">negotiating</span>';

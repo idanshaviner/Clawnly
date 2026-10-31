@@ -63,12 +63,17 @@ name-blind pitches) are enforced in code, never trusted to the model.
   `run_dump.txt` (prompts, every message, groups, timeline) to read or hand to any AI. Paid runs share a total cap through
   `simulation_results/spend_ledger.json`. The matchmaker prompt fixes from that audit (what each
   keen person likes, avoids in the plan, WHAT THEY SHARE in messages, the agent's limit line, the
-  `inside_part` guard) are in `matchmaker.py` only, not yet in `src/web/run-clawnly.js`.
+  `inside_part` guard) are in `matchmaker.py` and, since #8, in `src/web/run-clawnly.js` too.
   So are the team's fixes after the 200 live groups (2026-10-30): code refuses a yes that
   conflicts with the profile or gives no reason, members need a strong interest (mild = alternate
   only), rooms list people with fewer plans first (`run_day(plans=...)`; the sim carries counts
-  day to day, `/run` doesn't yet), and the `retest` stage uses a busier, pickier town
-  (`population.generate(busier=, pickier=)`). The retest hasn't been run: it needs `--total-cap`.
+  day to day; `/run` and the browser plan one day at a time), and the `retest` stage uses a busier, pickier town
+  (`population.generate(busier=, pickier=)`). The retest ran: `simulation_results/RETEST_RESULTS.md`.
+  Dropouts (2026-10-31): a group with a no shows the resolve step a free list (up to
+  `POOL_PER_GROUP` keen, unasked people from its break room, fewest plans first), and a
+  replacement's no gets one more resolve and a round 3 (`LAST_ROUND`). The browser copy in
+  `run-clawnly.js` does the same, keenest first (it has no plan counts). Rebuild
+  `matchmaker/run-clawnly.html` with `run_clawnly.write_artifact` after changing the page sources.
 - `lounge/clawnly-lounge.html` is a separate, shareable prototype of the same
   idea, published as a claude.ai Artifact. Read its `README.md` before
   republishing it: its saved state lives inside the published page.

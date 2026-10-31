@@ -1014,6 +1014,9 @@ CHARS_PER_TOKEN = 3.5
 ASSUMED_GROUP_SIZE = 4
 REASK_SHARE = 0.3
 LOCK_SHARE = 0.8
+# a replacement who says no brings a second resolve call and a round 3 (matchmaker.LAST_ROUND):
+# the high and worst estimates count it, and its asks
+ROUND_THREE_SHARE = 0.1
 
 
 def estimate(people, days, max_groups):
@@ -1049,6 +1052,7 @@ def estimate(people, days, max_groups):
         groups = min(max_groups, len(rooms), len(in_rooms) // 2)
         asks = min(groups * ASSUMED_GROUP_SIZE, len(in_rooms))
         reasks = int(round(asks * REASK_SHARE))
+        third = int(round(asks * ROUND_THREE_SHARE))
         locked = int(round(groups * LOCK_SHARE))
         plan_in = (len(matchmaker._plan_system(day, max_groups)) + len(matchmaker._plan_payload(rooms, by_id))) / CHARS_PER_TOKEN
         resolve_in = (len(matchmaker._resolve_system(day)) + 120 * asks) / CHARS_PER_TOKEN
@@ -1065,11 +1069,12 @@ def estimate(people, days, max_groups):
             if k == 0:
                 day_low = plan + resolve + agents + messages
             else:
-                day_high = plan + resolve + agents + messages
+                again = resolve + third * (agent_in * sonnet[0] / 1e6 + OUTPUT_GUESS["agent"][k] * sonnet[1] / 1e6)
+                day_high = plan + resolve + again + agents + messages
             k += 1
         # every reply at its max_tokens: the most the ceiling has to allow for
-        day_worst = (plan_in + resolve_in) * opus[0] / 1e6 + 2 * 16000 * opus[1] / 1e6
-        day_worst += (asks + reasks) * (agent_in * sonnet[0] / 1e6 + 4000 * sonnet[1] / 1e6)
+        day_worst = (plan_in + 2 * resolve_in) * opus[0] / 1e6 + 3 * 16000 * opus[1] / 1e6
+        day_worst += (asks + reasks + third) * (agent_in * sonnet[0] / 1e6 + 4000 * sonnet[1] / 1e6)
         day_worst += locked * (message_in * sonnet[0] / 1e6 + 6000 * sonnet[1] / 1e6)
         n = 2 + asks + reasks + locked
         calls += n

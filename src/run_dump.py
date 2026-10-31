@@ -311,10 +311,11 @@ def _plan_lines(lines, call, people, compact=False):
         lines.append("      why: " + str(g.get("why") or ""))
 
 
-def _resolve_lines(lines, call):
+def _resolve_lines(lines, call, after_round=1):
     res = extract_json((call.get("response") or {}).get("text") or "")
-    lines.append("  RESOLVE STEP: the hub after every round-1 answer " + _ref(call["seq"]) + ". Its round-2 asks appear")
-    lines.append("  inside each group above, marked round 2.")
+    lines.append("  RESOLVE STEP: the hub after every round-" + str(after_round) + " answer " + _ref(call["seq"]) +
+                 ". Its round-" + str(after_round + 1) + " asks appear")
+    lines.append("  inside each group above, marked round " + str(after_round + 1) + ".")
     lines.append("    What it saw:")
     lines.append(_indent(call["request"]["messages"][-1]["content"], "      "))
     reasoning = _thinking(call)
@@ -392,13 +393,13 @@ def _conversations(lines, events, groups, people, days, compact=False):
                 lines.append("  " + _ref(e["seq"]) + " CODE: " + e["text"])
         lines.append("")
         plan_call = None
-        resolve_call = None
+        resolve_calls = []
         i = 0
         while i < len(calls):
             if calls[i]["day"] == day and calls[i]["purpose"] == "matchmaker_plan":
                 plan_call = calls[i]
             if calls[i]["day"] == day and calls[i]["purpose"] == "matchmaker_resolve":
-                resolve_call = calls[i]
+                resolve_calls.append(calls[i])
             i += 1
         if plan_call is not None:
             _plan_lines(lines, plan_call, people, compact)
@@ -410,9 +411,12 @@ def _conversations(lines, events, groups, people, days, compact=False):
             if group["day"] != day:
                 continue
             _group_conversation(lines, group, day_events, calls, people)
-        if resolve_call is not None:
-            _resolve_lines(lines, resolve_call)
+        i = 0
+        while i < len(resolve_calls):
+            # the first resolve follows round 1; one more runs when a replacement said no
+            _resolve_lines(lines, resolve_calls[i], i + 1)
             lines.append("")
+            i += 1
         i = 0
         while i < len(day_events):
             e = day_events[i]

@@ -1,13 +1,15 @@
 """The one-file text dump of a run (run_dump.py): everything a person or an AI chat needs, in
 order, each line traceable by event number. Offline, on FakeClient runs."""
 
+import datetime
 import json
 import os
 
 import orchestration_audit as audit
+import orchestration_sim as sim
 import run_dump
 from conftest import reset_db
-from test_orchestration_audit import client_for, cohort, plan, simulate
+from test_orchestration_audit import DAY, client_for, cohort, plan, simulate, yes
 
 SECTIONS = ["\n1. PEOPLE: each", "\n2. CONVERSATIONS: every", "\n3. GROUPS: each", "\n4. TIMELINE: every",
             "\n5. WHAT OUR CHECKS FOUND"]
@@ -136,3 +138,36 @@ def test_the_combined_record_has_the_reports_then_each_person_once_then_every_ru
     assert "T1 #" in entry and "T2" in entry
     # the agent prompt's shared wording is printed once for the identical runs
     assert text.count("Wording used in runs T1, T2") == 1
+
+
+def test_a_second_resolve_step_is_printed_after_the_first(tmp_path):
+    # when a replacement says no too, the hub resolves again and asks in round 3
+    reset_db()
+    people = sim.cohort(sim.town(), datetime.date.fromisoformat(DAY), 200)
+    the_plan = plan(people, groups=1)
+    g1 = the_plan["groups"][0]
+    backup = g1["alternates"][0]
+    by_name = {p["name"]: p["id"] for p in people}
+    seen = []
+
+    def agent(system, content):
+        name = system.split("\n")[0][len("You are the personal agent of "):].split(". You know")[0]
+        if by_name[name] in (g1["members"][0], backup):
+            return json.dumps({"answer": "no", "counter": "", "say": "pass"})
+        return yes(system, content)
+
+    def resolve(system, content):
+        seen.append(content)
+        pid = backup
+        if len(seen) > 1:
+            pid = content.split("  free list:\n")[1].splitlines()[0].split()[0]
+        return json.dumps({"thoughts": "Replace the no.", "groups": [
+            {"id": "g1", "keep": True, "ask": [{"id": pid, "message": "A spot opened: want in?"}]}]})
+
+    out = simulate(tmp_path, people, client_for(the_plan, agent=agent, resolve=resolve))
+    text = run_dump.dump(out)
+    assert len(seen) == 2
+    first = text.index("RESOLVE STEP: the hub after every round-1 answer")
+    second = text.index("RESOLVE STEP: the hub after every round-2 answer")
+    assert first < second
+    assert "marked round 3." in text

@@ -26,14 +26,21 @@ it and avoids nothing about it.
 - When a group fails because the activity was wrong for those people, swap the activity, not
   the people.
 
+## A no is a signal
+
+- When someone says they wouldn't meet a specific person again, don't put that pair in the
+  same small group again. It is about the pair, not a strike against either person: each can
+  still be placed with other neighbors.
+- When someone declines an activity, ask whether the activity was wrong before deciding the
+  people were wrong.
+
 ## Labeled examples
 
-All people are simulated neighbors. Reviewed by the team on Nov 9, 2026.
+All people are simulated neighbors. Only examples the team marked Keep are listed here.
+Examples marked Change wait in the review sheet until they are rewritten and kept.
 
-- Bad: a cribbage table with ages 19 and 83, even though everyone likes cards. The age gap is
-  too big for a small table.
-- Bad: quiet cribbage for Jack W. (20), Grace M. (83) and Brian O. (48). The activity fits, but
-  the ages are far apart.
+Kept on Nov 9, 2026:
+
 - Bad: a Green River Gorge hike built from three retired anglers, pitched as good river access.
   4 of 5 said no, and the keen hikers were never asked.
 - Bad: a trivia night formed from five beer fans and zero trivia fans.

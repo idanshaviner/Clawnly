@@ -10,6 +10,7 @@ import app as webapp
 import auth
 import config
 import db
+import matchmaker
 import run_clawnly
 from conftest import FakeClient, reset_db, run
 
@@ -167,3 +168,14 @@ def test_the_artifact_copy_is_built_from_the_same_sources_and_has_no_saved_run(t
     assert len(data["days"]) == 7
     assert [a for a in data["activities"] if a["id"] == "seahawks"][0]["fixed"]
     assert open("src/web/run-clawnly.js").read() in html
+
+
+def test_the_page_carries_the_same_skill_file_as_the_server():
+    # the browser builds its prompts from this, so it can't drift from matchmaker.py
+    reset_db()
+    sign_out()
+    data = page_data(client.get("/run").text)
+    assert data["skill"] == matchmaker.skill()
+    js = open("src/web/run-clawnly.js").read()
+    assert "skillLines()" in js
+    assert "DATA.skill" in js

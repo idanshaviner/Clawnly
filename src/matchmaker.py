@@ -33,6 +33,7 @@ is called after each step so the page can follow along live.
 
 import asyncio
 import datetime
+import os
 import re
 import time
 
@@ -58,6 +59,10 @@ STRONG = 2
 # a group with a no also sees this many free, keen people from its break room besides its
 # alternates: in the retest, 5 of 6 no's went unfilled, each after both alternates said no too
 POOL_PER_GROUP = 4
+# the team's living brief to the matchmaker (stage of life, main thing vs side thing, labeled
+# examples). Read on every run, so a newly kept example counts from the next run on. The browser
+# page gets the same text through run_clawnly.page_html, so the two copies can't drift.
+SKILL_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "matchmaker_skill.md")
 # round 1 asks the plan; rounds 2 and 3 replace whoever said no
 LAST_ROUND = 3
 
@@ -128,6 +133,16 @@ def _liked_here(person, activity):
     return ", ".join(out)
 
 
+def skill():
+    with open(SKILL_PATH, encoding="utf-8") as f:
+        return f.read().strip()
+
+
+def _skill_lines():
+    # judgment the team wants in every pick; code still enforces the hard facts (demand.fit)
+    return ["", "THE TEAM'S SKILL FILE (lessons from reviewed groups; use it as judgment when you pick people):", skill()]
+
+
 def _plan_system(day, max_groups):
     return "\n".join([
         "You are the Clawnly matchmaker: the orchestrator for " + catalog.NEIGHBORHOOD + ". Task: plan the day's activity groups for " + day_label(day) + ".",
@@ -145,6 +160,7 @@ def _plan_system(day, max_groups):
         "- Name up to 2 alternates per group from the same break room, in case someone declines.",
         "- Write a short, personal proposal to each member's agent: what, when, where, how many others, and why it fits this person. Don't name the other people yet.",
         "- In the why and the proposals, describe only interests people actually have: someone in a trivia room for the craft beer isn't a trivia fan. Check what a person avoids against a FIXED time.",
+    ] + _skill_lines() + [
         "",
         "Reply with only this JSON object:",
         '{"thoughts": "your reasoning about the day, 3-6 sentences", "groups": [{"activity": "activity id", "part": "morning|afternoon|evening", "time": "e.g. 10:30am-12pm", "members": ["person id"], "alternates": ["person id"], "why": "one sentence: why this group", "proposals": {"person id": "the message to that person\'s agent"}}]}',
@@ -425,6 +441,7 @@ def _resolve_system(day):
         "The free list is people from the group's break room who are free, have a strong interest and haven't been asked today, fewest plans this week first. Pick whoever fits the people who said yes best (shared likes, similar stage of life); when two fit, pick the one with fewer plans.",
         "Never add anyone who is already in another group. Only ask the group's own members, its alternates or its free list.",
         "Only ask people whose answer you still need: an alternate replacing a no, someone whose counter you're answering, or someone who said yes to a time you've now changed. Don't send confirmations: everyone gets one after the lock. Never tell anyone who declined.",
+    ] + _skill_lines() + [
         "",
         "Reply with only this JSON object:",
         '{"thoughts": "your reasoning, 2-5 sentences", "groups": [{"id": "group id", "keep": true or false, "time": "final time", "ask": [{"id": "person id", "message": "what you say to their agent now"}]}]}',

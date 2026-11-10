@@ -171,6 +171,11 @@
     if (p.avoid.length > 0) avoid = "; avoids " + p.avoid.map(words).join(", ");
     return "  " + id + " " + p.name + ", " + p.age + ", " + p.archetype + kids + ", " + p.area + ": " + likes.join(", ") + avoid;
   }
+  // the team's skill file (src/matchmaker_skill.md), handed over by the page so it matches the server
+  function skillLines() {
+    if (!DATA.skill) return [];
+    return ["", "THE TEAM'S SKILL FILE (lessons from reviewed groups; use it as judgment when you pick people):", DATA.skill];
+  }
   function planPrompt(iso, slots, maxGroups) {
     var lines = [
       "You are the Clawnly matchmaker: the orchestrator for " + DATA.neighborhood + ". Each neighbor has told their own agent what they like, what they don't, and when they're free. You plan small in-person activities for " + dayLabel(iso) + ".",
@@ -188,12 +193,13 @@
       "- Name up to 2 alternates per group from the same break room, in case someone declines.",
       "- Write a short, personal proposal to each member's agent: what, when, where, how many others, and why it fits this person. Don't name the other people yet.",
       "- In the why and the proposals, describe only interests people actually have: someone in a trivia room for the craft beer isn't a trivia fan. Check what a person avoids against a FIXED time.",
+    ].concat(skillLines()).concat([
       "",
       "Reply with only this JSON object:",
       "{\"thoughts\": \"your reasoning about the day, 3-6 sentences\", \"groups\": [{\"activity\": \"activity id\", \"part\": \"morning|afternoon|evening\", \"time\": \"e.g. 10:30am-12pm\", \"members\": [\"person id\"], \"alternates\": [\"person id\"], \"why\": \"one sentence: why this group\", \"proposals\": {\"person id\": \"the message to that person's agent\"}}]}",
       "",
       "BREAK ROOMS:"
-    ];
+    ]);
     var listed = [], seen = {};
     for (var i = 0; i < slots.length; i++) {
       var s = slots[i], a = ACTS[s.activity];
@@ -363,12 +369,13 @@
       "The free list is people from the group's break room who are free, have a strong interest and haven't been asked today, keenest first. Pick whoever fits the people who said yes best (shared likes, similar stage of life).",
       "Never add anyone who is already in another group. Only ask the group's own members, its alternates or its free list.",
       "Only ask people whose answer you still need: an alternate replacing a no, someone whose counter you're answering, or someone who said yes to a time you've now changed. Don't send confirmations: everyone gets one after the lock. Never tell anyone who declined.",
+    ].concat(skillLines()).concat([
       "",
       "Reply with only this JSON object:",
       "{\"thoughts\": \"your reasoning, 2-5 sentences\", \"groups\": [{\"id\": \"group id\", \"keep\": true or false, \"time\": \"final time\", \"ask\": [{\"id\": \"person id\", \"message\": \"what you say to their agent now\"}]}]}",
       "",
       "GROUPS:"
-    ];
+    ]);
     for (var i = 0; i < groups.length; i++) {
       var g = groups[i], a = ACTS[g.activity];
       var when = g.time + " (" + g.part + ")";

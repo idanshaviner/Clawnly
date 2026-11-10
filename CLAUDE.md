@@ -74,6 +74,12 @@ name-blind pitches) are enforced in code, never trusted to the model.
   replacement's no gets one more resolve and a round 3 (`LAST_ROUND`). The browser copy in
   `run-clawnly.js` does the same, keenest first (it has no plan counts). Rebuild
   `matchmaker/run-clawnly.html` with `run_clawnly.write_artifact` after changing the page sources.
+- **Matchmaker skill file** (2026-11-09): `src/matchmaker_skill.md` is the team's living brief
+  to the matchmaker (stage of life, main thing vs side thing, labeled Good/Bad examples). It's
+  read on every run and added to the plan and resolve prompts; the browser page gets the same text
+  as `DATA.skill` from `run_clawnly.page_html`, so there's one copy. Stage of life is the AI's
+  judgment on purpose: don't add a hard age-spread check in code. Kept examples from the daily
+  Keep/Change review sheet are appended to it in the same format.
 - `lounge/clawnly-lounge.html` is a separate, shareable prototype of the same
   idea, published as a claude.ai Artifact. Read its `README.md` before
   republishing it: its saved state lives inside the published page.

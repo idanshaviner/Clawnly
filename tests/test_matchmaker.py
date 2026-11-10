@@ -10,6 +10,7 @@ import db
 import demand
 import matchmaker
 import population
+import conftest
 from conftest import FakeClient, reset_db, run
 
 DAY = datetime.date(2026, 9, 27)
@@ -406,7 +407,9 @@ def test_the_plan_lists_each_person_once_and_stays_small():
     # under half of what it was before the trim (65,000 characters for this day). It grew from
     # 25,000 when each keen person's liked tags and everyone's avoids were added: without them the
     # hub called five beer fans "trivia-keen" (simulation_results/runs/run_20261029_023732_pilot)
-    assert len(matchmaker._plan_system(DAY, 10) + payload) < 32000
+    # the cap went from 32,000 to 35,000 when the team's skill file (matchmaker_skill.md, about
+    # 2,400 characters) joined the plan prompt
+    assert len(matchmaker._plan_system(DAY, 10) + payload) < 35000
 
 
 def test_the_plan_shows_why_each_keen_person_is_in_the_room_and_what_they_avoid():
@@ -826,3 +829,58 @@ def test_the_free_list_puts_fewer_plans_first_and_skips_what_the_profile_rules_o
     assert len(group["pool"]) == matchmaker.POOL_PER_GROUP
     payload = matchmaker._resolve_payload([group], index, {group["pool"][0]: 1})
     assert "; plans this week: 1" in payload
+
+
+def test_the_skill_file_loads_with_its_lessons_and_examples():
+    text = matchmaker.skill()
+    assert text.startswith("# Matchmaker skill")
+    assert "Keep or Change" in text
+    assert "## Stage of life" in text
+    assert "about 10 years" in text
+    assert "parent and a teen" in text
+    assert "## Main thing vs side thing" in text
+    assert "swap the activity, not" in text
+    assert "Bad: a cribbage table with ages 19 and 83" in text
+    assert "Good: Lauren P. (28) and Tom H. (25) at Silent Book Club" in text
+    # the fake client routes by marker phrase: the skill must not carry one, or it would misroute
+    low = text.lower()
+    i = 0
+    while i < len(conftest.MATCHMAKER_MARKERS):
+        assert conftest.MATCHMAKER_MARKERS[i][0] not in low
+        i += 1
+
+
+def test_the_plan_and_resolve_prompts_carry_the_skill_file():
+    text = matchmaker.skill()
+    plan = matchmaker._plan_system(DAY, 10)
+    resolve = matchmaker._resolve_system(DAY)
+    assert text in plan
+    assert text in resolve
+    # it sits before the reply format, so the JSON instructions stay last
+    assert plan.index(text) < plan.index("Reply with only this JSON object:")
+    assert resolve.index(text) < resolve.index("Reply with only this JSON object:")
+
+
+def test_the_skill_file_is_read_on_every_run(tmp_path, monkeypatch):
+    # a newly kept example counts from the next run, with no restart
+    path = tmp_path / "skill.md"
+    path.write_text("Good: a kept example from today's review.")
+    monkeypatch.setattr(matchmaker, "SKILL_PATH", str(path))
+    assert "Good: a kept example from today's review." in matchmaker._plan_system(DAY, 10)
+    path.write_text("Bad: a newer kept example.")
+    assert "Bad: a newer kept example." in matchmaker._resolve_system(DAY)
+
+
+def test_a_run_sends_the_skill_to_the_plan_and_the_resolve_calls():
+    reset_db()
+    people = town()
+    plan = two_group_plan(rooms_for(people))
+    client = fake(plan, agent=no_from(people, [plan["groups"][0]["members"][0]]))
+    run(matchmaker.run_day(DAY, 5, people, client))
+    text = matchmaker.skill()
+    plans = [kwargs["system"] for kind, kwargs in client.calls if kind == "mm_plan"]
+    resolves = [kwargs["system"] for kind, kwargs in client.calls if kind == "mm_resolve"]
+    assert len(plans) == 1
+    assert text in plans[0]
+    assert len(resolves) >= 1
+    assert text in resolves[0]

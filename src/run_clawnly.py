@@ -67,7 +67,9 @@ def page_html(listed=None, server=True):
     if listed is None:
         listed = days()
     data = {"neighborhood": catalog.NEIGHBORHOOD, "people": town(listed[0]), "activities": catalog.ACTIVITIES,
-            "days": listed, "groupMin": catalog.GROUP_MIN, "groupMax": catalog.GROUP_MAX}
+            "days": listed, "groupMin": catalog.GROUP_MIN, "groupMax": catalog.GROUP_MAX,
+            # the same skill file the server's matchmaker reads, so the browser prompts can't drift
+            "skill": matchmaker.skill()}
     head = _read("run-clawnly-head.html")
     mode = ""
     if server:

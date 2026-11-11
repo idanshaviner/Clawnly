@@ -67,13 +67,22 @@
     if (!has(listOr(p.calendar[iso]), part)) return { score: 0, why: "busy" };
     if (!has(BUDGET_OK[p.budget], a.cost)) return { score: 0, why: "over budget" };
     for (var i = 0; i < a.tags.length; i++) { if (has(p.dislikes, a.tags[i])) return { score: 0, why: "dislikes " + words(a.tags[i]) }; }
-    var traits = a.traits.slice();
+    var traits = a.traits.concat(timeTraits(a, part));
     if (part === "morning" && a.outdoor) traits.push("early_mornings");
     for (var j = 0; j < traits.length; j++) { if (has(p.avoid, traits[j])) return { score: 0, why: "avoids " + words(traits[j]) }; }
     var score = 0;
     for (var k = 0; k < p.likes.length; k++) { if (has(a.tags, p.likes[k].tag)) score += p.likes[k].weight; }
     if (score === 0) return { score: 0, why: "not interested" };
     return { score: score, why: null };
+  }
+  // a real event's fixed time says what it involves: to 9pm or later is a late night, before 9am an
+  // early morning (same as demand.time_traits and the agent's checks)
+  function timeTraits(a, part) {
+    var hours = parseHours(fixedTime(a, part)), out = [];
+    if (!hours) return out;
+    if (hours[1] >= 21) out.push("late_nights");
+    if (hours[0] < 9) out.push("early_mornings");
+    return out;
   }
   // equally keen people in a per-day order, not id order (same FNV-1a as demand.tie_order)
   function tieOrder(iso, id) {

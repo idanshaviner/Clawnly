@@ -34,6 +34,15 @@ it and avoids nothing about it.
 - When someone declines an activity, ask whether the activity was wrong before deciding the
   people were wrong.
 
+## Big groups of interested people
+
+- When the people who like an activity span two generations, make two groups in their own
+  chapters of life instead of one wide group.
+- At a family event the shared chapter is the parents (for example parents of young kids); the
+  kids' ages don't count against the age mix.
+- What someone avoids is a hard limit even when they fit otherwise: someone who avoids crowds
+  stays off a big holiday event.
+
 ## Labeled examples
 
 All people are simulated neighbors. Only examples the team marked Keep are listed here.
@@ -48,3 +57,14 @@ Kept on Nov 9, 2026:
   instead of the hike. Same stage of life, and fishing is the main thing they like.
 - Good: Lauren P. (28) and Tom H. (25) at Silent Book Club. Both like book clubs and are close
   in age.
+
+Kept on Nov 10, 2026:
+
+- Good: Big Soos Creek salmon habitat restoration: Tyler O. (32), Lauren P. (28) and Logan W. (26),
+  who all like volunteering. Tom B. (73) and Angelica L. (80) also like volunteering, so they get
+  their own pair instead of being added to make five.
+- Good: Gnometown Holidays tree lighting: Santiago T. (42), Chris W. (36) and Scott P. (35), parents
+  of young kids, with the kids along. Hunter R. (35) was left out because he avoids crowds.
+- Good: last week Liam A. (78) said he wouldn't meet Tom O. (76) again. This week Claire B. (72) and
+  Liam keep their cribbage table, Grace M. (83), who loves cards, fills the third seat, and Tom goes
+  to the Lake Sawyer fishing group. Never re-seat that pair, keep both people in play.

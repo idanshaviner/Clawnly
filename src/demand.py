@@ -36,6 +36,22 @@ def tie_order(day, person_id):
     return value
 
 
+def time_traits(activity, part):
+    # a real event's fixed time says what it involves, even when its tags forget to: ending at 9pm
+    # or later is a late night, starting before 9am is an early morning (the same lines
+    # matchmaker.conflicts draws), so an avoider never gets into the break room for it
+    import matchmaker
+    out = []
+    hours = matchmaker.parse_hours(matchmaker.fixed_time(activity, part))
+    if hours is None:
+        return out
+    if hours[1] >= 21:
+        out.append("late_nights")
+    if hours[0] < 9:
+        out.append("early_mornings")
+    return out
+
+
 def fit(person, activity, day, part):
     # (score, None) if this person could join this activity in this day part,
     # else (0, the reason they can't). The score says how much they'd want to.
@@ -52,7 +68,7 @@ def fit(person, activity, day, part):
         if activity["tags"][i] in person["dislikes"]:
             return 0, "dislikes " + activity["tags"][i]
         i += 1
-    traits = list(activity["traits"])
+    traits = list(activity["traits"]) + time_traits(activity, part)
     if part == "morning" and activity["outdoor"]:
         traits.append("early_mornings")
     j = 0

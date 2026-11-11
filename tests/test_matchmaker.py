@@ -844,6 +844,10 @@ def test_the_skill_file_loads_with_its_lessons_and_examples():
     assert "Bad: a cribbage table with ages 19 and 83" not in text
     assert "Bad: a trivia night formed from five beer fans" in text
     assert "## A no is a signal" in text
+    assert "Kept on Nov 10, 2026:" in text
+    assert "## Big groups of interested people" in text
+    # Change rows (the Paranormal Reveal, Holiday Market and stargazing groups) stay out until kept
+    assert "Paranormal" not in text and "Holiday Market" not in text and "stargazing" not in text
     assert "Good: Lauren P. (28) and Tom H. (25) at Silent Book Club" in text
     # the fake client routes by marker phrase: the skill must not carry one, or it would misroute
     low = text.lower()

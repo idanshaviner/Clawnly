@@ -42,6 +42,11 @@ it and avoids nothing about it.
   kids' ages don't count against the age mix.
 - What someone avoids is a hard limit even when they fit otherwise: someone who avoids crowds
   stays off a big holiday event.
+- Exception for the clock: when a real event runs late (ends 9pm or later) or starts early
+  (before 9am) and someone who usually avoids that loves the activity, don't count them out.
+  Their agent confirms with them first; a real fan is often fine with one late game.
+- When someone drops out, the replacement must like the main thing and fit the group's chapter
+  of life, not just be free.
 
 ## Labeled examples
 
@@ -68,3 +73,19 @@ Kept on Nov 10, 2026:
 - Good: last week Liam A. (78) said he wouldn't meet Tom O. (76) again. This week Claire B. (72) and
   Liam keep their cribbage table, Grace M. (83), who loves cards, fills the third seat, and Tom goes
   to the Lake Sawyer fishing group. Never re-seat that pair, keep both people in play.
+
+Kept on Nov 11, 2026:
+
+- Good, with the team's note: Seattle Thunderbirds hockey, 7:05pm, ends about 9:30pm: Kevin D. (41),
+  Marcus J. (45) and Priya S. (39), who all love watching hockey. Priya usually avoids late nights,
+  so confirm with her first; she is most likely fine with it because she loves hockey. If she
+  says no, Ben T. (43), a hockey fan who doesn't mind late nights, takes the seat.
+- Good: Maple Valley Library Monday morning book group, 11am: Ruth K. (68), Dennis M. (71) and
+  Joan P. (66), retirees who love book clubs. A weekday morning fits their chapter of life, and a
+  monthly group makes a second meetup easy.
+- Good: Black Diamond Hometown Christmas: Rosa M. (42) with her son Leo (13) and Dan K. (45) with his
+  daughter Ava (14). A wider age mix is fine here: parents of young teens share a chapter, and
+  each teen comes with their own parent.
+- Good: Salmon Fest at Mary Olson Farm: Sam P. (52), Erin G. (55) and Mike H. (50) love watching
+  wildlife. Erin drops out; the next free person, Josh T. (24), only likes the farm's history, so
+  the matcher asks Linda T. (57), who loves wildlife.

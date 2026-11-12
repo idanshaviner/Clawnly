@@ -408,8 +408,10 @@ def test_the_plan_lists_each_person_once_and_stays_small():
     # 25,000 when each keen person's liked tags and everyone's avoids were added: without them the
     # hub called five beer fans "trivia-keen" (simulation_results/runs/run_20261029_023732_pilot)
     # the cap went from 32,000 to 35,000 when the team's skill file (matchmaker_skill.md, about
-    # 2,400 characters) joined the plan prompt
-    assert len(matchmaker._plan_system(DAY, 10) + payload) < 35000
+    # 2,400 characters) joined the plan prompt. The skill file grows with every kept example, so
+    # since Nov 12 it is measured on its own and the rest keeps the old 32,000 cap
+    assert len(matchmaker._plan_system(DAY, 10) + payload) - len(matchmaker.skill()) < 32000
+    assert len(matchmaker.skill()) < 12000   # time to summarize the oldest examples
 
 
 def test_the_plan_shows_why_each_keen_person_is_in_the_room_and_what_they_avoid():
@@ -547,6 +549,8 @@ def test_code_refuses_a_yes_that_runs_into_what_the_person_avoids():
     room = evening_room(people, index)
     ids = strong_ids(room, index)[:3]
     index[ids[0]]["avoid"] = ["late_nights"]
+    # only up for it, not a lover: a lover would be asked instead (Nov 12 review, Example #13)
+    index[ids[0]]["likes"] = [dict(l, weight=min(l["weight"], 2)) for l in index[ids[0]]["likes"]]
     plan = {"thoughts": "One late game.", "groups": [{"activity": room["activity"], "part": "evening", "time": "7-9:30pm",
                                                       "members": ids, "alternates": [], "proposals": {}}]}
     data = run(matchmaker.run_day(DAY, 5, people, fake(plan)))
@@ -685,8 +689,23 @@ def test_a_time_past_midnight_is_late_and_outside_the_evening():
     person = dict(town()[0], avoid=["late_nights"])
     day = datetime.date.fromisoformat(sorted(person["calendar"])[0])
     person["calendar"] = {day.isoformat(): ["evening"]}
+    person["likes"] = [{"tag": t, "weight": 2} for t in catalog.get("book-club")["tags"]]
     found = matchmaker.conflicts(person, catalog.get("book-club"), "evening", "10pm-12am", day)
     assert any("9pm or later" in c for c in found)
+
+
+def test_a_late_event_is_a_question_for_someone_who_loves_it():
+    # Nov 12 review (Example #13): confirm with the person first instead of refusing for them
+    person = dict(town()[0], avoid=["late_nights"])
+    day = datetime.date.fromisoformat(sorted(person["calendar"])[0])
+    person["calendar"] = {day.isoformat(): ["evening"]}
+    club = catalog.get("book-club")
+    person["likes"] = [{"tag": club["tags"][0], "weight": 3}]
+    assert not any("9pm or later" in c for c in matchmaker.conflicts(person, club, "evening", "7pm-9:30pm", day))
+    checks = matchmaker.plan_checks(person, club, "evening", "7pm-9:30pm", day)
+    assert any("loves this: ask" in c for c in checks)
+    person["likes"] = [{"tag": club["tags"][0], "weight": 2}]
+    assert any("9pm or later" in c for c in matchmaker.conflicts(person, club, "evening", "7pm-9:30pm", day))
 
 
 # ----- dropouts: the matchmaker fishes for the next person from the break room ---------
@@ -822,7 +841,9 @@ def test_the_free_list_puts_fewer_plans_first_and_skips_what_the_profile_rules_o
     assert keen[0] not in group["pool"]
     assert busy not in group["pool"]
     assert "e096" in group["pool"]
-    # an 8am start runs into what e096 avoids, so the next person takes the place
+    # an 8am start runs into what e096 avoids, so the next person takes the place (if e096 only
+    # really likes the museum; a lover would be asked first, Nov 12 review, Example #13)
+    index["e096"]["likes"] = [dict(l, weight=min(l["weight"], 2)) for l in index["e096"]["likes"]]
     group["time"] = "8-10am"
     matchmaker._fill_pools([group], rooms, index, DAY)
     assert "e096" not in group["pool"]

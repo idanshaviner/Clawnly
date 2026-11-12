@@ -52,6 +52,16 @@ def time_traits(activity, part):
     return out
 
 
+def loves(person, activity):
+    # they love (weight 3) one of the activity's tags
+    i = 0
+    while i < len(person["likes"]):
+        if person["likes"][i]["tag"] in activity["tags"] and person["likes"][i]["weight"] >= 3:
+            return True
+        i += 1
+    return False
+
+
 def fit(person, activity, day, part):
     # (score, None) if this person could join this activity in this day part,
     # else (0, the reason they can't). The score says how much they'd want to.
@@ -68,7 +78,11 @@ def fit(person, activity, day, part):
         if activity["tags"][i] in person["dislikes"]:
             return 0, "dislikes " + activity["tags"][i]
         i += 1
-    traits = list(activity["traits"]) + time_traits(activity, part)
+    traits = list(activity["traits"])
+    if not loves(person, activity):
+        # someone who loves the activity stays in the room for a late or early real event: their
+        # agent asks them first instead of code counting them out (Nov 12 review, Example #13)
+        traits += time_traits(activity, part)
     if part == "morning" and activity["outdoor"]:
         traits.append("early_mornings")
     j = 0

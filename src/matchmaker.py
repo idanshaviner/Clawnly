@@ -366,9 +366,10 @@ def conflicts(person, activity, part, time_text, day):
     if part not in person["calendar"].get(day.isoformat(), []):
         out.append(first + " is busy that " + part + ".")
     hours = parse_hours(time_text)
-    if hours is not None and "early_mornings" in person["avoid"] and hours[0] < 9:
+    soft = demand.loves(person, activity)
+    if hours is not None and "early_mornings" in person["avoid"] and hours[0] < 9 and not soft:
         out.append("It starts before 9am, and " + first + " avoids early mornings.")
-    if hours is not None and "late_nights" in person["avoid"] and hours[1] >= 21:
+    if hours is not None and "late_nights" in person["avoid"] and hours[1] >= 21 and not soft:
         out.append("It runs to 9pm or later, and " + first + " avoids late nights.")
     i = 0
     while i < len(activity["traits"]):
@@ -387,11 +388,29 @@ def conflicts(person, activity, part, time_text, day):
     return out
 
 
+def time_questions(person, activity, time_text):
+    # a late or early real event for someone who loves the activity is a question, not a no:
+    # their agent asks before counting them out (Nov 12 review, Example #13)
+    first = _first(person)
+    out = []
+    hours = parse_hours(time_text)
+    if hours is None or not demand.loves(person, activity):
+        return out
+    if "late_nights" in person["avoid"] and hours[1] >= 21:
+        out.append("It runs to 9pm or later and " + first + " usually avoids late nights, but " + first
+                   + " loves this: ask " + first + " before saying yes or no for them.")
+    if "early_mornings" in person["avoid"] and hours[0] < 9:
+        out.append("It starts before 9am and " + first + " usually avoids early mornings, but " + first
+                   + " loves this: ask " + first + " before saying yes or no for them.")
+    return out
+
+
 def plan_checks(person, activity, part, time_text, day):
     # what code can see in the profile that argues against this plan; the agent weighs it
     first = _first(person)
     out = conflicts(person, activity, part, time_text, day)
     keen = keenness(person, activity)
+    out += time_questions(person, activity, time_text)
     if keen == 0:
         out.append(first + " never said they like this.")
     if keen == 1:

@@ -89,3 +89,17 @@ Kept on Nov 11, 2026:
 - Good: Salmon Fest at Mary Olson Farm: Sam P. (52), Erin G. (55) and Mike H. (50) love watching
   wildlife. Erin drops out; the next free person, Josh T. (24), only likes the farm's history, so
   the matcher asks Linda T. (57), who loves wildlife.
+
+Kept on Nov 12, 2026:
+
+- Good, with the team's note: Ten Trails 5K Turkey Trot, Thanksgiving, 8:30am start: Meera K. (34)
+  loves running but usually avoids early mornings, so her agent asks her first, and she says yes
+  for a holiday run; Tasha R. (31), who also loves running, joins. Jason L. (38) is only up for a
+  jog and avoids early mornings, and he should still be asked too: an early start or late end is a
+  question for anyone who likes the activity, not a no code makes for them.
+- Good: Claire B. (72), Liam A. (78) and Grace M. (83) played cribbage and all three said they'd meet
+  again, so they are offered a monthly cribbage tournament together before anyone builds a new
+  cribbage table. A group that wants a second meetup gets the next event first, ideally a recurring one.
+- Good: Meera K. (34) and Tasha R. (31) love easy runs and do a 5K together; Jason L. (38) is training
+  for a fast 10K, so he runs it with Raj P. (36), another 10K racer. Match how people like to do the
+  main thing (easy pace or racing), not just the thing itself.

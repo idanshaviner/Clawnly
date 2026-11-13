@@ -67,8 +67,8 @@
     if (!has(listOr(p.calendar[iso]), part)) return { score: 0, why: "busy" };
     if (!has(BUDGET_OK[p.budget], a.cost)) return { score: 0, why: "over budget" };
     for (var i = 0; i < a.tags.length; i++) { if (has(p.dislikes, a.tags[i])) return { score: 0, why: "dislikes " + words(a.tags[i]) }; }
-    // someone who loves the activity stays in for a late or early real event: their agent asks first
-    var traits = loves(p, a) ? a.traits.slice() : a.traits.concat(timeTraits(a, part));
+    // someone who likes the activity stays in for a late or early real event: their agent asks first
+    var traits = wants(p, a) ? a.traits.slice() : a.traits.concat(timeTraits(a, part));
     if (part === "morning" && a.outdoor) traits.push("early_mornings");
     for (var j = 0; j < traits.length; j++) { if (has(p.avoid, traits[j])) return { score: 0, why: "avoids " + words(traits[j]) }; }
     var score = 0;
@@ -78,17 +78,17 @@
   }
   // a real event's fixed time says what it involves: to 9pm or later is a late night, before 9am an
   // early morning (same as demand.time_traits and the agent's checks)
-  function loves(p, a) {
-    // they love (weight 3) one of the activity's tags (same as demand.loves)
-    for (var k = 0; k < p.likes.length; k++) { if (has(a.tags, p.likes[k].tag) && p.likes[k].weight >= 3) return true; }
+  function wants(p, a) {
+    // they like one of the activity's tags at any strength (same as demand.wants, Nov 13 Example #19)
+    for (var k = 0; k < p.likes.length; k++) { if (has(a.tags, p.likes[k].tag) && p.likes[k].weight >= 1) return true; }
     return false;
   }
   function timeQuestions(p, a, time) {
-    // a late or early real event for someone who loves it is a question, not a no (matchmaker.time_questions)
+    // a late or early real event for someone who likes it is a question, not a no (matchmaker.time_questions)
     var f = p.name.split(" ")[0], hours = parseHours(time), out = [];
-    if (!hours || !loves(p, a)) return out;
-    if (has(p.avoid, "late_nights") && hours[1] >= 21) out.push("It runs to 9pm or later and " + f + " usually avoids late nights, but " + f + " loves this: ask " + f + " before saying yes or no for them.");
-    if (has(p.avoid, "early_mornings") && hours[0] < 9) out.push("It starts before 9am and " + f + " usually avoids early mornings, but " + f + " loves this: ask " + f + " before saying yes or no for them.");
+    if (!hours || !wants(p, a)) return out;
+    if (has(p.avoid, "late_nights") && hours[1] >= 21) out.push("It runs to 9pm or later and " + f + " usually avoids late nights, but " + f + " likes this: ask " + f + " before saying yes or no for them.");
+    if (has(p.avoid, "early_mornings") && hours[0] < 9) out.push("It starts before 9am and " + f + " usually avoids early mornings, but " + f + " likes this: ask " + f + " before saying yes or no for them.");
     return out;
   }
   function timeTraits(a, part) {
@@ -338,7 +338,7 @@
     // what in the profile rules this plan out: code refuses a yes that runs into any of it
     var f = p.name.split(" ")[0], out = [];
     if (!has(listOr(p.calendar[iso]), part)) out.push(f + " is busy that " + part + ".");
-    var hours = parseHours(time), soft = loves(p, a);
+    var hours = parseHours(time), soft = wants(p, a);
     if (hours && has(p.avoid, "early_mornings") && hours[0] < 9 && !soft) out.push("It starts before 9am, and " + f + " avoids early mornings.");
     if (hours && has(p.avoid, "late_nights") && hours[1] >= 21 && !soft) out.push("It runs to 9pm or later, and " + f + " avoids late nights.");
     for (var i = 0; i < a.traits.length; i++) {

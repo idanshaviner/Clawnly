@@ -101,8 +101,12 @@ def test_a_late_real_event_keeps_late_night_avoiders_out_of_the_break_room():
     assert "late_nights" not in trivia["traits"]
     fan = person(likes=[{"tag": "trivia", "weight": 2}], calendar={wednesday.isoformat(): ["evening"]})
     assert demand.fit(fan, trivia, wednesday, "evening")[1] is None
+    stranger = person(likes=[], avoid=["late_nights"], calendar={wednesday.isoformat(): ["evening"]})
+    assert demand.fit(stranger, trivia, wednesday, "evening")[1] == "avoids late_nights"
+    # Nov 13 review (Example #19, Idan): someone only up for it is asked about the late end too
+    fan["likes"] = [{"tag": "trivia", "weight": 1}]
     fan["avoid"] = ["late_nights"]
-    assert demand.fit(fan, trivia, wednesday, "evening")[1] == "avoids late_nights"
+    assert demand.fit(fan, trivia, wednesday, "evening")[1] is None
     assert demand.time_traits(catalog.get("kraken"), "evening") == ["late_nights"]
 
 

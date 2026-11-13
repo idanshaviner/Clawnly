@@ -26,14 +26,35 @@ it and avoids nothing about it.
 - When a group fails because the activity was wrong for those people, swap the activity, not
   the people.
 
+## A no is a signal
+
+- When someone says they wouldn't meet a specific person again, don't put that pair in the
+  same small group again. It is about the pair, not a strike against either person: each can
+  still be placed with other neighbors.
+- When someone declines an activity, ask whether the activity was wrong before deciding the
+  people were wrong.
+
+## Big groups of interested people
+
+- When the people who like an activity span two generations, make two groups in their own
+  chapters of life instead of one wide group.
+- At a family event the shared chapter is the parents (for example parents of young kids); the
+  kids' ages don't count against the age mix.
+- What someone avoids is a hard limit even when they fit otherwise: someone who avoids crowds
+  stays off a big holiday event.
+- Exception for the clock: when a real event runs late (ends 9pm or later) or starts early
+  (before 9am) and someone who usually avoids that loves the activity, don't count them out.
+  Their agent confirms with them first; a real fan is often fine with one late game.
+- When someone drops out, the replacement must like the main thing and fit the group's chapter
+  of life, not just be free.
+
 ## Labeled examples
 
-All people are simulated neighbors. Reviewed by the team on Nov 9, 2026.
+All people are simulated neighbors. Only examples the team marked Keep are listed here.
+Examples marked Change wait in the review sheet until they are rewritten and kept.
 
-- Bad: a cribbage table with ages 19 and 83, even though everyone likes cards. The age gap is
-  too big for a small table.
-- Bad: quiet cribbage for Jack W. (20), Grace M. (83) and Brian O. (48). The activity fits, but
-  the ages are far apart.
+Kept on Nov 9, 2026:
+
 - Bad: a Green River Gorge hike built from three retired anglers, pitched as good river access.
   4 of 5 said no, and the keen hikers were never asked.
 - Bad: a trivia night formed from five beer fans and zero trivia fans.
@@ -41,3 +62,44 @@ All people are simulated neighbors. Reviewed by the team on Nov 9, 2026.
   instead of the hike. Same stage of life, and fishing is the main thing they like.
 - Good: Lauren P. (28) and Tom H. (25) at Silent Book Club. Both like book clubs and are close
   in age.
+
+Kept on Nov 10, 2026:
+
+- Good: Big Soos Creek salmon habitat restoration: Tyler O. (32), Lauren P. (28) and Logan W. (26),
+  who all like volunteering. Tom B. (73) and Angelica L. (80) also like volunteering, so they get
+  their own pair instead of being added to make five.
+- Good: Gnometown Holidays tree lighting: Santiago T. (42), Chris W. (36) and Scott P. (35), parents
+  of young kids, with the kids along. Hunter R. (35) was left out because he avoids crowds.
+- Good: last week Liam A. (78) said he wouldn't meet Tom O. (76) again. This week Claire B. (72) and
+  Liam keep their cribbage table, Grace M. (83), who loves cards, fills the third seat, and Tom goes
+  to the Lake Sawyer fishing group. Never re-seat that pair, keep both people in play.
+
+Kept on Nov 11, 2026:
+
+- Good, with the team's note: Seattle Thunderbirds hockey, 7:05pm, ends about 9:30pm: Kevin D. (41),
+  Marcus J. (45) and Priya S. (39), who all love watching hockey. Priya usually avoids late nights,
+  so confirm with her first; she is most likely fine with it because she loves hockey. If she
+  says no, Ben T. (43), a hockey fan who doesn't mind late nights, takes the seat.
+- Good: Maple Valley Library Monday morning book group, 11am: Ruth K. (68), Dennis M. (71) and
+  Joan P. (66), retirees who love book clubs. A weekday morning fits their chapter of life, and a
+  monthly group makes a second meetup easy.
+- Good: Black Diamond Hometown Christmas: Rosa M. (42) with her son Leo (13) and Dan K. (45) with his
+  daughter Ava (14). A wider age mix is fine here: parents of young teens share a chapter, and
+  each teen comes with their own parent.
+- Good: Salmon Fest at Mary Olson Farm: Sam P. (52), Erin G. (55) and Mike H. (50) love watching
+  wildlife. Erin drops out; the next free person, Josh T. (24), only likes the farm's history, so
+  the matcher asks Linda T. (57), who loves wildlife.
+
+Kept on Nov 12, 2026:
+
+- Good, with the team's note: Ten Trails 5K Turkey Trot, Thanksgiving, 8:30am start: Meera K. (34)
+  loves running but usually avoids early mornings, so her agent asks her first, and she says yes
+  for a holiday run; Tasha R. (31), who also loves running, joins. Jason L. (38) is only up for a
+  jog and avoids early mornings, and he should still be asked too: an early start or late end is a
+  question for anyone who likes the activity, not a no code makes for them.
+- Good: Claire B. (72), Liam A. (78) and Grace M. (83) played cribbage and all three said they'd meet
+  again, so they are offered a monthly cribbage tournament together before anyone builds a new
+  cribbage table. A group that wants a second meetup gets the next event first, ideally a recurring one.
+- Good: Meera K. (34) and Tasha R. (31) love easy runs and do a 5K together; Jason L. (38) is training
+  for a fast 10K, so he runs it with Raj P. (36), another 10K racer. Match how people like to do the
+  main thing (easy pace or racing), not just the thing itself.

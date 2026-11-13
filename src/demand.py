@@ -36,6 +36,34 @@ def tie_order(day, person_id):
     return value
 
 
+def time_traits(activity, part):
+    # a real event's fixed time says what it involves, even when its tags forget to: ending at 9pm
+    # or later is a late night, starting before 9am is an early morning (the same lines
+    # matchmaker.conflicts draws), so an avoider never gets into the break room for it
+    import matchmaker
+    out = []
+    hours = matchmaker.parse_hours(matchmaker.fixed_time(activity, part))
+    if hours is None:
+        return out
+    if hours[1] >= 21:
+        out.append("late_nights")
+    if hours[0] < 9:
+        out.append("early_mornings")
+    return out
+
+
+def wants(person, activity):
+    # they said they like one of the activity's tags at any strength (love, like, or up for it).
+    # Nov 13 review (Example #19, Idan): Jason, only up for a jog, should still be asked about an
+    # early start, not just the people who love running
+    i = 0
+    while i < len(person["likes"]):
+        if person["likes"][i]["tag"] in activity["tags"] and person["likes"][i]["weight"] >= 1:
+            return True
+        i += 1
+    return False
+
+
 def fit(person, activity, day, part):
     # (score, None) if this person could join this activity in this day part,
     # else (0, the reason they can't). The score says how much they'd want to.
@@ -53,6 +81,11 @@ def fit(person, activity, day, part):
             return 0, "dislikes " + activity["tags"][i]
         i += 1
     traits = list(activity["traits"])
+    if not wants(person, activity):
+        # someone who likes the activity stays in the room for a late or early real event: their
+        # agent asks them first instead of code counting them out (Nov 12 review, Example #13;
+        # widened from lovers to anyone who likes it on Nov 13, Example #19)
+        traits += time_traits(activity, part)
     if part == "morning" and activity["outdoor"]:
         traits.append("early_mornings")
     j = 0

@@ -92,3 +92,39 @@ def test_the_tie_order_is_reproducible_and_ignores_input_order():
     assert demand.tie_order(SUNDAY, "e001") == demand.tie_order(SUNDAY, "e001")
     # the same FNV-1a value src/web/run-clawnly.js computes for this day and id
     assert demand.tie_order(datetime.date(2026, 10, 28), "e001") == 1893869886
+
+
+def test_a_late_real_event_keeps_late_night_avoiders_out_of_the_break_room():
+    # trivia runs 7pm-9pm and the Kraken night 7pm-9:30pm: both late, even though neither is tagged late
+    wednesday = datetime.date(2026, 11, 11)
+    trivia = catalog.get("trivia")
+    assert "late_nights" not in trivia["traits"]
+    fan = person(likes=[{"tag": "trivia", "weight": 2}], calendar={wednesday.isoformat(): ["evening"]})
+    assert demand.fit(fan, trivia, wednesday, "evening")[1] is None
+    stranger = person(likes=[], avoid=["late_nights"], calendar={wednesday.isoformat(): ["evening"]})
+    assert demand.fit(stranger, trivia, wednesday, "evening")[1] == "avoids late_nights"
+    # Nov 13 review (Example #19, Idan): someone only up for it is asked about the late end too
+    fan["likes"] = [{"tag": "trivia", "weight": 1}]
+    fan["avoid"] = ["late_nights"]
+    assert demand.fit(fan, trivia, wednesday, "evening")[1] is None
+    assert demand.time_traits(catalog.get("kraken"), "evening") == ["late_nights"]
+
+
+def test_time_traits_read_only_a_fixed_time():
+    assert demand.time_traits(catalog.get("book-club"), "evening") == []        # no fixed time
+    assert demand.time_traits(catalog.get("little-league"), "evening") == []    # 6pm-8pm ends before 9pm
+    assert demand.time_traits(catalog.get("trail-cleanup"), "morning") == []    # 9am start is not early
+    early = dict(catalog.get("trail-cleanup"), fixed={"morning": "8am-11am"})
+    assert demand.time_traits(early, "morning") == ["early_mornings"]
+
+
+def test_someone_who_loves_it_stays_in_the_room_for_a_late_real_event():
+    # Nov 12 review (Example #13): a hockey lover who usually avoids late nights is asked, not counted out
+    wednesday = datetime.date(2026, 11, 11)
+    trivia = catalog.get("trivia")
+    lover = person(likes=[{"tag": "trivia", "weight": 3}], avoid=["late_nights"],
+                   calendar={wednesday.isoformat(): ["evening"]})
+    assert demand.fit(lover, trivia, wednesday, "evening")[1] is None
+    # a tagged trait or the outdoor-morning guess is still a hard no, even for a lover
+    kayak = catalog.get("sawyer-paddle")
+    assert demand.fit(person(avoid=["early_mornings"]), kayak, SUNDAY, "morning")[1] == "avoids early_mornings"

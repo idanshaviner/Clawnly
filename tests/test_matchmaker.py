@@ -408,8 +408,10 @@ def test_the_plan_lists_each_person_once_and_stays_small():
     # 25,000 when each keen person's liked tags and everyone's avoids were added: without them the
     # hub called five beer fans "trivia-keen" (simulation_results/runs/run_20261029_023732_pilot)
     # the cap went from 32,000 to 35,000 when the team's skill file (matchmaker_skill.md, about
-    # 2,400 characters) joined the plan prompt
-    assert len(matchmaker._plan_system(DAY, 10) + payload) < 35000
+    # 2,400 characters) joined the plan prompt. The skill file grows with every kept example, so
+    # since Nov 12 it is measured on its own and the rest keeps the old 32,000 cap
+    assert len(matchmaker._plan_system(DAY, 10) + payload) - len(matchmaker.skill()) < 32000
+    assert len(matchmaker.skill()) < 12000   # time to summarize the oldest examples
 
 
 def test_the_plan_shows_why_each_keen_person_is_in_the_room_and_what_they_avoid():
@@ -540,28 +542,27 @@ def evening_room(people, index):
 
 
 def test_code_refuses_a_yes_that_runs_into_what_the_person_avoids():
-    # Nikhil's case: his agent said yes to hockey until 9:30pm although he avoids late nights
+    # Nikhil's case: his agent said yes to hockey until 9:30pm although he avoids late nights.
+    # Since the Nov 12 and Nov 13 reviews (Examples #13 and #19) a late end is a question for anyone
+    # who likes the activity, so code keeps their yes and their agent is told to ask them first.
+    # A day they are busy is still a hard no that code refuses.
     reset_db()
     people = town()
     index = {p["id"]: p for p in people}
     room = evening_room(people, index)
     ids = strong_ids(room, index)[:3]
     index[ids[0]]["avoid"] = ["late_nights"]
+    activity = catalog.get(room["activity"])
+    checks = matchmaker.plan_checks(index[ids[0]], activity, "evening", "7-9:30pm", DAY)
+    assert any("likes this: ask" in c for c in checks)
+    assert not any(c.startswith("It runs to 9pm or later, and") for c in
+                   matchmaker.conflicts(index[ids[0]], activity, "evening", "7-9:30pm", DAY))
     plan = {"thoughts": "One late game.", "groups": [{"activity": room["activity"], "part": "evening", "time": "7-9:30pm",
                                                       "members": ids, "alternates": [], "proposals": {}}]}
     data = run(matchmaker.run_day(DAY, 5, people, fake(plan)))
     group = data["groups"][0]
     late = [m for m in group["members"] if m["id"] == ids[0]][0]
-    assert late["state"] == "no"
-    assert "avoids late nights" in late["refused"]
-    assert group["status"] == "locked" and ids[0] not in group["final"] and len(group["final"]) == 2
-    first = index[ids[0]]["name"].split(" ")[0]
-    assert any(e["kind"] == "check" and e["text"].startswith("Refused " + first + "'s yes to g1: It runs to 9pm or later")
-               for e in data["log"])
-    # the agent's own words stay on record next to code's decision
-    agent = [m for m in group["thread"] if m["from"] == "agent" and m["by"] == ids[0]][0]
-    assert agent["answer"] == "yes"
-    assert any(m["from"] == "system" and m["text"].startswith("Code turned " + first + "'s yes into a no") for m in group["thread"])
+    assert late["state"] == "yes" and not late.get("refused")
 
 
 def test_a_yes_without_a_reason_from_the_profile_counts_as_no():
@@ -685,8 +686,27 @@ def test_a_time_past_midnight_is_late_and_outside_the_evening():
     person = dict(town()[0], avoid=["late_nights"])
     day = datetime.date.fromisoformat(sorted(person["calendar"])[0])
     person["calendar"] = {day.isoformat(): ["evening"]}
+    person["likes"] = []   # anyone who likes it would be asked instead (Nov 13 review, Example #19)
     found = matchmaker.conflicts(person, catalog.get("book-club"), "evening", "10pm-12am", day)
     assert any("9pm or later" in c for c in found)
+
+
+def test_a_late_event_is_a_question_for_someone_who_likes_it():
+    # Nov 12 review (Example #13): confirm with the person first instead of refusing for them.
+    # Nov 13 review (Example #19, Idan): that holds for anyone who likes it, even only up for it
+    person = dict(town()[0], avoid=["late_nights"])
+    day = datetime.date.fromisoformat(sorted(person["calendar"])[0])
+    person["calendar"] = {day.isoformat(): ["evening"]}
+    club = catalog.get("book-club")
+    person["likes"] = [{"tag": club["tags"][0], "weight": 3}]
+    assert not any("9pm or later" in c for c in matchmaker.conflicts(person, club, "evening", "7pm-9:30pm", day))
+    checks = matchmaker.plan_checks(person, club, "evening", "7pm-9:30pm", day)
+    assert any("likes this: ask" in c for c in checks)
+    person["likes"] = [{"tag": club["tags"][0], "weight": 1}]
+    assert not any("9pm or later" in c for c in matchmaker.conflicts(person, club, "evening", "7pm-9:30pm", day))
+    assert any("likes this: ask" in c for c in matchmaker.plan_checks(person, club, "evening", "7pm-9:30pm", day))
+    person["likes"] = []
+    assert any("9pm or later" in c for c in matchmaker.conflicts(person, club, "evening", "7pm-9:30pm", day))
 
 
 # ----- dropouts: the matchmaker fishes for the next person from the break room ---------
@@ -822,8 +842,13 @@ def test_the_free_list_puts_fewer_plans_first_and_skips_what_the_profile_rules_o
     assert keen[0] not in group["pool"]
     assert busy not in group["pool"]
     assert "e096" in group["pool"]
-    # an 8am start runs into what e096 avoids, so the next person takes the place
+    # e096 likes the museum, so an 8am start is a question for e096, not a no (Nov 12 review,
+    # Example #13; Nov 13, Example #19): e096 stays on the free list and the agent asks first
     group["time"] = "8-10am"
+    matchmaker._fill_pools([group], rooms, index, DAY)
+    assert "e096" in group["pool"]
+    # if e096 had never said they like it, the 8am start would rule e096 out
+    index["e096"]["likes"] = []
     matchmaker._fill_pools([group], rooms, index, DAY)
     assert "e096" not in group["pool"]
     assert len(group["pool"]) == matchmaker.POOL_PER_GROUP
@@ -840,7 +865,14 @@ def test_the_skill_file_loads_with_its_lessons_and_examples():
     assert "parent and a teen" in text
     assert "## Main thing vs side thing" in text
     assert "swap the activity, not" in text
-    assert "Bad: a cribbage table with ages 19 and 83" in text
+    # only examples the team marked Keep are listed; Change rows wait in the sheet
+    assert "Bad: a cribbage table with ages 19 and 83" not in text
+    assert "Bad: a trivia night formed from five beer fans" in text
+    assert "## A no is a signal" in text
+    assert "Kept on Nov 10, 2026:" in text
+    assert "## Big groups of interested people" in text
+    # Change rows (the Paranormal Reveal, Holiday Market and stargazing groups) stay out until kept
+    assert "Paranormal" not in text and "Holiday Market" not in text and "stargazing" not in text
     assert "Good: Lauren P. (28) and Tom H. (25) at Silent Book Club" in text
     # the fake client routes by marker phrase: the skill must not carry one, or it would misroute
     low = text.lower()

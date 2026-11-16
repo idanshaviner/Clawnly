@@ -20,6 +20,10 @@ Each activity:
   fixed      -- for real events (games, concerts, a work party): the time it
                 actually happens, per day part. A group meets then; the
                 matchmaker can't move it.
+  dropin     -- for real drop-in events (a market, an open house): the hours it's
+                open, per day part. Being open isn't a meeting time, so the
+                matchmaker sets one meeting time (and place) inside the window,
+                or people come and go without meeting (Nov 13 review, Example #30).
 
 GROUP_MIN is the smallest group anywhere. GROUP_MAX only sizes the code-only
 preview in demand.py; the matchmaker has no upper limit.
@@ -52,13 +56,16 @@ EVERY_DAY = [0, 1, 2, 3, 4, 5, 6]
 WEEKEND = [5, 6]
 
 
-def _a(id, name, where, tags, traits, days, parts, months, cost, outdoor, fixed=None):
+def _a(id, name, where, tags, traits, days, parts, months, cost, outdoor, fixed=None, dropin=None):
     times = {}
     if fixed is not None:
         times = fixed
+    window = {}
+    if dropin is not None:
+        window = dropin
     return {"id": id, "name": name, "neighborhood": NEIGHBORHOOD, "where": where, "tags": tags,
             "traits": traits, "days": days, "parts": parts, "months": months, "cost": cost, "outdoor": outdoor,
-            "fixed": times}
+            "fixed": times, "dropin": window}
 
 
 ACTIVITIES = [
@@ -89,7 +96,8 @@ ACTIVITIES = [
     _a("potluck", "Potluck picnic", "Black Diamond Civic Park",
        ["picnics", "cooking"], [], WEEKEND, ["afternoon"], WARM, "low", True),
     _a("farmers-market", "Maple Valley Farmers Market and coffee", "Maple Valley Farmers Market (Saturdays 9-2)",
-       ["farmers_market", "coffee", "cooking"], ["crowds"], [5], ["morning"], [5, 6, 7, 8, 9], "low", True),
+       ["farmers_market", "coffee", "cooking"], ["crowds"], [5], ["morning"], [5, 6, 7, 8, 9], "low", True,
+       None, {"morning": "9am-2pm"}),
 
     # trails
     _a("franklin", "Franklin ghost town hike", "Franklin ghost town trail, Green River Gorge Rd",

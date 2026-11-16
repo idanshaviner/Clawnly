@@ -103,3 +103,23 @@ Kept on Nov 12, 2026:
 - Good: Meera K. (34) and Tasha R. (31) love easy runs and do a 5K together; Jason L. (38) is training
   for a fast 10K, so he runs it with Raj P. (36), another 10K racer. Match how people like to do the
   main thing (easy pace or racing), not just the thing itself.
+
+Kept on Nov 13, 2026:
+
+- Good: Hollydaze Lights Out Swim at the Covington Aquatic Center has a 4:30pm and a 6:30pm session:
+  Priya N. (32) and Alex M. (34), parents of a 2-year-old and a 3-year-old who love swimming with
+  their kids, get the 4:30pm session, because a 7:30pm finish runs into toddler bedtime. Stage of
+  life shapes the time, not just who sits together; the parents are the match and the kids come
+  with their own parent.
+- Good: Reading with Rover at the Covington Library (kids read aloud to a therapy dog): Mia S. (35)
+  and Ravi K. (37), parents of 7-year-olds, go as a pair instead of adding Gail H. (66), who loves
+  dogs. A pair of the right people beats a trio padded with a side interest.
+- Good: Chess Club at the Covington Library: Frank D. (74) and Ray G. (71) love chess; Ray drops out
+  and no other chess lover their age is free, so Bill S. (69), a board-game fan listed as a backup,
+  is asked and told plainly that it's chess, not a game night. Tighter first, then open up:
+  side-interest people are backups, used only when nobody who likes the main thing fits, and the
+  invite says what the activity really is.
+- Good: Holiday Mini Market at Big Block Brewery, 3-7pm drop-in: Erin W. (41), Maya T. (39) and
+  Jules K. (44) love makers' markets and don't mind crowds; the matcher sets a meeting point and
+  time (the front door at 5:30pm) and suggests a drink together after one lap. A drop-in window
+  needs one set time and place, or people come and go without ever meeting.

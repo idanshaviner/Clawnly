@@ -213,6 +213,7 @@
       "- Prefer groups whose members share more than the activity (overlapping likes, similar stage of life), so they'd enjoy each other.",
       "- Spread plans across many people rather than stacking the keenest into one group.",
       "- Pick a specific time inside the day part (morning " + PART_HOURS.morning + ", afternoon " + PART_HOURS.afternoon + ", evening " + PART_HOURS.evening + "). A room marked FIXED is a real event (a game, a concert): use exactly that time.",
+      "- A room marked DROP-IN is a real event people wander through (a market, an open house): its hours are not a meeting time. Pick one meeting time inside them and name a meeting spot in every proposal (for example the front entrance at 10am, then coffee after one lap), or people come and go without ever meeting.",
       "- Name up to 2 alternates per group from the same break room, in case someone declines.",
       "- Write a short, personal proposal to each member's agent: what, when, where, how many others, and why it fits this person. Don't name the other people yet.",
       "- In the why and the proposals, describe only interests people actually have: someone in a trivia room for the craft beer isn't a trivia fan. Check what a person avoids against a FIXED time.",
@@ -232,6 +233,8 @@
       var header = "[" + a.id + " | " + s.part + "] " + a.name + " at " + a.where + ", cost " + a.cost + ", about: " + a.tags.map(words).join(", ");
       var fixed = fixedTime(a, s.part);
       if (fixed) header += ", FIXED " + fixed;
+      var dropin = dropinWindow(a, s.part);
+      if (dropin) header += ", DROP-IN " + dropin + " (set one meeting time and spot inside it)";
       lines.push("", header + " (" + s.candidates.length + " in the room)");
       // the keenest with keenness (profiles once, below); everyone else by id, so nobody is left out
       var top = [], rest = [], mild = [];
@@ -289,6 +292,33 @@
   }
   var LEVELS = [[3, "Loves"], [2, "Really likes"], [1, "Is up for"]];
   var BUDGET_WORDS = { free: "free things only", low: "free or low-cost things", any: "any cost" };
+  function dropinWindow(a, part) {
+    // the hours a drop-in event (a market, an open house) is open in that day part, or null
+    var w = a.dropin || {};
+    return w[part] || null;
+  }
+  function clock(h) {
+    // 9.5 -> "9:30am", 12 -> "12pm"
+    var hour = Math.floor(h), minutes = Math.round((h - hour) * 60), half = hour >= 12 ? "pm" : "am", shown = hour % 12;
+    if (shown === 0) shown = 12;
+    return minutes ? shown + ":" + (minutes < 10 ? "0" : "") + minutes + half : shown + half;
+  }
+  function meetHours(a, part) {
+    // the day part, narrowed to a drop-in event's open hours (a market open 9am-2pm meets 9am-12pm in the morning)
+    var w = dropinWindow(a, part);
+    if (!w) return PART_HOURS[part];
+    var open = parseHours(w), bounds = parseHours(PART_HOURS[part]);
+    if (!open) return PART_HOURS[part];
+    var start = Math.max(open[0], bounds[0]), end = Math.min(open[1], bounds[1]);
+    if (end <= start) return PART_HOURS[part];
+    return clock(start) + "-" + clock(end);
+  }
+  function insideMeetHours(text, a, part) {
+    if (!insidePart(text, part)) return false;
+    var hours = parseHours(text), w = parseHours(meetHours(a, part));
+    if (!hours || !w) return true;
+    return hours[0] >= w[0] && hours[1] <= w[1];
+  }
   function fixedTime(a, part) {
     // the real time of a game, concert or event in that day part, or null when the time is free to pick
     var f = a.fixed || {};
@@ -506,9 +536,9 @@
       if (fixed) {
         g.fixed = true;
         if (g.time !== fixed) { g.plannedTime = g.time; g.time = fixed; }
-      } else if (!insidePart(g.time, slot.part)) {
+      } else if (!insideMeetHours(g.time, ACTS[slot.activity], slot.part)) {
         g.plannedTime = g.time;
-        g.time = PART_HOURS[slot.part];
+        g.time = meetHours(ACTS[slot.activity], slot.part);
       }
       var proposals = r.proposals || {};
       for (var m = 0; m < members.length; m++) {
@@ -632,6 +662,7 @@
       if (dec.time && String(dec.time) !== grp.time) {
         if (grp.fixed) log("code", "check", "Kept " + grp.id + " at " + grp.time + ": " + ACTS[grp.activity].name + " is a real event, so the matchmaker can't move it to " + dec.time + ".", grp.id);
         else if (!insidePart(String(dec.time), grp.part)) log("code", "check", "Kept " + grp.id + " at " + grp.time + ": " + dec.time + " is outside the " + grp.part + " (" + PART_HOURS[grp.part] + "), when nobody's calendar was checked.", grp.id);
+        else if (!insideMeetHours(String(dec.time), ACTS[grp.activity], grp.part)) log("code", "check", "Kept " + grp.id + " at " + grp.time + ": " + dec.time + " is outside " + ACTS[grp.activity].name + "'s open hours (" + dropinWindow(ACTS[grp.activity], grp.part) + ").", grp.id);
         else { log("hub", "decision", grp.id + " moves to " + dec.time + ".", grp.id); grp.time = String(dec.time); moved = true; }
       }
       var asks = listOr(dec.ask);

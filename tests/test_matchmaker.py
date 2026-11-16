@@ -916,3 +916,42 @@ def test_a_run_sends_the_skill_to_the_plan_and_the_resolve_calls():
     assert text in plans[0]
     assert len(resolves) >= 1
     assert text in resolves[0]
+
+
+# ----- Nov 13 review, Example #30: a drop-in window isn't a meeting time -----
+
+SATURDAY = datetime.date(2026, 9, 26)
+
+
+def test_a_drop_in_market_meets_inside_its_open_hours_and_the_day_part():
+    market = catalog.get("farmers-market")
+    assert matchmaker.dropin_window(market, "morning") == "9am-2pm"
+    assert matchmaker.fixed_time(market, "morning") is None
+    assert matchmaker.meet_hours(market, "morning") == "9am-12pm"
+    assert matchmaker.inside_meet_hours("10am-11:30am", market, "morning")
+    assert not matchmaker.inside_meet_hours("8am-9am", market, "morning")
+    # an activity with no drop-in window keeps the whole day part
+    assert matchmaker.meet_hours(catalog.get("bakery"), "morning") == matchmaker.PART_HOURS["morning"]
+
+
+def test_the_plan_sets_one_meeting_time_inside_a_drop_in_window():
+    people = population.generate(200, seed=7, start=SATURDAY)
+    index = {p["id"]: p for p in people}
+    rooms = demand.break_room(people, catalog.ACTIVITIES, SATURDAY)
+    room = [r for r in rooms if r["activity"] == "farmers-market"][0]
+    strong, mild = matchmaker.split_room(room, index)
+    ids = [c["id"] for c in strong][:3]
+    assert len(ids) >= 2
+    kept, _ = matchmaker.check_plan({"groups": [{"activity": "farmers-market", "part": "morning", "time": "10am-11:30am",
+                                                 "members": ids}]}, rooms, 5, index)
+    # a narrower meeting time inside the open hours stands: it is when they actually meet
+    assert kept[0]["time"] == "10am-11:30am"
+    assert "plannedTime" not in kept[0]
+    early, _ = matchmaker.check_plan({"groups": [{"activity": "farmers-market", "part": "morning", "time": "8am-9am",
+                                                  "members": ids}]}, rooms, 5, index)
+    # before the market opens is no meeting time: code pulls it back inside the open hours
+    assert early[0]["time"] == "9am-12pm"
+    assert early[0]["plannedTime"] == "8am-9am"
+    payload = matchmaker._plan_payload([room], index)
+    assert "DROP-IN 9am-2pm" in payload
+    assert "DROP-IN" in matchmaker._plan_system(SATURDAY, 5)

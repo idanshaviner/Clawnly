@@ -157,6 +157,7 @@ def _plan_system(day, max_groups):
         "- Prefer groups whose members share more than the activity (overlapping likes, similar stage of life), so they'd enjoy each other.",
         "- Favor people with fewer plans this week: when two people fit, the place goes to the one with fewer. Spread plans across many people rather than stacking the keenest into one group.",
         "- Pick a specific time inside the day part (morning " + PART_HOURS["morning"] + ", afternoon " + PART_HOURS["afternoon"] + ", evening " + PART_HOURS["evening"] + "). A room marked FIXED is a real event (a game, a concert): use exactly that time.",
+        "- A room marked DROP-IN is a real event people wander through (a market, an open house): its hours are not a meeting time. Pick one meeting time inside them and name a meeting spot in every proposal (for example the front entrance at 10am, then coffee after one lap), or people come and go without ever meeting.",
         "- Name up to 2 alternates per group from the same break room, in case someone declines.",
         "- Write a short, personal proposal to each member's agent: what, when, where, how many others, and why it fits this person. Don't name the other people yet.",
         "- In the why and the proposals, describe only interests people actually have: someone in a trivia room for the craft beer isn't a trivia fan. Check what a person avoids against a FIXED time.",
@@ -215,6 +216,9 @@ def _plan_payload(rooms, people, plans=None):
         fixed = fixed_time(a, room["part"])
         if fixed is not None:
             header = header + ", FIXED " + fixed
+        window = dropin_window(a, room["part"])
+        if window is not None:
+            header = header + ", DROP-IN " + window + " (set one meeting time and spot inside it)"
         lines.append("")
         lines.append(header + " (" + str(len(room["candidates"])) + " in the room)")
         top = []
@@ -260,6 +264,55 @@ def fixed_time(activity, part):
     # the real time of a game, concert or event in that day part, or None when the time is free to pick
     times = activity.get("fixed") or {}
     return times.get(part)
+
+
+def dropin_window(activity, part):
+    # the hours a drop-in event (a market, an open house) is open in that day part, or None
+    times = activity.get("dropin") or {}
+    return times.get(part)
+
+
+def _clock(hours):
+    # 9.5 -> "9:30am", 12 -> "12pm"
+    hour = int(hours)
+    minutes = int(round((hours - hour) * 60))
+    half = "am"
+    if hour >= 12:
+        half = "pm"
+    shown = hour % 12
+    if shown == 0:
+        shown = 12
+    if minutes:
+        return str(shown) + ":" + ("%02d" % minutes) + half
+    return str(shown) + half
+
+
+def meet_hours(activity, part):
+    # when a group can meet for this activity in this day part: the day part, narrowed to a
+    # drop-in event's open hours (a market open 9am-2pm meets 9am-12pm in the morning)
+    window = dropin_window(activity, part)
+    if window is None:
+        return PART_HOURS[part]
+    open_hours = parse_hours(window)
+    bounds = parse_hours(PART_HOURS[part])
+    if open_hours is None:
+        return PART_HOURS[part]
+    start = max(open_hours[0], bounds[0])
+    end = min(open_hours[1], bounds[1])
+    if end <= start:
+        return PART_HOURS[part]
+    return _clock(start) + "-" + _clock(end)
+
+
+def inside_meet_hours(time_text, activity, part):
+    # inside the day part, and inside a drop-in event's open hours when it has them
+    if not inside_part(time_text, part):
+        return False
+    hours = parse_hours(time_text)
+    window = parse_hours(meet_hours(activity, part))
+    if hours is None or window is None:
+        return True
+    return hours[0] >= window[0] and hours[1] <= window[1]
 
 
 def _to_hours(match, half):
@@ -792,9 +845,9 @@ def check_plan(raw, rooms, max_groups, people):
             if group["time"] != fixed:
                 group["plannedTime"] = group["time"]
                 group["time"] = fixed
-        elif not inside_part(group["time"], room["part"]):
+        elif not inside_meet_hours(group["time"], activity, room["part"]):
             group["plannedTime"] = group["time"]
-            group["time"] = PART_HOURS[room["part"]]
+            group["time"] = meet_hours(activity, room["part"])
         m = 0
         while m < len(members):
             taken[members[m]] = group["id"]
@@ -1101,6 +1154,10 @@ def _resolve_jobs(run, res, groups, people, round_no=2):
                 run.log("code", "check", "Kept " + group["id"] + " at " + group["time"] + ": " + str(dec["time"]) +
                         " is outside the " + group["part"] + " (" + PART_HOURS[group["part"]] +
                         "), when nobody's calendar was checked.", group["id"])
+            elif not inside_meet_hours(str(dec["time"]), catalog.get(group["activity"]), group["part"]):
+                run.log("code", "check", "Kept " + group["id"] + " at " + group["time"] + ": " + str(dec["time"]) +
+                        " is outside " + name + "'s open hours (" + dropin_window(catalog.get(group["activity"]), group["part"]) +
+                        ").", group["id"])
             else:
                 group["time"] = str(dec["time"])
                 moved = True

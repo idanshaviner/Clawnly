@@ -458,12 +458,25 @@ def time_questions(person, activity, time_text):
     return out
 
 
+def bedtime_questions(person, activity, time_text):
+    # stage of life shapes the time, not just who sits together (Nov 13 review, Example #25, kept):
+    # an evening that ends at 7:30pm or later runs into a young kid's bedtime, so a parent's agent
+    # checks it works for them. A question, not a no: their kids may be teens.
+    hours = parse_hours(time_text)
+    if hours is None or not person.get("kids_at_home") or hours[1] < 19.5:
+        return []
+    first = _first(person)
+    return ["It ends at 7:30pm or later and " + first + " has kids at home: check it works with their"
+            " kids' bedtime, and pick an earlier session when there is one."]
+
+
 def plan_checks(person, activity, part, time_text, day):
     # what code can see in the profile that argues against this plan; the agent weighs it
     first = _first(person)
     out = conflicts(person, activity, part, time_text, day)
     keen = keenness(person, activity)
     out += time_questions(person, activity, time_text)
+    out += bedtime_questions(person, activity, time_text)
     if keen == 0:
         out.append(first + " never said they like this.")
     if keen == 1:

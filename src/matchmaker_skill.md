@@ -14,6 +14,9 @@ it and avoids nothing about it.
   locked rule: a slightly wider spread can work when everything else lines up.
 - A shared interest alone does not make a 19-year-old and an 83-year-old a good small group.
 - Exception that can be okay: a parent and a teen together at a clearly family-style event.
+- Stage of life shapes the time too: parents of toddlers and young kids need evenings that end
+  before bedtime (about 7:30pm). When an event has two sessions, give them the earlier one; when
+  it ends later, their agent checks with them first.
 
 ## Main thing vs side thing
 

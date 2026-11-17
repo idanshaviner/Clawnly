@@ -955,3 +955,21 @@ def test_the_plan_sets_one_meeting_time_inside_a_drop_in_window():
     payload = matchmaker._plan_payload([room], index)
     assert "DROP-IN 9am-2pm" in payload
     assert "DROP-IN" in matchmaker._plan_system(SATURDAY, 5)
+
+
+def test_a_late_evening_is_a_bedtime_question_for_a_parent():
+    # Nov 13 review (Example #25, kept): a 7:30pm finish runs into toddler bedtime, so the parent's
+    # agent checks first; the earlier session is fine, and someone without kids at home isn't asked
+    person = dict(town()[0], avoid=[], dislikes=[], budget="any", kids_at_home=True)
+    day = datetime.date.fromisoformat(sorted(person["calendar"])[0])
+    person["calendar"] = {day.isoformat(): ["evening"]}
+    club = catalog.get("book-club")
+    person["likes"] = [{"tag": club["tags"][0], "weight": 3}]
+    late = matchmaker.plan_checks(person, club, "evening", "6:30pm-7:30pm", day)
+    assert any("bedtime" in c for c in late)
+    early = matchmaker.plan_checks(person, club, "evening", "4:30pm-5:30pm", day)
+    assert not any("bedtime" in c for c in early)
+    assert matchmaker.conflicts(person, club, "evening", "6:30pm-7:30pm", day) == []
+    no_kids = dict(person, kids_at_home=False)
+    assert not any("bedtime" in c for c in matchmaker.plan_checks(no_kids, club, "evening", "6:30pm-7:30pm", day))
+    assert "before bedtime" in matchmaker.skill()

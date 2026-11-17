@@ -91,6 +91,13 @@
     if (has(p.avoid, "early_mornings") && hours[0] < 9) out.push("It starts before 9am and " + f + " usually avoids early mornings, but " + f + " likes this: ask " + f + " before saying yes or no for them.");
     return out;
   }
+  function bedtimeQuestions(p, a, time) {
+    // an evening ending 7:30pm or later is a question for a parent: young kids' bedtime (matchmaker.bedtime_questions)
+    var hours = parseHours(time);
+    if (!hours || !p.kids_at_home || hours[1] < 19.5) return [];
+    var f = p.name.split(" ")[0];
+    return ["It ends at 7:30pm or later and " + f + " has kids at home: check it works with their kids' bedtime, and pick an earlier session when there is one."];
+  }
   function timeTraits(a, part) {
     var hours = parseHours(fixedTime(a, part)), out = [];
     if (!hours) return out;
@@ -385,6 +392,7 @@
     var f = p.name.split(" ")[0], out = conflicts(p, a, part, time, iso);
     var keen = keenness(p, a);
     out = out.concat(timeQuestions(p, a, time));
+    out = out.concat(bedtimeQuestions(p, a, time));
     if (keen === 0) out.push(f + " never said they like this.");
     if (keen === 1) out.push("Interest is mild: " + f + " is only up for it.");
     return out;

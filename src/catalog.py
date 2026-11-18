@@ -1,6 +1,6 @@
 """The things to do in a neighborhood: the menu the orchestrator plans from.
 
-37 things to do in and around Black Diamond, WA, for the pilot. The places and
+38 things to do in and around Black Diamond, WA, for the pilot. The places and
 recurring events are real (Lake Sawyer Regional Park and its dock concerts, the
 Black Diamond Historical Museum, Black Diamond Bakery, Flaming Geyser State
 Park, the Green River Gorge, the Franklin ghost town trail, The Vault Taphouse,
@@ -24,6 +24,9 @@ Each activity:
                 open, per day part. Being open isn't a meeting time, so the
                 matchmaker sets one meeting time (and place) inside the window,
                 or people come and go without meeting (Nov 13 review, Example #30).
+  family     -- a family outing priced per person: kids come along and each one
+                pays too, so a parent's real cost is a few tickets, not one
+                (Nov 16 review, Example #31). demand.cost_for counts it.
 
 GROUP_MIN is the smallest group anywhere. GROUP_MAX only sizes the code-only
 preview in demand.py; the matchmaker has no upper limit.
@@ -56,7 +59,7 @@ EVERY_DAY = [0, 1, 2, 3, 4, 5, 6]
 WEEKEND = [5, 6]
 
 
-def _a(id, name, where, tags, traits, days, parts, months, cost, outdoor, fixed=None, dropin=None):
+def _a(id, name, where, tags, traits, days, parts, months, cost, outdoor, fixed=None, dropin=None, family=False):
     times = {}
     if fixed is not None:
         times = fixed
@@ -65,7 +68,7 @@ def _a(id, name, where, tags, traits, days, parts, months, cost, outdoor, fixed=
         window = dropin
     return {"id": id, "name": name, "neighborhood": NEIGHBORHOOD, "where": where, "tags": tags,
             "traits": traits, "days": days, "parts": parts, "months": months, "cost": cost, "outdoor": outdoor,
-            "fixed": times, "dropin": window}
+            "fixed": times, "dropin": window, "family": family}
 
 
 ACTIVITIES = [
@@ -79,6 +82,11 @@ ACTIVITIES = [
     _a("dock-concert", "Lake Sawyer Dock Concert", "Lake Sawyer (the summer dock concert series)",
        ["live_music", "boating", "picnics"], ["crowds"], [5], ["evening"], [7, 8], "free", True,
        {"evening": "6pm-8pm"}),
+    # Covington Aquatic Center Family Swim (shallow end, kids with an adult in the water), weekends
+    # 12-1pm, about $8 a person and under 4 free (covingtonwa.gov, Nov 2026)
+    _a("family-swim", "Family swim with the kids", "Covington Aquatic Center, 18230 SE 240th St (Family Swim, shallow end)",
+       ["swimming"], [], WEEKEND, ["afternoon"], ALL_YEAR, "low", False,
+       {"afternoon": "12pm-1pm"}, None, True),
     _a("sawyer-birding", "Birding walk at Lake Sawyer", "Lake Sawyer Regional Park",
        ["birding", "photography"], ["early_mornings"], EVERY_DAY, ["morning"], ALL_YEAR, "free", True),
     _a("sawyer-dogs", "Dog walk around the park", "Lake Sawyer Regional Park",

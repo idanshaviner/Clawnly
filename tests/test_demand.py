@@ -128,3 +128,20 @@ def test_someone_who_loves_it_stays_in_the_room_for_a_late_real_event():
     # a tagged trait or the outdoor-morning guess is still a hard no, even for a lover
     kayak = catalog.get("sawyer-paddle")
     assert demand.fit(person(avoid=["early_mornings"]), kayak, SUNDAY, "morning")[1] == "avoids early_mornings"
+
+
+def test_a_family_outing_costs_a_parent_a_ticket_per_kid():
+    # Nov 16 review (Example #31): $65 a head was read as one ticket for a parent and a child.
+    # A family outing priced per person costs a parent with kids at home more than one ticket.
+    swim = catalog.get("family-swim")
+    assert swim["family"] and swim["cost"] == "low"
+    swimmer = person(likes=[{"tag": "swimming", "weight": 3}])
+    parent = dict(swimmer, kids_at_home=True)
+    assert demand.cost_for(swimmer, swim) == "low"
+    assert demand.cost_for(parent, swim) == "mid"
+    assert demand.fit(dict(parent, budget="low"), swim, SUNDAY, "afternoon")[1] == "over budget"
+    assert demand.fit(dict(swimmer, budget="low"), swim, SUNDAY, "afternoon")[1] is None
+    assert demand.fit(dict(parent, budget="any"), swim, SUNDAY, "afternoon")[1] is None
+    # a free family event stays free, and a grown-ups' outing isn't priced for the kids
+    assert demand.cost_for(parent, dict(swim, cost="free")) == "free"
+    assert demand.cost_for(parent, catalog.get("cribbage")) == "low"

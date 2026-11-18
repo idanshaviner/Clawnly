@@ -36,6 +36,20 @@ def tie_order(day, person_id):
     return value
 
 
+COST_LEVELS = ["free", "low", "mid"]
+
+
+def cost_for(person, activity):
+    # what this plan really costs this person: at a family outing priced per person, a parent
+    # with kids at home pays for each of them too, so a low-cost ticket is not a low-cost outing
+    # (Nov 16 review, Example #31: $65 a head was read as one ticket for a parent and a child)
+    cost = activity["cost"]
+    if activity.get("family") and person.get("kids_at_home") and cost != "free":
+        i = COST_LEVELS.index(cost)
+        cost = COST_LEVELS[min(i + 1, len(COST_LEVELS) - 1)]
+    return cost
+
+
 def time_traits(activity, part):
     # a real event's fixed time says what it involves, even when its tags forget to: ending at 9pm
     # or later is a late night, starting before 9am is an early morning (the same lines
@@ -73,7 +87,7 @@ def fit(person, activity, day, part):
         return 0, "not running then"
     if part not in person["calendar"].get(day.isoformat(), []):
         return 0, "busy"
-    if activity["cost"] not in BUDGET_OK[person["budget"]]:
+    if cost_for(person, activity) not in BUDGET_OK[person["budget"]]:
         return 0, "over budget"
     i = 0
     while i < len(activity["tags"]):

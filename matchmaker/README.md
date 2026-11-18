@@ -16,7 +16,7 @@ The page's sources are `src/web/run-clawnly.js`, `run-clawnly.css` and
 server serves them with a `mm-mode` flag set to `"server"`; without it the page is the
 Artifact.
 
-200 emulated adults of Black Diamond, WA (`src/population.py`, census-shaped) and 37 real
+200 emulated adults of Black Diamond, WA (`src/population.py`, census-shaped) and 38 real
 local activities (`src/catalog.py`) are embedded in the page. The owner presses
 **Run the matchmaker**; it runs on the owner's Claude account and saves the result into
 the page, so invited people can read every step.

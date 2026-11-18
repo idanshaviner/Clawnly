@@ -212,7 +212,10 @@ def _plan_payload(rooms, people, plans=None):
         while t < len(a["tags"]):
             tags.append(_words(a["tags"][t]))
             t += 1
-        header = "[" + a["id"] + " | " + room["part"] + "] " + a["name"] + " at " + a["where"] + ", cost " + a["cost"] + ", about: " + ", ".join(tags)
+        cost = a["cost"]
+        if a.get("family"):
+            cost = cost + " a person, a family outing (kids come along and pay too)"
+        header = "[" + a["id"] + " | " + room["part"] + "] " + a["name"] + " at " + a["where"] + ", cost " + cost + ", about: " + ", ".join(tags)
         fixed = fixed_time(a, room["part"])
         if fixed is not None:
             header = header + ", FIXED " + fixed
@@ -436,8 +439,12 @@ def conflicts(person, activity, part, time_text, day):
         if activity["tags"][i] in person["dislikes"]:
             out.append("It's " + _words(activity["tags"][i]) + ", which " + first + " is not into.")
         i += 1
-    if activity["cost"] not in demand.BUDGET_OK[person["budget"]]:
-        out.append("It costs more than " + first + "'s budget (" + BUDGET_WORDS[person["budget"]] + ").")
+    if demand.cost_for(person, activity) not in demand.BUDGET_OK[person["budget"]]:
+        if demand.cost_for(person, activity) != activity["cost"]:
+            out.append("It's priced per person and " + first + " would bring kids, so it costs more than " +
+                       first + "'s budget (" + BUDGET_WORDS[person["budget"]] + ").")
+        else:
+            out.append("It costs more than " + first + "'s budget (" + BUDGET_WORDS[person["budget"]] + ").")
     return out
 
 

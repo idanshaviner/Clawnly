@@ -973,3 +973,19 @@ def test_a_late_evening_is_a_bedtime_question_for_a_parent():
     no_kids = dict(person, kids_at_home=False)
     assert not any("bedtime" in c for c in matchmaker.plan_checks(no_kids, club, "evening", "6:30pm-7:30pm", day))
     assert "before bedtime" in matchmaker.skill()
+
+
+def test_a_family_outing_tells_the_parent_why_it_is_over_budget():
+    # Nov 16 review (Example #31): the agent hears it's priced per person, and the planner sees it
+    swim = catalog.get("family-swim")
+    person = dict(town()[0], avoid=[], dislikes=[], budget="low", kids_at_home=True,
+                  likes=[{"tag": "swimming", "weight": 3}])
+    day = datetime.date(2026, 12, 19)
+    person["calendar"] = {day.isoformat(): ["afternoon"]}
+    found = matchmaker.conflicts(person, swim, "afternoon", "12pm-1pm", day)
+    assert any("priced per person" in c for c in found)
+    assert matchmaker.conflicts(dict(person, kids_at_home=False), swim, "afternoon", "12pm-1pm", day) == []
+    room = {"activity": "family-swim", "part": "afternoon",
+            "candidates": [{"id": "a", "score": 3}, {"id": "b", "score": 3}]}
+    people = {"a": dict(person, id="a", budget="any"), "b": dict(person, id="b", name="Bea B.", budget="any")}
+    assert "a person, a family outing" in matchmaker._plan_payload([room], people)

@@ -65,7 +65,7 @@
     if (!has(a.months, monthOf(iso))) return { score: 0, why: "out of season" };
     if (!has(a.days, weekday(iso)) || !has(a.parts, part)) return { score: 0, why: "not running then" };
     if (!has(listOr(p.calendar[iso]), part)) return { score: 0, why: "busy" };
-    if (!has(BUDGET_OK[p.budget], a.cost)) return { score: 0, why: "over budget" };
+    if (!has(BUDGET_OK[p.budget], costFor(p, a))) return { score: 0, why: "over budget" };
     for (var i = 0; i < a.tags.length; i++) { if (has(p.dislikes, a.tags[i])) return { score: 0, why: "dislikes " + words(a.tags[i]) }; }
     // someone who likes the activity stays in for a late or early real event: their agent asks first
     var traits = wants(p, a) ? a.traits.slice() : a.traits.concat(timeTraits(a, part));
@@ -75,6 +75,12 @@
     for (var k = 0; k < p.likes.length; k++) { if (has(a.tags, p.likes[k].tag)) score += p.likes[k].weight; }
     if (score === 0) return { score: 0, why: "not interested" };
     return { score: score, why: null };
+  }
+  var COST_LEVELS = ["free", "low", "mid"];
+  function costFor(p, a) {
+    // a family outing priced per person costs a parent a ticket for each kid too (demand.cost_for, Nov 16 Example #31)
+    if (!a.family || !p.kids_at_home || a.cost === "free") return a.cost;
+    return COST_LEVELS[Math.min(COST_LEVELS.indexOf(a.cost) + 1, COST_LEVELS.length - 1)];
   }
   // a real event's fixed time says what it involves: to 9pm or later is a late night, before 9am an
   // early morning (same as demand.time_traits and the agent's checks)
@@ -237,7 +243,9 @@
       var split = splitRoom(s);
       // no group can form without two members who really want it
       if (split.strong.length < 2) continue;
-      var header = "[" + a.id + " | " + s.part + "] " + a.name + " at " + a.where + ", cost " + a.cost + ", about: " + a.tags.map(words).join(", ");
+      var cost = a.cost;
+      if (a.family) cost += " a person, a family outing (kids come along and pay too)";
+      var header = "[" + a.id + " | " + s.part + "] " + a.name + " at " + a.where + ", cost " + cost + ", about: " + a.tags.map(words).join(", ");
       var fixed = fixedTime(a, s.part);
       if (fixed) header += ", FIXED " + fixed;
       var dropin = dropinWindow(a, s.part);
@@ -384,7 +392,10 @@
       if (has(p.avoid, a.traits[i]) && !covered) out.push("It involves " + words(a.traits[i]) + ", which " + f + " avoids.");
     }
     for (var j = 0; j < a.tags.length; j++) { if (has(p.dislikes, a.tags[j])) out.push("It's " + words(a.tags[j]) + ", which " + f + " is not into."); }
-    if (!has(BUDGET_OK[p.budget], a.cost)) out.push("It costs more than " + f + "'s budget (" + BUDGET_WORDS[p.budget] + ").");
+    if (!has(BUDGET_OK[p.budget], costFor(p, a))) {
+      if (costFor(p, a) !== a.cost) out.push("It's priced per person and " + f + " would bring kids, so it costs more than " + f + "'s budget (" + BUDGET_WORDS[p.budget] + ").");
+      else out.push("It costs more than " + f + "'s budget (" + BUDGET_WORDS[p.budget] + ").");
+    }
     return out;
   }
   function planChecks(p, a, part, time, iso) {

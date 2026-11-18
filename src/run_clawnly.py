@@ -109,6 +109,8 @@ def check_request(day, max_groups):
 
 async def _run(run_id, day, how_many, first_day):
     def progress(data):
+        # the town's first day, so the judge can rebuild the same neighbors later
+        data["townStart"] = first_day
         db.save_matchmaker_run(run_id, data)
 
     try:
@@ -118,7 +120,8 @@ async def _run(run_id, day, how_many, first_day):
         # e.g. no API key: run_day never started, so the row says why
         data = {"day": day, "status": "failed", "groups": [], "calls": [],
                 "log": [{"t": datetime.datetime.now(datetime.timezone.utc).isoformat(), "actor": "system",
-                         "kind": "system", "text": "Run stopped: " + str(error)[:200], "group": None}]}
+                         "kind": "system", "text": "Run stopped: " + str(error)[:200], "group": None}],
+                "townStart": first_day}
         db.save_matchmaker_run(run_id, data)
     db.log_event(None, "system", "system", "Run Clawnly #" + str(run_id) + " for " + day + " ended: " + data["status"] + ".")
 

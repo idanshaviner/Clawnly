@@ -22,6 +22,7 @@ import batch
 import bring_agent
 import config
 import db
+import judge
 import my_match
 import nightly
 import run_clawnly
@@ -520,6 +521,40 @@ async def api_run_start(body: dict, request: Request):
     if error is not None:
         return JSONResponse(status_code=400, content={"error": error})
     return {"run_id": run_id}
+
+
+# ----- the judge: a second model scores each group of a finished run (judge.py) -----
+
+@app.get("/api/admin/judge")
+async def api_admin_judge(request: Request, run_id: int = None):
+    # the recent runs to pick from, and one run's latest scores (the newest run by default)
+    session, error_response = _require_admin(request)
+    if error_response is not None:
+        return error_response
+    runs = db.list_matchmaker_runs()
+    if run_id is None and len(runs) > 0:
+        run_id = runs[0]["id"]
+    view = None
+    if run_id is not None:
+        view = judge.scores_view(run_id)
+        if view is None:
+            return JSONResponse(status_code=404, content={"error": "no such run"})
+    return {"runs": runs, "view": view, "model": config.judge_model()}
+
+
+@app.post("/api/admin/judge")
+async def api_admin_judge_start(body: dict, request: Request):
+    session, error_response = _require_admin(request)
+    if error_response is not None:
+        return error_response
+    try:
+        run_id = int(body.get("run_id"))
+    except (TypeError, ValueError):
+        return JSONResponse(status_code=400, content={"error": "Pick a run to judge."})
+    started, error = judge.start(run_id, session.get("email"))
+    if not started:
+        return JSONResponse(status_code=400, content={"error": error})
+    return {"started": True, "run_id": run_id}
 
 
 if __name__ == "__main__":

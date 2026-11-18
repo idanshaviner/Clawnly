@@ -28,6 +28,9 @@ Tables:
   matchmaker_runs   -- one Run Clawnly day (matchmaker.run_day): the whole run
                        as JSON -- break rooms, plan, every hub<->agent message,
                        the log and every Claude call -- saved as it goes
+  judge_scores      -- the judge's scores for one group of a Run Clawnly day
+                       (judge.py): the model, the overall score and the whole
+                       verdict (scores 1-10 with reasons, flags) or the error
 
 Older databases may still hold tables from before the agent-to-agent pivot
 (users, interviews, negotiations, meetups, feedback, onboarding_messages) and
@@ -133,6 +136,10 @@ def init_db():
     conn.execute("""CREATE TABLE IF NOT EXISTS matchmaker_runs (
         id INTEGER PRIMARY KEY AUTOINCREMENT, day TEXT, status TEXT, data TEXT,
         started_by TEXT, created_at TEXT, updated_at TEXT
+    )""")
+    conn.execute("""CREATE TABLE IF NOT EXISTS judge_scores (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, matchmaker_run_id INTEGER, group_id TEXT,
+        model TEXT, overall INTEGER, verdict TEXT, error TEXT, created_at TEXT
     )""")
 
     # a database made before the agent-to-agent pivot has these tables with
@@ -935,6 +942,61 @@ def latest_matchmaker_run():
     return _row_to_matchmaker_run(row)
 
 
+def list_matchmaker_runs(limit=20):
+    # newest first, without the (large) run data: for picking a run to judge
+    conn = _get_conn()
+    rows = conn.execute("SELECT id, day, status, created_at FROM matchmaker_runs ORDER BY id DESC LIMIT ?",
+                        (limit,)).fetchall()
+    out = []
+    i = 0
+    while i < len(rows):
+        out.append({"id": rows[i]["id"], "day": rows[i]["day"], "status": rows[i]["status"],
+                    "created_at": rows[i]["created_at"]})
+        i += 1
+    return out
+
+
+# ----- the judge's scores (judge.py) ------------------------------------------------
+
+def save_judge_score(matchmaker_run_id, group_id, model, overall, verdict, error):
+    conn = _get_conn()
+    verdict_text = None
+    if verdict is not None:
+        verdict_text = json.dumps(verdict)
+    cur = conn.execute(
+        "INSERT INTO judge_scores (matchmaker_run_id, group_id, model, overall, verdict, error, created_at) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?)",
+        (matchmaker_run_id, group_id, model, overall, verdict_text, error, _now()),
+    )
+    conn.commit()
+    return cur.lastrowid
+
+
+def _row_to_judge_score(row):
+    verdict = None
+    if row["verdict"]:
+        verdict = json.loads(row["verdict"])
+    return {"id": row["id"], "matchmaker_run_id": row["matchmaker_run_id"], "group_id": row["group_id"],
+            "model": row["model"], "overall": row["overall"], "verdict": verdict, "error": row["error"],
+            "created_at": row["created_at"]}
+
+
+def list_judge_scores(matchmaker_run_id):
+    # the latest score for each group of the run (a group judged again keeps its history in the table)
+    conn = _get_conn()
+    rows = conn.execute(
+        "SELECT * FROM judge_scores WHERE id IN (SELECT MAX(id) FROM judge_scores WHERE matchmaker_run_id = ? "
+        "GROUP BY group_id) ORDER BY id",
+        (matchmaker_run_id,),
+    ).fetchall()
+    out = []
+    i = 0
+    while i < len(rows):
+        out.append(_row_to_judge_score(rows[i]))
+        i += 1
+    return out
+
+
 # ----- full reset (ops / tests) -------------------------------------------------
 
 def reset_all():
@@ -942,7 +1004,7 @@ def reset_all():
     conn = _get_conn()
     tables = ["runs", "matches", "neighborhoods", "residents", "sessions",
               "magic_link_tokens", "oauth_states", "match_acceptances",
-              "events", "agent_conversations", "ai_calls", "matchmaker_runs"]
+              "events", "agent_conversations", "ai_calls", "matchmaker_runs", "judge_scores"]
     i = 0
     while i < len(tables):
         conn.execute("DELETE FROM " + tables[i])

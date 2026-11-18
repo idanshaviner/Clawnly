@@ -85,6 +85,16 @@
       <div id="create-status"></div>
     </div>
     <div class="grid" id="nb-grid"></div>
+
+    <div class="card section" id="judge-card">
+      <h2>Run Clawnly: judge scores</h2>
+      <p class="muted" style="margin:0 0 10px">A second model scores every group of a finished run from 1 to 10. Hover a score for its reason.</p>
+      <select id="judge-run" style="font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:10px"></select>
+      <button class="primary" id="judge-btn">Judge this run</button>
+      <button id="judge-refresh">Refresh</button>
+      <span id="judge-status"></span>
+      <div id="judge-table" style="margin-top:12px;overflow-x:auto"></div>
+    </div>
   </div>
 
   <div id="detail-view" style="display:none">
@@ -463,6 +473,115 @@ function loadRun(runId, neighborhoodId){
   }).catch(function(){ show("not-authorized"); });
 }
 
+// ----- Run Clawnly: judge scores -----
+
+var JUDGE_CRITERIA = [["main_thing", "Main thing"], ["stage_of_life", "Stage of life"], ["event_fit", "Event fit"],
+                      ["negotiation", "Negotiation"], ["meet_again", "Meet again"]];
+
+function scoreCell(item){
+  if (!item) { return '<td class="muted">-</td>'; }
+  return '<td title="' + esc(item.reason) + '"><b>' + esc(item.score) + '</b></td>';
+}
+
+function judgeRow(g){
+  var html = '<tr><td>' + esc(g.group_id) + '</td><td>' + esc(g.activity) + '<div class="muted">' + esc(g.time) + '</div></td>' +
+    '<td>' + esc(g.status) + '</td>';
+  var s = g.score;
+  if (!s) {
+    html += '<td class="muted" colspan="' + (JUDGE_CRITERIA.length + 2) + '">not judged yet</td></tr>';
+    return html;
+  }
+  if (!s.verdict) {
+    html += '<td class="err" colspan="' + (JUDGE_CRITERIA.length + 2) + '">not scored: ' + esc(s.error) + '</td></tr>';
+    return html;
+  }
+  html += scoreCell(s.verdict.overall);
+  var i = 0;
+  while (i < JUDGE_CRITERIA.length) {
+    html += scoreCell(s.verdict[JUDGE_CRITERIA[i][0]]);
+    i++;
+  }
+  html += '<td>' + esc(s.verdict.flags.join("; ")) + '</td></tr>';
+  var reasons = '<b>Overall:</b> ' + esc(s.verdict.overall.reason);
+  i = 0;
+  while (i < JUDGE_CRITERIA.length) {
+    var item = s.verdict[JUDGE_CRITERIA[i][0]];
+    reasons += '<br><b>' + esc(JUDGE_CRITERIA[i][1]) + ' (' + esc(item.score) + '):</b> ' + esc(item.reason);
+    i++;
+  }
+  html += '<tr><td></td><td colspan="' + (JUDGE_CRITERIA.length + 4) + '"><details><summary class="muted">why (' +
+    esc(s.model) + ')</summary><div style="font-size:13px;margin-top:4px">' + reasons + '</div></details></td></tr>';
+  return html;
+}
+
+function renderJudge(data){
+  var select = document.getElementById("judge-run");
+  var chosen = null;
+  if (data.view) { chosen = data.view.run.id; }
+  select.innerHTML = "";
+  var i = 0;
+  while (i < data.runs.length) {
+    var r = data.runs[i];
+    var opt = document.createElement("option");
+    opt.value = r.id;
+    opt.textContent = "#" + r.id + " -- " + r.day + " (" + r.status + ")";
+    if (r.id === chosen) { opt.selected = true; }
+    select.appendChild(opt);
+    i++;
+  }
+  var box = document.getElementById("judge-table");
+  if (!data.view) {
+    box.innerHTML = '<p class="muted">No Run Clawnly runs yet.</p>';
+    document.getElementById("judge-btn").disabled = true;
+    return;
+  }
+  document.getElementById("judge-btn").disabled = data.view.judging;
+  var status = document.getElementById("judge-status");
+  status.className = "muted";
+  status.textContent = "";
+  if (data.view.judging) { status.textContent = " Judging now with " + data.model + "... press Refresh in a minute."; }
+  var head = '<table><tr><th>Group</th><th>Event</th><th>Outcome</th><th>Overall</th>';
+  i = 0;
+  while (i < JUDGE_CRITERIA.length) {
+    head += '<th>' + esc(JUDGE_CRITERIA[i][1]) + '</th>';
+    i++;
+  }
+  head += '<th>Flags</th></tr>';
+  var rows = "";
+  i = 0;
+  while (i < data.view.groups.length) {
+    rows += judgeRow(data.view.groups[i]);
+    i++;
+  }
+  if (data.view.groups.length === 0) { rows = '<tr><td colspan="10" class="muted">This run has no groups.</td></tr>'; }
+  box.innerHTML = head + rows + '</table>';
+}
+
+function loadJudge(runId){
+  var url = "/api/admin/judge";
+  if (runId) { url += "?run_id=" + encodeURIComponent(runId); }
+  fetch(url).then(function(r){ return r.json(); }).then(renderJudge).catch(function(){
+    document.getElementById("judge-table").innerHTML = '<p class="err">Could not load the judge scores.</p>';
+  });
+}
+
+document.getElementById("judge-run").addEventListener("change", function(){ loadJudge(this.value); });
+document.getElementById("judge-refresh").addEventListener("click", function(){
+  loadJudge(document.getElementById("judge-run").value);
+});
+document.getElementById("judge-btn").addEventListener("click", function(){
+  var runId = document.getElementById("judge-run").value;
+  var status = document.getElementById("judge-status");
+  status.className = "muted";
+  status.textContent = " Starting...";
+  fetch("/api/admin/judge", {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ run_id: runId }),
+  }).then(function(r){ return r.json().then(function(body){ return { ok: r.ok, body: body }; }); }).then(function(res){
+    if (!res.ok) { status.className = "err"; status.textContent = " " + res.body.error; return; }
+    loadJudge(runId);
+  }).catch(function(){ status.className = "err"; status.textContent = " Could not start the judge."; });
+});
+
 fetch("/api/me").then(function(r){
   if (!r.ok) { show("not-authorized"); return null; }
   return r.json();
@@ -470,6 +589,7 @@ fetch("/api/me").then(function(r){
   if (me == null) { return; }
   if (me.role !== "admin") { show("not-authorized"); return; }
   loadList();
+  loadJudge(null);
 }).catch(function(){ show("not-authorized"); });
 </script>
 </body>

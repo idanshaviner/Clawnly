@@ -41,6 +41,8 @@ MATCHMAKER_MARKERS = [
     # the simulation audit (orchestration_audit.py), set through the same matchmaker dict
     ("audit one negotiated group", "audit_group"),
     ("audit the matchmaker's whole day", "audit_day"),
+    # the judge of a finished Run Clawnly day (judge.py)
+    ("judge one planned activity group", "judge_group"),
 ]
 
 

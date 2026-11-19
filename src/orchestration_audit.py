@@ -409,8 +409,8 @@ def _check_group(group, by_id, rooms):
     if len(final) > catalog.GROUP_MAX:
         out.append(_finding("info", "subjective concern", "group larger than the preview's size",
                             gid + " has " + str(len(final)) + " people; the code-only preview caps groups at " +
-                            str(catalog.GROUP_MAX) + ".", "The live matchmaker has no upper limit by design.",
-                            "A product decision.", "None needed unless the team wants a cap.", final, [gid],
+                            str(catalog.GROUP_MAX) + ".", "The live matchmaker keeps at most GROUP_MAX members when it plans (Nov 18 Example #47), so a replacement grew it.",
+                            "A product decision.", "Check whether replacements should only fill empty seats.", final, [gid],
                             [ev["status_seq"]]))
     i = 0
     while i < len(final):

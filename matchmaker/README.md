@@ -36,9 +36,10 @@ The run, all hub and spoke (agents never talk to each other):
    `src/demand.py`: in season and running then, the person is free, within budget, doesn't
    dislike it, doesn't avoid anything about it, and likes it (how much = keenness). The
    Break rooms tab shows who is in each room and why, and why everyone else isn't.
-2. **Plan (matchmaker, `complex` tier)** -- groups sized by the matchmaker (no upper limit
-   in code), alternates, a personal proposal to each agent. Code rejects anyone not in that
-   break room, double bookings, and a "group" of one.
+2. **Plan (matchmaker, `complex` tier)** -- groups sized by the matchmaker (2 to 5 members:
+   strangers meeting for the first time need a small group, Nov 18 Example #47), alternates, a
+   personal proposal to each agent. Code rejects anyone not in that break room, double bookings
+   and a "group" of one, and moves members past the fifth to alternates.
 3. **Round 1 (each agent, `default` tier -- never the fast one)** -- the matchmaker asks each person's agent one to
    one; the agent answers yes / no / counter from its person's brief and calendar only.
 4. **Resolve (matchmaker)** -- accepts counters by moving the time, replaces a no. A group

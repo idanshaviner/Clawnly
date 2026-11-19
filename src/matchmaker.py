@@ -65,6 +65,11 @@ POOL_PER_GROUP = 4
 SKILL_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "matchmaker_skill.md")
 # round 1 asks the plan; rounds 2 and 3 replace whoever said no
 LAST_ROUND = 3
+# strangers meeting for the first time need a small group so everyone actually talks: a plan's
+# group keeps its first catalog.GROUP_MAX members and the rest become alternates or stay free for
+# a second group (Nov 18 review, Example #47: eight parents at one holiday event split into side
+# chats and three never talked to anyone new). Who fits is still the matchmaker's judgment.
+FIRST_MEETUP_MAX = catalog.GROUP_MAX
 
 
 def _now():
@@ -151,7 +156,7 @@ def _plan_system(day, max_groups):
         "The break rooms were built by code: one per activity and time of day that can run that day, holding every neighbor who is free then, interested, can afford it and doesn't avoid anything about it. Each room lists the people with a strong interest, fewest plans this week first, as id:keenness [which of the activity's tags they like] (higher is better), then the rest of them by id, then the people only mildly interested. PEOPLE has one line per listed person, once each, with what they avoid and any plans they already have this week.",
         "",
         "Plan up to " + str(max_groups) + " groups:",
-        "- Size each group to fit the activity and the people. You decide: two neighbors having a beer over the game is a group, and so is a bigger hike. Small groups are often where people actually meet each other.",
+        "- Size each group to fit the activity and the people, from 2 to " + str(FIRST_MEETUP_MAX) + " members. Two neighbors having a beer over the game is a group. Strangers meeting for the first time talk best in a small group, about 3 or 4 adults (kids who come with their own parent don't count). When more people fit one event, make a second group with its own meeting time and spot instead of one big group; code keeps only the first " + str(FIRST_MEETUP_MAX) + " members of any group.",
         "- Each person in at most one group. Use only people in that break room.",
         "- Members need a strong interest. People listed as mild can be alternates, never members.",
         "- Prefer groups whose members share more than the activity (overlapping likes, similar stage of life), so they'd enjoy each other.",
@@ -840,12 +845,23 @@ def check_plan(raw, rooms, max_groups, people):
         if len(members) < 2:
             rejected.append(activity["name"] + ": fewer than 2 valid people")
             continue
+        extra = members[FIRST_MEETUP_MAX:]
+        members = members[:FIRST_MEETUP_MAX]
+        if len(extra) > 0:
+            names = []
+            e = 0
+            while e < len(extra):
+                names.append(people[extra[e]]["name"])
+                e += 1
+            rejected.append(activity["name"] + ": " + str(len(members) + len(extra)) + " members is too big for a first meetup (up to " +
+                            str(FIRST_MEETUP_MAX) + "), so " + ", ".join(names) + " can be alternates or a second group")
         alternates = []
-        # the plan's own alternates first, then anyone it named as a member who is only mildly interested
+        # the plan's own alternates first, then anyone it named as a member who is only mildly interested,
+        # then anyone past the size limit
         alts = r.get("alternates")
         if not isinstance(alts, list):
             alts = []
-        alts = alts + mild
+        alts = alts + mild + extra
         k = 0
         while k < len(alts) and len(alternates) < 2:
             aid = str(alts[k])

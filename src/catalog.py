@@ -28,8 +28,10 @@ Each activity:
                 pays too, so a parent's real cost is a few tickets, not one
                 (Nov 16 review, Example #31). demand.cost_for counts it.
 
-GROUP_MIN is the smallest group anywhere. GROUP_MAX only sizes the code-only
-preview in demand.py; the matchmaker has no upper limit.
+GROUP_MIN is the smallest group anywhere. GROUP_MAX is the biggest: it sizes the
+code-only preview in demand.py, and the matchmaker keeps only the first GROUP_MAX
+members of a group, because strangers meeting for the first time need a small
+group to actually talk (Nov 18 review, Example #47).
 """
 
 GROUP_MIN = 2

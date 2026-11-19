@@ -171,14 +171,31 @@ def test_code_rejects_people_outside_the_room_and_double_booking():
     assert any("fewer than 2" in r for r in rejected)
 
 
-def test_no_upper_size_limit_but_max_groups_is_respected():
+def test_a_first_meetup_keeps_five_members_and_max_groups_is_respected():
+    # Nov 18 review, Example #47: eight strangers at one event split into side chats
     people = town()
     rooms = rooms_for(people)
     index = {p["id"]: p for p in people}
-    big = [c["id"] for c in rooms[0]["candidates"]][:9]
-    raw = {"groups": [{"activity": rooms[0]["activity"], "part": rooms[0]["part"], "members": big}]}
+    room = None
+    for r in rooms:
+        strong, _ = matchmaker.split_room(r, index)
+        if len(strong) >= 9:
+            room = r
+            break
+    assert room is not None
+    strong, _ = matchmaker.split_room(room, index)
+    big = [c["id"] for c in strong][:9]
+    raw = {"groups": [{"activity": room["activity"], "part": room["part"], "members": big, "alternates": []}]}
     groups, rejected = matchmaker.check_plan(raw, rooms, 10, index)
-    assert len(groups[0]["members"]) == 9
+    assert matchmaker.FIRST_MEETUP_MAX == catalog.GROUP_MAX == 5
+    assert [m["id"] for m in groups[0]["members"]] == big[:5]
+    # the people past the limit become the alternates, and the reason names them
+    assert groups[0]["alternates"] == big[5:7]
+    assert any("too big for a first meetup" in r and index[big[5]]["name"] in r for r in rejected)
+    # they aren't booked, so a second group in the same plan can still use them
+    raw["groups"].append({"activity": room["activity"], "part": room["part"], "members": big[5:9]})
+    groups, _ = matchmaker.check_plan(raw, rooms, 10, index)
+    assert len(groups) == 2 and [m["id"] for m in groups[1]["members"]] == big[5:9]
     groups, rejected = matchmaker.check_plan(two_group_plan(rooms), rooms, 1, index)
     assert len(groups) == 1
 
@@ -989,3 +1006,12 @@ def test_a_family_outing_tells_the_parent_why_it_is_over_budget():
             "candidates": [{"id": "a", "score": 3}, {"id": "b", "score": 3}]}
     people = {"a": dict(person, id="a", budget="any"), "b": dict(person, id="b", name="Bea B.", budget="any")}
     assert "a person, a family outing" in matchmaker._plan_payload([room], people)
+
+
+def test_the_plan_prompt_and_the_page_carry_the_first_meetup_size():
+    # Nov 18 review, Example #47: the matchmaker hears the limit and why, and the browser copy enforces it too
+    text = matchmaker._plan_system(datetime.date(2026, 12, 5), 5)
+    assert "from 2 to 5 members" in text and "about 3 or 4 adults" in text and "second group" in text
+    js = open("src/web/run-clawnly.js").read()
+    assert "members.slice(0, DATA.groupMax)" in js and "too big for a first meetup" in js
+    assert "from 2 to \" + DATA.groupMax + \" members" in js

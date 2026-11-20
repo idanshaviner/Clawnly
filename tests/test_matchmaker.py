@@ -171,14 +171,31 @@ def test_code_rejects_people_outside_the_room_and_double_booking():
     assert any("fewer than 2" in r for r in rejected)
 
 
-def test_no_upper_size_limit_but_max_groups_is_respected():
+def test_a_first_meetup_keeps_five_members_and_max_groups_is_respected():
+    # Nov 18 review, Example #47: eight strangers at one event split into side chats
     people = town()
     rooms = rooms_for(people)
     index = {p["id"]: p for p in people}
-    big = [c["id"] for c in rooms[0]["candidates"]][:9]
-    raw = {"groups": [{"activity": rooms[0]["activity"], "part": rooms[0]["part"], "members": big}]}
+    room = None
+    for r in rooms:
+        strong, _ = matchmaker.split_room(r, index)
+        if len(strong) >= 9:
+            room = r
+            break
+    assert room is not None
+    strong, _ = matchmaker.split_room(room, index)
+    big = [c["id"] for c in strong][:9]
+    raw = {"groups": [{"activity": room["activity"], "part": room["part"], "members": big, "alternates": []}]}
     groups, rejected = matchmaker.check_plan(raw, rooms, 10, index)
-    assert len(groups[0]["members"]) == 9
+    assert matchmaker.FIRST_MEETUP_MAX == catalog.GROUP_MAX == 5
+    assert [m["id"] for m in groups[0]["members"]] == big[:5]
+    # the people past the limit become the alternates, and the reason names them
+    assert groups[0]["alternates"] == big[5:7]
+    assert any("too big for a first meetup" in r and index[big[5]]["name"] in r for r in rejected)
+    # they aren't booked, so a second group in the same plan can still use them
+    raw["groups"].append({"activity": room["activity"], "part": room["part"], "members": big[5:9]})
+    groups, _ = matchmaker.check_plan(raw, rooms, 10, index)
+    assert len(groups) == 2 and [m["id"] for m in groups[1]["members"]] == big[5:9]
     groups, rejected = matchmaker.check_plan(two_group_plan(rooms), rooms, 1, index)
     assert len(groups) == 1
 
@@ -916,3 +933,102 @@ def test_a_run_sends_the_skill_to_the_plan_and_the_resolve_calls():
     assert text in plans[0]
     assert len(resolves) >= 1
     assert text in resolves[0]
+
+
+# ----- Nov 13 review, Example #30: a drop-in window isn't a meeting time -----
+
+SATURDAY = datetime.date(2026, 9, 26)
+
+
+def test_a_drop_in_market_meets_inside_its_open_hours_and_the_day_part():
+    market = catalog.get("farmers-market")
+    assert matchmaker.dropin_window(market, "morning") == "9am-2pm"
+    assert matchmaker.fixed_time(market, "morning") is None
+    assert matchmaker.meet_hours(market, "morning") == "9am-12pm"
+    assert matchmaker.inside_meet_hours("10am-11:30am", market, "morning")
+    assert not matchmaker.inside_meet_hours("8am-9am", market, "morning")
+    # an activity with no drop-in window keeps the whole day part
+    assert matchmaker.meet_hours(catalog.get("bakery"), "morning") == matchmaker.PART_HOURS["morning"]
+
+
+def test_the_plan_sets_one_meeting_time_inside_a_drop_in_window():
+    people = population.generate(200, seed=7, start=SATURDAY)
+    index = {p["id"]: p for p in people}
+    rooms = demand.break_room(people, catalog.ACTIVITIES, SATURDAY)
+    room = [r for r in rooms if r["activity"] == "farmers-market"][0]
+    strong, mild = matchmaker.split_room(room, index)
+    ids = [c["id"] for c in strong][:3]
+    assert len(ids) >= 2
+    kept, _ = matchmaker.check_plan({"groups": [{"activity": "farmers-market", "part": "morning", "time": "10am-11:30am",
+                                                 "members": ids}]}, rooms, 5, index)
+    # a narrower meeting time inside the open hours stands: it is when they actually meet
+    assert kept[0]["time"] == "10am-11:30am"
+    assert "plannedTime" not in kept[0]
+    early, _ = matchmaker.check_plan({"groups": [{"activity": "farmers-market", "part": "morning", "time": "8am-9am",
+                                                  "members": ids}]}, rooms, 5, index)
+    # before the market opens is no meeting time: code pulls it back inside the open hours
+    assert early[0]["time"] == "9am-12pm"
+    assert early[0]["plannedTime"] == "8am-9am"
+    payload = matchmaker._plan_payload([room], index)
+    assert "DROP-IN 9am-2pm" in payload
+    assert "DROP-IN" in matchmaker._plan_system(SATURDAY, 5)
+
+
+def test_a_late_evening_is_a_bedtime_question_for_a_parent():
+    # Nov 13 review (Example #25, kept): a 7:30pm finish runs into toddler bedtime, so the parent's
+    # agent checks first; the earlier session is fine, and someone without kids at home isn't asked
+    person = dict(town()[0], avoid=[], dislikes=[], budget="any", kids_at_home=True)
+    day = datetime.date.fromisoformat(sorted(person["calendar"])[0])
+    person["calendar"] = {day.isoformat(): ["evening"]}
+    club = catalog.get("book-club")
+    person["likes"] = [{"tag": club["tags"][0], "weight": 3}]
+    late = matchmaker.plan_checks(person, club, "evening", "6:30pm-7:30pm", day)
+    assert any("bedtime" in c for c in late)
+    early = matchmaker.plan_checks(person, club, "evening", "4:30pm-5:30pm", day)
+    assert not any("bedtime" in c for c in early)
+    assert matchmaker.conflicts(person, club, "evening", "6:30pm-7:30pm", day) == []
+    no_kids = dict(person, kids_at_home=False)
+    assert not any("bedtime" in c for c in matchmaker.plan_checks(no_kids, club, "evening", "6:30pm-7:30pm", day))
+    assert "before bedtime" in matchmaker.skill()
+
+
+def test_a_family_outing_tells_the_parent_why_it_is_over_budget():
+    # Nov 16 review (Example #31): the agent hears it's priced per person, and the planner sees it
+    swim = catalog.get("family-swim")
+    person = dict(town()[0], avoid=[], dislikes=[], budget="low", kids_at_home=True,
+                  likes=[{"tag": "swimming", "weight": 3}])
+    day = datetime.date(2026, 12, 19)
+    person["calendar"] = {day.isoformat(): ["afternoon"]}
+    found = matchmaker.conflicts(person, swim, "afternoon", "12pm-1pm", day)
+    assert any("priced per person" in c for c in found)
+    assert matchmaker.conflicts(dict(person, kids_at_home=False), swim, "afternoon", "12pm-1pm", day) == []
+    room = {"activity": "family-swim", "part": "afternoon",
+            "candidates": [{"id": "a", "score": 3}, {"id": "b", "score": 3}]}
+    people = {"a": dict(person, id="a", budget="any"), "b": dict(person, id="b", name="Bea B.", budget="any")}
+    assert "a person, a family outing" in matchmaker._plan_payload([room], people)
+
+
+def test_the_plan_prompt_and_the_page_carry_the_first_meetup_size():
+    # Nov 18 review, Example #47: the matchmaker hears the limit and why, and the browser copy enforces it too
+    text = matchmaker._plan_system(datetime.date(2026, 12, 5), 5)
+    assert "from 2 to 5 members" in text and "about 3 or 4 adults" in text and "second group" in text
+    js = open("src/web/run-clawnly.js").read()
+    assert "members.slice(0, DATA.groupMax)" in js and "too big for a first meetup" in js
+    assert "from 2 to \" + DATA.groupMax + \" members" in js
+
+
+def test_a_home_activity_tells_the_planner_strangers_meet_in_public_first():
+    # Nov 20 review (Example #57): a game night at a neighbor's house is no first meetup for
+    # strangers; the planner is told to name a public spot and save the home for a group that has met
+    homes = [a["id"] for a in catalog.ACTIVITIES if a.get("home")]
+    assert sorted(homes) == ["crafts", "game-night", "garden-swap"]
+    assert not catalog.get("bakery")["home"]
+    person = dict(town()[0], avoid=[], dislikes=[], budget="any", likes=[{"tag": "board_games", "weight": 3}, {"tag": "trivia", "weight": 3}])
+    room = {"activity": "game-night", "part": "evening",
+            "candidates": [{"id": "a", "score": 3}, {"id": "b", "score": 3}]}
+    people = {"a": dict(person, id="a"), "b": dict(person, id="b", name="Bea B.")}
+    assert "AT A NEIGHBOR'S HOME" in matchmaker._plan_payload([room], people)
+    assert "AT A NEIGHBOR'S HOME" in matchmaker._plan_system(SATURDAY, 5)
+    trivia = {"activity": "trivia", "part": "evening", "candidates": room["candidates"]}
+    payload = matchmaker._plan_payload([trivia], people)
+    assert "Trivia night" in payload and "NEIGHBOR'S HOME" not in payload

@@ -97,7 +97,7 @@ activity, counters, drop-outs, cost) and switching the resident pilot over.
 
 ## Decisions for us
 
-1. ~~Group size~~ -- decided: no upper limit in code; at least 2; the matchmaker sizes it.
+1. ~~Group size~~ -- decided: at least 2; the matchmaker sizes it. Revisited Nov 19, 2026 from review Example #47 (eight strangers at one holiday event split into side chats): code now keeps at most `catalog.GROUP_MAX` (5) members per planned group, extras become alternates or a second group. Pending the team marking #47 Keep; reverting is one constant (`matchmaker.FIRST_MEETUP_MAX`).
 2. **Negotiation depth**: one proposal + one counter round, or more?
 3. **Final human step**: emulate it for now, and later a real "In?" message by email/SMS?
 4. **One activity per person per day**, or allow morning + evening?

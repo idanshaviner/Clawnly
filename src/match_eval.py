@@ -86,7 +86,7 @@ def hard_violations(person, activity, day, part):
         found.append("activity not running then")
     if part not in person["calendar"].get(day.isoformat(), []):
         found.append("busy")
-    if activity["cost"] not in demand.BUDGET_OK[person["budget"]]:
+    if demand.cost_for(person, activity) not in demand.BUDGET_OK[person["budget"]]:
         found.append("over budget")
     i = 0
     while i < len(activity["tags"]):

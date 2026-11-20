@@ -1,6 +1,6 @@
 """The things to do in a neighborhood: the menu the orchestrator plans from.
 
-37 things to do in and around Black Diamond, WA, for the pilot. The places and
+38 things to do in and around Black Diamond, WA, for the pilot. The places and
 recurring events are real (Lake Sawyer Regional Park and its dock concerts, the
 Black Diamond Historical Museum, Black Diamond Bakery, Flaming Geyser State
 Park, the Green River Gorge, the Franklin ghost town trail, The Vault Taphouse,
@@ -20,9 +20,22 @@ Each activity:
   fixed      -- for real events (games, concerts, a work party): the time it
                 actually happens, per day part. A group meets then; the
                 matchmaker can't move it.
+  dropin     -- for real drop-in events (a market, an open house): the hours it's
+                open, per day part. Being open isn't a meeting time, so the
+                matchmaker sets one meeting time (and place) inside the window,
+                or people come and go without meeting (Nov 13 review, Example #30).
+  family     -- a family outing priced per person: kids come along and each one
+                pays too, so a parent's real cost is a few tickets, not one
+                (Nov 16 review, Example #31). demand.cost_for counts it.
+  home       -- it happens at a neighbor's house (a game night, a garage workshop,
+                a backyard). Strangers meet first in a public place, so the
+                matchmaker is told to name a public spot nearby for a first meetup
+                and save the home for a group that has met (Nov 20 review, Example #57).
 
-GROUP_MIN is the smallest group anywhere. GROUP_MAX only sizes the code-only
-preview in demand.py; the matchmaker has no upper limit.
+GROUP_MIN is the smallest group anywhere. GROUP_MAX is the biggest: it sizes the
+code-only preview in demand.py, and the matchmaker keeps only the first GROUP_MAX
+members of a group, because strangers meeting for the first time need a small
+group to actually talk (Nov 18 review, Example #47).
 """
 
 GROUP_MIN = 2
@@ -52,13 +65,16 @@ EVERY_DAY = [0, 1, 2, 3, 4, 5, 6]
 WEEKEND = [5, 6]
 
 
-def _a(id, name, where, tags, traits, days, parts, months, cost, outdoor, fixed=None):
+def _a(id, name, where, tags, traits, days, parts, months, cost, outdoor, fixed=None, dropin=None, family=False, home=False):
     times = {}
     if fixed is not None:
         times = fixed
+    window = {}
+    if dropin is not None:
+        window = dropin
     return {"id": id, "name": name, "neighborhood": NEIGHBORHOOD, "where": where, "tags": tags,
             "traits": traits, "days": days, "parts": parts, "months": months, "cost": cost, "outdoor": outdoor,
-            "fixed": times}
+            "fixed": times, "dropin": window, "family": family, "home": home}
 
 
 ACTIVITIES = [
@@ -72,6 +88,11 @@ ACTIVITIES = [
     _a("dock-concert", "Lake Sawyer Dock Concert", "Lake Sawyer (the summer dock concert series)",
        ["live_music", "boating", "picnics"], ["crowds"], [5], ["evening"], [7, 8], "free", True,
        {"evening": "6pm-8pm"}),
+    # Covington Aquatic Center Family Swim (shallow end, kids with an adult in the water), weekends
+    # 12-1pm, about $8 a person and under 4 free (covingtonwa.gov, Nov 2026)
+    _a("family-swim", "Family swim with the kids", "Covington Aquatic Center, 18230 SE 240th St (Family Swim, shallow end)",
+       ["swimming"], [], WEEKEND, ["afternoon"], ALL_YEAR, "low", False,
+       {"afternoon": "12pm-1pm"}, None, True),
     _a("sawyer-birding", "Birding walk at Lake Sawyer", "Lake Sawyer Regional Park",
        ["birding", "photography"], ["early_mornings"], EVERY_DAY, ["morning"], ALL_YEAR, "free", True),
     _a("sawyer-dogs", "Dog walk around the park", "Lake Sawyer Regional Park",
@@ -89,7 +110,8 @@ ACTIVITIES = [
     _a("potluck", "Potluck picnic", "Black Diamond Civic Park",
        ["picnics", "cooking"], [], WEEKEND, ["afternoon"], WARM, "low", True),
     _a("farmers-market", "Maple Valley Farmers Market and coffee", "Maple Valley Farmers Market (Saturdays 9-2)",
-       ["farmers_market", "coffee", "cooking"], ["crowds"], [5], ["morning"], [5, 6, 7, 8, 9], "low", True),
+       ["farmers_market", "coffee", "cooking"], ["crowds"], [5], ["morning"], [5, 6, 7, 8, 9], "low", True,
+       None, {"morning": "9am-2pm"}),
 
     # trails
     _a("franklin", "Franklin ghost town hike", "Franklin ghost town trail, Green River Gorge Rd",
@@ -145,13 +167,16 @@ ACTIVITIES = [
        ["trivia", "craft_beer"], ["loud_places", "competitive"], [2], ["evening"], ALL_YEAR, "low", False,
        {"evening": "7pm-9pm"}),
     _a("game-night", "Board game night", "a neighbor's table (the host rotates)",
-       ["board_games", "cards"], [], [4, 5], ["evening"], ALL_YEAR, "free", False),
+       ["board_games", "cards"], [], [4, 5], ["evening"], ALL_YEAR, "free", False,
+       None, None, False, True),
 
     # making and giving back
     _a("crafts", "Crafts and woodworking night", "a neighbor's garage workshop",
-       ["crafts"], [], [2, 6], ["evening", "afternoon"], ALL_YEAR, "free", False),
+       ["crafts"], [], [2, 6], ["evening", "afternoon"], ALL_YEAR, "free", False,
+       None, None, False, True),
     _a("garden-swap", "Garden workday and plant swap", "a Lawson Hills backyard (the host rotates)",
-       ["gardening", "volunteering"], ["early_mornings"], WEEKEND, ["morning"], [3, 4, 5, 6, 7, 8, 9, 10], "free", True),
+       ["gardening", "volunteering"], ["early_mornings"], WEEKEND, ["morning"], [3, 4, 5, 6, 7, 8, 9, 10], "free", True,
+       None, None, False, True),
     _a("trail-cleanup", "Trail cleanup work party", "Green River Gorge Conservation Area",
        ["volunteering", "hiking"], ["early_mornings"], [5], ["morning"], ALL_YEAR, "free", True,
        {"morning": "9am-12pm"}),

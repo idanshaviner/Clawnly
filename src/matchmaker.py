@@ -65,6 +65,15 @@ POOL_PER_GROUP = 4
 SKILL_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "matchmaker_skill.md")
 # round 1 asks the plan; rounds 2 and 3 replace whoever said no
 LAST_ROUND = 3
+# strangers meeting for the first time need a small group so everyone actually talks: a plan's
+# group keeps its first catalog.GROUP_MAX members and the rest become alternates or stay free for
+# a second group (Nov 18 review, Example #47: eight parents at one holiday event split into side
+# chats and three never talked to anyone new). Who fits is still the matchmaker's judgment.
+FIRST_MEETUP_MAX = catalog.GROUP_MAX
+# an activity at a neighbor's house: strangers meet first in a public place, so a first meetup names
+# a public spot and the home waits for a group that has met (Nov 20 review, Example #57)
+HOME_NOTE = ("AT A NEIGHBOR'S HOME (strangers meet first in public: for a first meetup name a public spot "
+             "nearby, like the Black Diamond Library or Bakery, and save the home for a group that has met)")
 
 
 def _now():
@@ -151,12 +160,14 @@ def _plan_system(day, max_groups):
         "The break rooms were built by code: one per activity and time of day that can run that day, holding every neighbor who is free then, interested, can afford it and doesn't avoid anything about it. Each room lists the people with a strong interest, fewest plans this week first, as id:keenness [which of the activity's tags they like] (higher is better), then the rest of them by id, then the people only mildly interested. PEOPLE has one line per listed person, once each, with what they avoid and any plans they already have this week.",
         "",
         "Plan up to " + str(max_groups) + " groups:",
-        "- Size each group to fit the activity and the people. You decide: two neighbors having a beer over the game is a group, and so is a bigger hike. Small groups are often where people actually meet each other.",
+        "- Size each group to fit the activity and the people, from 2 to " + str(FIRST_MEETUP_MAX) + " members. Two neighbors having a beer over the game is a group. Strangers meeting for the first time talk best in a small group, about 3 or 4 adults (kids who come with their own parent don't count). When more people fit one event, make a second group with its own meeting time and spot instead of one big group; code keeps only the first " + str(FIRST_MEETUP_MAX) + " members of any group.",
         "- Each person in at most one group. Use only people in that break room.",
         "- Members need a strong interest. People listed as mild can be alternates, never members.",
         "- Prefer groups whose members share more than the activity (overlapping likes, similar stage of life), so they'd enjoy each other.",
         "- Favor people with fewer plans this week: when two people fit, the place goes to the one with fewer. Spread plans across many people rather than stacking the keenest into one group.",
         "- Pick a specific time inside the day part (morning " + PART_HOURS["morning"] + ", afternoon " + PART_HOURS["afternoon"] + ", evening " + PART_HOURS["evening"] + "). A room marked FIXED is a real event (a game, a concert): use exactly that time.",
+        "- A room marked DROP-IN is a real event people wander through (a market, an open house): its hours are not a meeting time. Pick one meeting time inside them and name a meeting spot in every proposal (for example the front entrance at 10am, then coffee after one lap), or people come and go without ever meeting.",
+        "- A room marked AT A NEIGHBOR'S HOME happens at someone's house. These people have never met, and strangers meet first in a public place: name a public spot nearby (the Black Diamond Library, the Bakery) in the proposal, and leave the home for a group that has met and wants a second meetup.",
         "- Name up to 2 alternates per group from the same break room, in case someone declines.",
         "- Write a short, personal proposal to each member's agent: what, when, where, how many others, and why it fits this person. Don't name the other people yet.",
         "- In the why and the proposals, describe only interests people actually have: someone in a trivia room for the craft beer isn't a trivia fan. Check what a person avoids against a FIXED time.",
@@ -211,10 +222,18 @@ def _plan_payload(rooms, people, plans=None):
         while t < len(a["tags"]):
             tags.append(_words(a["tags"][t]))
             t += 1
-        header = "[" + a["id"] + " | " + room["part"] + "] " + a["name"] + " at " + a["where"] + ", cost " + a["cost"] + ", about: " + ", ".join(tags)
+        cost = a["cost"]
+        if a.get("family"):
+            cost = cost + " a person, a family outing (kids come along and pay too)"
+        header = "[" + a["id"] + " | " + room["part"] + "] " + a["name"] + " at " + a["where"] + ", cost " + cost + ", about: " + ", ".join(tags)
         fixed = fixed_time(a, room["part"])
         if fixed is not None:
             header = header + ", FIXED " + fixed
+        window = dropin_window(a, room["part"])
+        if window is not None:
+            header = header + ", DROP-IN " + window + " (set one meeting time and spot inside it)"
+        if a.get("home"):
+            header = header + ", " + HOME_NOTE
         lines.append("")
         lines.append(header + " (" + str(len(room["candidates"])) + " in the room)")
         top = []
@@ -260,6 +279,55 @@ def fixed_time(activity, part):
     # the real time of a game, concert or event in that day part, or None when the time is free to pick
     times = activity.get("fixed") or {}
     return times.get(part)
+
+
+def dropin_window(activity, part):
+    # the hours a drop-in event (a market, an open house) is open in that day part, or None
+    times = activity.get("dropin") or {}
+    return times.get(part)
+
+
+def _clock(hours):
+    # 9.5 -> "9:30am", 12 -> "12pm"
+    hour = int(hours)
+    minutes = int(round((hours - hour) * 60))
+    half = "am"
+    if hour >= 12:
+        half = "pm"
+    shown = hour % 12
+    if shown == 0:
+        shown = 12
+    if minutes:
+        return str(shown) + ":" + ("%02d" % minutes) + half
+    return str(shown) + half
+
+
+def meet_hours(activity, part):
+    # when a group can meet for this activity in this day part: the day part, narrowed to a
+    # drop-in event's open hours (a market open 9am-2pm meets 9am-12pm in the morning)
+    window = dropin_window(activity, part)
+    if window is None:
+        return PART_HOURS[part]
+    open_hours = parse_hours(window)
+    bounds = parse_hours(PART_HOURS[part])
+    if open_hours is None:
+        return PART_HOURS[part]
+    start = max(open_hours[0], bounds[0])
+    end = min(open_hours[1], bounds[1])
+    if end <= start:
+        return PART_HOURS[part]
+    return _clock(start) + "-" + _clock(end)
+
+
+def inside_meet_hours(time_text, activity, part):
+    # inside the day part, and inside a drop-in event's open hours when it has them
+    if not inside_part(time_text, part):
+        return False
+    hours = parse_hours(time_text)
+    window = parse_hours(meet_hours(activity, part))
+    if hours is None or window is None:
+        return True
+    return hours[0] >= window[0] and hours[1] <= window[1]
 
 
 def _to_hours(match, half):
@@ -383,8 +451,12 @@ def conflicts(person, activity, part, time_text, day):
         if activity["tags"][i] in person["dislikes"]:
             out.append("It's " + _words(activity["tags"][i]) + ", which " + first + " is not into.")
         i += 1
-    if activity["cost"] not in demand.BUDGET_OK[person["budget"]]:
-        out.append("It costs more than " + first + "'s budget (" + BUDGET_WORDS[person["budget"]] + ").")
+    if demand.cost_for(person, activity) not in demand.BUDGET_OK[person["budget"]]:
+        if demand.cost_for(person, activity) != activity["cost"]:
+            out.append("It's priced per person and " + first + " would bring kids, so it costs more than " +
+                       first + "'s budget (" + BUDGET_WORDS[person["budget"]] + ").")
+        else:
+            out.append("It costs more than " + first + "'s budget (" + BUDGET_WORDS[person["budget"]] + ").")
     return out
 
 
@@ -405,12 +477,25 @@ def time_questions(person, activity, time_text):
     return out
 
 
+def bedtime_questions(person, activity, time_text):
+    # stage of life shapes the time, not just who sits together (Nov 13 review, Example #25, kept):
+    # an evening that ends at 7:30pm or later runs into a young kid's bedtime, so a parent's agent
+    # checks it works for them. A question, not a no: their kids may be teens.
+    hours = parse_hours(time_text)
+    if hours is None or not person.get("kids_at_home") or hours[1] < 19.5:
+        return []
+    first = _first(person)
+    return ["It ends at 7:30pm or later and " + first + " has kids at home: check it works with their"
+            " kids' bedtime, and pick an earlier session when there is one."]
+
+
 def plan_checks(person, activity, part, time_text, day):
     # what code can see in the profile that argues against this plan; the agent weighs it
     first = _first(person)
     out = conflicts(person, activity, part, time_text, day)
     keen = keenness(person, activity)
     out += time_questions(person, activity, time_text)
+    out += bedtime_questions(person, activity, time_text)
     if keen == 0:
         out.append(first + " never said they like this.")
     if keen == 1:
@@ -767,12 +852,23 @@ def check_plan(raw, rooms, max_groups, people):
         if len(members) < 2:
             rejected.append(activity["name"] + ": fewer than 2 valid people")
             continue
+        extra = members[FIRST_MEETUP_MAX:]
+        members = members[:FIRST_MEETUP_MAX]
+        if len(extra) > 0:
+            names = []
+            e = 0
+            while e < len(extra):
+                names.append(people[extra[e]]["name"])
+                e += 1
+            rejected.append(activity["name"] + ": " + str(len(members) + len(extra)) + " members is too big for a first meetup (up to " +
+                            str(FIRST_MEETUP_MAX) + "), so " + ", ".join(names) + " can be alternates or a second group")
         alternates = []
-        # the plan's own alternates first, then anyone it named as a member who is only mildly interested
+        # the plan's own alternates first, then anyone it named as a member who is only mildly interested,
+        # then anyone past the size limit
         alts = r.get("alternates")
         if not isinstance(alts, list):
             alts = []
-        alts = alts + mild
+        alts = alts + mild + extra
         k = 0
         while k < len(alts) and len(alternates) < 2:
             aid = str(alts[k])
@@ -792,9 +888,9 @@ def check_plan(raw, rooms, max_groups, people):
             if group["time"] != fixed:
                 group["plannedTime"] = group["time"]
                 group["time"] = fixed
-        elif not inside_part(group["time"], room["part"]):
+        elif not inside_meet_hours(group["time"], activity, room["part"]):
             group["plannedTime"] = group["time"]
-            group["time"] = PART_HOURS[room["part"]]
+            group["time"] = meet_hours(activity, room["part"])
         m = 0
         while m < len(members):
             taken[members[m]] = group["id"]
@@ -1101,6 +1197,10 @@ def _resolve_jobs(run, res, groups, people, round_no=2):
                 run.log("code", "check", "Kept " + group["id"] + " at " + group["time"] + ": " + str(dec["time"]) +
                         " is outside the " + group["part"] + " (" + PART_HOURS[group["part"]] +
                         "), when nobody's calendar was checked.", group["id"])
+            elif not inside_meet_hours(str(dec["time"]), catalog.get(group["activity"]), group["part"]):
+                run.log("code", "check", "Kept " + group["id"] + " at " + group["time"] + ": " + str(dec["time"]) +
+                        " is outside " + name + "'s open hours (" + dropin_window(catalog.get(group["activity"]), group["part"]) +
+                        ").", group["id"])
             else:
                 group["time"] = str(dec["time"])
                 moved = True

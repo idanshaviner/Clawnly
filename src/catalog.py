@@ -27,6 +27,10 @@ Each activity:
   family     -- a family outing priced per person: kids come along and each one
                 pays too, so a parent's real cost is a few tickets, not one
                 (Nov 16 review, Example #31). demand.cost_for counts it.
+  home       -- it happens at a neighbor's house (a game night, a garage workshop,
+                a backyard). Strangers meet first in a public place, so the
+                matchmaker is told to name a public spot nearby for a first meetup
+                and save the home for a group that has met (Nov 20 review, Example #57).
 
 GROUP_MIN is the smallest group anywhere. GROUP_MAX is the biggest: it sizes the
 code-only preview in demand.py, and the matchmaker keeps only the first GROUP_MAX
@@ -61,7 +65,7 @@ EVERY_DAY = [0, 1, 2, 3, 4, 5, 6]
 WEEKEND = [5, 6]
 
 
-def _a(id, name, where, tags, traits, days, parts, months, cost, outdoor, fixed=None, dropin=None, family=False):
+def _a(id, name, where, tags, traits, days, parts, months, cost, outdoor, fixed=None, dropin=None, family=False, home=False):
     times = {}
     if fixed is not None:
         times = fixed
@@ -70,7 +74,7 @@ def _a(id, name, where, tags, traits, days, parts, months, cost, outdoor, fixed=
         window = dropin
     return {"id": id, "name": name, "neighborhood": NEIGHBORHOOD, "where": where, "tags": tags,
             "traits": traits, "days": days, "parts": parts, "months": months, "cost": cost, "outdoor": outdoor,
-            "fixed": times, "dropin": window, "family": family}
+            "fixed": times, "dropin": window, "family": family, "home": home}
 
 
 ACTIVITIES = [
@@ -163,13 +167,16 @@ ACTIVITIES = [
        ["trivia", "craft_beer"], ["loud_places", "competitive"], [2], ["evening"], ALL_YEAR, "low", False,
        {"evening": "7pm-9pm"}),
     _a("game-night", "Board game night", "a neighbor's table (the host rotates)",
-       ["board_games", "cards"], [], [4, 5], ["evening"], ALL_YEAR, "free", False),
+       ["board_games", "cards"], [], [4, 5], ["evening"], ALL_YEAR, "free", False,
+       None, None, False, True),
 
     # making and giving back
     _a("crafts", "Crafts and woodworking night", "a neighbor's garage workshop",
-       ["crafts"], [], [2, 6], ["evening", "afternoon"], ALL_YEAR, "free", False),
+       ["crafts"], [], [2, 6], ["evening", "afternoon"], ALL_YEAR, "free", False,
+       None, None, False, True),
     _a("garden-swap", "Garden workday and plant swap", "a Lawson Hills backyard (the host rotates)",
-       ["gardening", "volunteering"], ["early_mornings"], WEEKEND, ["morning"], [3, 4, 5, 6, 7, 8, 9, 10], "free", True),
+       ["gardening", "volunteering"], ["early_mornings"], WEEKEND, ["morning"], [3, 4, 5, 6, 7, 8, 9, 10], "free", True,
+       None, None, False, True),
     _a("trail-cleanup", "Trail cleanup work party", "Green River Gorge Conservation Area",
        ["volunteering", "hiking"], ["early_mornings"], [5], ["morning"], ALL_YEAR, "free", True,
        {"morning": "9am-12pm"}),

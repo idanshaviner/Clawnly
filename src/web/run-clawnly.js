@@ -227,6 +227,7 @@
       "- Spread plans across many people rather than stacking the keenest into one group.",
       "- Pick a specific time inside the day part (morning " + PART_HOURS.morning + ", afternoon " + PART_HOURS.afternoon + ", evening " + PART_HOURS.evening + "). A room marked FIXED is a real event (a game, a concert): use exactly that time.",
       "- A room marked DROP-IN is a real event people wander through (a market, an open house): its hours are not a meeting time. Pick one meeting time inside them and name a meeting spot in every proposal (for example the front entrance at 10am, then coffee after one lap), or people come and go without ever meeting.",
+      "- A room marked AT A NEIGHBOR'S HOME happens at someone's house. These people have never met, and strangers meet first in a public place: name a public spot nearby (the Black Diamond Library, the Bakery) in the proposal, and leave the home for a group that has met and wants a second meetup.",
       "- Name up to 2 alternates per group from the same break room, in case someone declines.",
       "- Write a short, personal proposal to each member's agent: what, when, where, how many others, and why it fits this person. Don't name the other people yet.",
       "- In the why and the proposals, describe only interests people actually have: someone in a trivia room for the craft beer isn't a trivia fan. Check what a person avoids against a FIXED time.",
@@ -250,6 +251,8 @@
       if (fixed) header += ", FIXED " + fixed;
       var dropin = dropinWindow(a, s.part);
       if (dropin) header += ", DROP-IN " + dropin + " (set one meeting time and spot inside it)";
+      // a neighbor's house: strangers meet first in public (matchmaker.HOME_NOTE, Nov 20 Example #57)
+      if (a.home) header += ", AT A NEIGHBOR'S HOME (strangers meet first in public: for a first meetup name a public spot nearby, like the Black Diamond Library or Bakery, and save the home for a group that has met)";
       lines.push("", header + " (" + s.candidates.length + " in the room)");
       // the keenest with keenness (profiles once, below); everyone else by id, so nobody is left out
       var top = [], rest = [], mild = [];

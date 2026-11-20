@@ -1015,3 +1015,20 @@ def test_the_plan_prompt_and_the_page_carry_the_first_meetup_size():
     js = open("src/web/run-clawnly.js").read()
     assert "members.slice(0, DATA.groupMax)" in js and "too big for a first meetup" in js
     assert "from 2 to \" + DATA.groupMax + \" members" in js
+
+
+def test_a_home_activity_tells_the_planner_strangers_meet_in_public_first():
+    # Nov 20 review (Example #57): a game night at a neighbor's house is no first meetup for
+    # strangers; the planner is told to name a public spot and save the home for a group that has met
+    homes = [a["id"] for a in catalog.ACTIVITIES if a.get("home")]
+    assert sorted(homes) == ["crafts", "game-night", "garden-swap"]
+    assert not catalog.get("bakery")["home"]
+    person = dict(town()[0], avoid=[], dislikes=[], budget="any", likes=[{"tag": "board_games", "weight": 3}, {"tag": "trivia", "weight": 3}])
+    room = {"activity": "game-night", "part": "evening",
+            "candidates": [{"id": "a", "score": 3}, {"id": "b", "score": 3}]}
+    people = {"a": dict(person, id="a"), "b": dict(person, id="b", name="Bea B.")}
+    assert "AT A NEIGHBOR'S HOME" in matchmaker._plan_payload([room], people)
+    assert "AT A NEIGHBOR'S HOME" in matchmaker._plan_system(SATURDAY, 5)
+    trivia = {"activity": "trivia", "part": "evening", "candidates": room["candidates"]}
+    payload = matchmaker._plan_payload([trivia], people)
+    assert "Trivia night" in payload and "NEIGHBOR'S HOME" not in payload

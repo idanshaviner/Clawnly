@@ -70,6 +70,10 @@ LAST_ROUND = 3
 # a second group (Nov 18 review, Example #47: eight parents at one holiday event split into side
 # chats and three never talked to anyone new). Who fits is still the matchmaker's judgment.
 FIRST_MEETUP_MAX = catalog.GROUP_MAX
+# an activity at a neighbor's house: strangers meet first in a public place, so a first meetup names
+# a public spot and the home waits for a group that has met (Nov 20 review, Example #57)
+HOME_NOTE = ("AT A NEIGHBOR'S HOME (strangers meet first in public: for a first meetup name a public spot "
+             "nearby, like the Black Diamond Library or Bakery, and save the home for a group that has met)")
 
 
 def _now():
@@ -163,6 +167,7 @@ def _plan_system(day, max_groups):
         "- Favor people with fewer plans this week: when two people fit, the place goes to the one with fewer. Spread plans across many people rather than stacking the keenest into one group.",
         "- Pick a specific time inside the day part (morning " + PART_HOURS["morning"] + ", afternoon " + PART_HOURS["afternoon"] + ", evening " + PART_HOURS["evening"] + "). A room marked FIXED is a real event (a game, a concert): use exactly that time.",
         "- A room marked DROP-IN is a real event people wander through (a market, an open house): its hours are not a meeting time. Pick one meeting time inside them and name a meeting spot in every proposal (for example the front entrance at 10am, then coffee after one lap), or people come and go without ever meeting.",
+        "- A room marked AT A NEIGHBOR'S HOME happens at someone's house. These people have never met, and strangers meet first in a public place: name a public spot nearby (the Black Diamond Library, the Bakery) in the proposal, and leave the home for a group that has met and wants a second meetup.",
         "- Name up to 2 alternates per group from the same break room, in case someone declines.",
         "- Write a short, personal proposal to each member's agent: what, when, where, how many others, and why it fits this person. Don't name the other people yet.",
         "- In the why and the proposals, describe only interests people actually have: someone in a trivia room for the craft beer isn't a trivia fan. Check what a person avoids against a FIXED time.",
@@ -227,6 +232,8 @@ def _plan_payload(rooms, people, plans=None):
         window = dropin_window(a, room["part"])
         if window is not None:
             header = header + ", DROP-IN " + window + " (set one meeting time and spot inside it)"
+        if a.get("home"):
+            header = header + ", " + HOME_NOTE
         lines.append("")
         lines.append(header + " (" + str(len(room["candidates"])) + " in the room)")
         top = []

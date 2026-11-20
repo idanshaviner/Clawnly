@@ -30,6 +30,8 @@ PURPOSES = [
     # the independent audit of a simulation (orchestration_audit.py)
     ["audit one negotiated group", "audit_group"],
     ["audit the matchmaker's whole day", "audit_day"],
+    # the judge of a finished Run Clawnly day (judge.py)
+    ["judge one planned activity group", "judge_group"],
 ]
 
 

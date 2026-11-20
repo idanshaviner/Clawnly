@@ -28,6 +28,22 @@ MODEL_AGENT_TURN = MODEL_REASONING   # one Claw's message to another Claw
 MODEL_HUB_PAIRING = MODEL_REASONING  # the hub choosing which agents talk
 MODEL_HUB_VERDICT = MODEL_PREMIUM    # the hub deciding who gets an invitation
 
+# the judge (judge.py) scores the matchmaker's groups after a run. It decides nothing
+# about a real person, so it doesn't need the premium tier: Sonnet costs a fraction of
+# the Opus matchmaker it grades. Override with CLAWNLY_JUDGE_MODEL (or judge.py --model)
+# to try another model, e.g. one that took no part in the run.
+MODEL_JUDGE = MODEL_REASONING
+JUDGE_EFFORT = "medium"
+
+
+def judge_model():
+    # CLAWNLY_JUDGE_MODEL wins, so a different judge can be tried without a code change
+    chosen = resolve_env("CLAWNLY_JUDGE_MODEL")
+    if chosen:
+        return chosen
+    return MODEL_JUDGE
+
+
 # effort for the premium (Opus 5.5) calls. Opus 5.5 has thinking always on (it
 # counts toward max_tokens) and rejects `temperature`, so effort is the only
 # depth lever. "medium" is also its own default; set explicitly so a model

@@ -80,6 +80,14 @@ name-blind pitches) are enforced in code, never trusted to the model.
   as `DATA.skill` from `run_clawnly.page_html`, so there's one copy. Stage of life is the AI's
   judgment on purpose: don't add a hard age-spread check in code. Kept examples from the daily
   Keep/Change review sheet are appended to it in the same format.
+- **The judge** (2026-11-17): `judge.py` has a second model (`config.MODEL_JUDGE`, Sonnet by
+  default, `CLAWNLY_JUDGE_MODEL` or `--model` to change it) score every group of a finished
+  `/run` day from 1 to 10 -- main-thing fit, stage of life, event fit, negotiation, would meet
+  again, overall, plus flags -- reading the event, each profile, every message and the skill file.
+  Scores go to `db.judge_scores`, calls to `db.ai_calls` (purpose `judge_group`). Run it with
+  `.venv/bin/python src/judge.py --run latest`, or the "Judge this run" button on `/admin`. Runs
+  save `townStart` so the judge can rebuild the same emulated neighbors. Started simple on purpose
+  (no gold set yet); next is checking its scores against the team's Keep/Change marks.
 - `lounge/clawnly-lounge.html` is a separate, shareable prototype of the same
   idea, published as a claude.ai Artifact. Read its `README.md` before
   republishing it: its saved state lives inside the published page.

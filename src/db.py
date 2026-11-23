@@ -5,7 +5,8 @@ decides; it saves and loads the plain dicts those modules produce.
 
 Tables:
   neighborhoods     -- one invite-link cohort (slug, secret invite code, batch
-                       threshold, first-round and last-nightly-round state)
+                       threshold, first-round and last-nightly-round state, and
+                       the public meetup spots the hub must pick from)
   residents         -- a real person's account + the dossier they brought
                        (what their own AI wrote about them) + its card
   sessions          -- durable login sessions
@@ -158,6 +159,7 @@ def init_db():
     _ensure_column(conn, "residents", "dossier_previews", "INTEGER")
     _ensure_column(conn, "events", "neighborhood_id", "INTEGER")
     _ensure_column(conn, "neighborhoods", "nightly_round_on", "TEXT")
+    _ensure_column(conn, "neighborhoods", "public_spots", "TEXT")
 
     conn.commit()
 
@@ -266,12 +268,40 @@ def list_runs_for_neighborhood(neighborhood_id, limit=10):
 
 # ----- real-user pilot: neighborhoods -------------------------------------------
 
+def _decode_spots(raw):
+    # a list of strings, or [] for a neighborhood that never set any (or a bad value)
+    if raw is None:
+        return []
+    try:
+        spots = json.loads(raw)
+    except ValueError:
+        return []
+    if not isinstance(spots, list):
+        return []
+    return spots
+
+
 def _row_to_neighborhood(row):
     return {
         "id": row["id"], "slug": row["slug"], "name": row["name"],
         "invite_code": row["invite_code"], "batch_threshold": row["batch_threshold"],
         "batch_triggered_at": row["batch_triggered_at"], "created_at": row["created_at"],
+        "public_spots": _decode_spots(row["public_spots"]),
     }
+
+
+def get_public_spots(neighborhood_id):
+    neighborhood = get_neighborhood(neighborhood_id)
+    if neighborhood is None:
+        return []
+    return neighborhood["public_spots"]
+
+
+def set_public_spots(neighborhood_id, spots):
+    # the caller (spots.clean_spots) has already cleaned the list
+    conn = _get_conn()
+    conn.execute("UPDATE neighborhoods SET public_spots = ? WHERE id = ?", (json.dumps(spots), neighborhood_id))
+    conn.commit()
 
 
 def get_neighborhood(neighborhood_id):

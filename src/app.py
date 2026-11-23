@@ -26,6 +26,7 @@ import judge
 import my_match
 import nightly
 import run_clawnly
+import spots
 
 
 @contextlib.asynccontextmanager
@@ -461,6 +462,23 @@ async def api_admin_neighborhood_detail(neighborhood_id: int, request: Request):
         "runs": admin.recent_run_summaries(neighborhood_id),
         "activity": admin.neighborhood_activity(neighborhood_id),
     }
+
+
+@app.post("/api/admin/neighborhoods/{neighborhood_id}/spots")
+async def api_admin_set_spots(neighborhood_id: int, body: dict, request: Request):
+    # the public places the hub must pick from for a first meetup (spots.check_spot)
+    session, error_response = _require_admin(request)
+    if error_response is not None:
+        return error_response
+    if db.get_neighborhood(neighborhood_id) is None:
+        return JSONResponse(status_code=404, content={"error": "no such neighborhood"})
+    cleaned, problem = spots.clean_spots(body.get("spots"))
+    if problem is not None:
+        return JSONResponse(status_code=400, content={"error": problem})
+    db.set_public_spots(neighborhood_id, cleaned)
+    db.log_event(None, "human", "human", "Admin " + str(session.get("email")) + " set the public meetup spots: "
+                 + "; ".join(cleaned) + ".", None, neighborhood_id)
+    return {"public_spots": cleaned}
 
 
 @app.post("/api/admin/neighborhoods/{neighborhood_id}/trigger")

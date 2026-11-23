@@ -19,6 +19,7 @@ def neighborhood_progress(neighborhood):
         "id": neighborhood["id"], "slug": neighborhood["slug"], "name": neighborhood["name"],
         "batch_threshold": neighborhood["batch_threshold"], "complete_count": complete,
         "resident_count": total, "batch_triggered_at": neighborhood["batch_triggered_at"],
+        "public_spots": neighborhood["public_spots"],
     }
 
 

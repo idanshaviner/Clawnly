@@ -247,3 +247,53 @@ def test_a_crashed_round_leaves_its_failure_and_usage_in_the_log():
     failed = [c for c in db.list_ai_calls(run_id) if c["error"]]
     assert len(failed) == 1 and failed[0]["purpose"] == "pairing"
     assert all(e["neighborhood_id"] == 5 for e in db.list_events(run_id))
+
+
+# ----- public meetup spots (journey step 11) ------------------------------------------
+
+def test_verdict_prompt_lists_the_public_spots_and_keeps_its_routing_marker():
+    a = {"name": "Noa"}
+    b = {"name": "Marcus"}
+    with_spots = orchestrator._verdict_system(a, b, ["The Commons", "Trail loop"])
+    assert "ONE of these public places, copied exactly: The Commons | Trail loop" in with_spots
+    assert "should be invited to meet" in with_spots
+    without = orchestrator._verdict_system(a, b)
+    assert "an area that works for both" in without and "public places" not in without
+
+
+def test_invitation_off_the_list_is_swapped_for_a_listed_spot_and_logged():
+    reset()
+    nb = db.get_or_create_neighborhood("ten-trails", "Ten Trails", 10)
+    db.set_public_spots(nb["id"], ["The Commons", "Trail loop"])
+    client = FakeClient(
+        card_fn=card_fn, agent_fn=speaker_fn,
+        pairing_queue=[pairing([{"a": "s1", "b": "s2", "why": "tables"}, {"a": "s3", "b": "s4", "why": "maybe"}])],
+        verdict_fn=verdict_for("Noa\nand Marcus"),
+    )
+    result = run(orchestrator.run_round(people(), client=client, neighborhood_id=nb["id"]))
+
+    # the model named "Seattle"; code replaced it, and the stored invitation carries the listed spot
+    invited = result["invitations"][0]
+    assert invited["verdict"]["invite"]["where"] == "The Commons"
+    texts = [e["text"] for e in db.list_events(result["run_id"])]
+    assert any(t == 'Meetup place "Seattle" is not a listed public spot: used "The Commons". (Noa + Marcus)'
+               for t in texts)
+    # only an invitation that goes out is checked: the pair that failed the gate gets no spot line
+    assert not any("Priya + Jonah" in t and "Meetup place" in t for t in texts)
+    # and the hub was told the list
+    verdict_calls = [kwargs for kind, kwargs in client.calls if kind == "verdict"]
+    assert len(verdict_calls) == 2
+    assert all("The Commons | Trail loop" in kwargs["system"] for kwargs in verdict_calls)
+
+
+def test_a_round_with_no_spots_keeps_the_place_and_warns_in_the_log():
+    reset()
+    client = FakeClient(
+        card_fn=card_fn, agent_fn=speaker_fn,
+        pairing_queue=[pairing([{"a": "s1", "b": "s2", "why": "tables"}])],
+        verdict_fn=verdict_for("Noa\nand Marcus"),
+    )
+    result = run(orchestrator.run_round(people(), client=client))
+    assert result["invitations"][0]["verdict"]["invite"]["where"] == "Seattle"
+    texts = [e["text"] for e in db.list_events(result["run_id"])]
+    assert any("No public meetup spots are set" in t and "(Noa + Marcus)" in t for t in texts)

@@ -65,7 +65,7 @@
     if (!has(a.months, monthOf(iso))) return { score: 0, why: "out of season" };
     if (!has(a.days, weekday(iso)) || !has(a.parts, part)) return { score: 0, why: "not running then" };
     if (!has(listOr(p.calendar[iso]), part)) return { score: 0, why: "busy" };
-    if (!has(BUDGET_OK[p.budget], a.cost)) return { score: 0, why: "over budget" };
+    if (!has(BUDGET_OK[p.budget], costFor(p, a))) return { score: 0, why: "over budget" };
     for (var i = 0; i < a.tags.length; i++) { if (has(p.dislikes, a.tags[i])) return { score: 0, why: "dislikes " + words(a.tags[i]) }; }
     // someone who likes the activity stays in for a late or early real event: their agent asks first
     var traits = wants(p, a) ? a.traits.slice() : a.traits.concat(timeTraits(a, part));
@@ -75,6 +75,12 @@
     for (var k = 0; k < p.likes.length; k++) { if (has(a.tags, p.likes[k].tag)) score += p.likes[k].weight; }
     if (score === 0) return { score: 0, why: "not interested" };
     return { score: score, why: null };
+  }
+  var COST_LEVELS = ["free", "low", "mid"];
+  function costFor(p, a) {
+    // a family outing priced per person costs a parent a ticket for each kid too (demand.cost_for, Nov 16 Example #31)
+    if (!a.family || !p.kids_at_home || a.cost === "free") return a.cost;
+    return COST_LEVELS[Math.min(COST_LEVELS.indexOf(a.cost) + 1, COST_LEVELS.length - 1)];
   }
   // a real event's fixed time says what it involves: to 9pm or later is a late night, before 9am an
   // early morning (same as demand.time_traits and the agent's checks)
@@ -90,6 +96,13 @@
     if (has(p.avoid, "late_nights") && hours[1] >= 21) out.push("It runs to 9pm or later and " + f + " usually avoids late nights, but " + f + " likes this: ask " + f + " before saying yes or no for them.");
     if (has(p.avoid, "early_mornings") && hours[0] < 9) out.push("It starts before 9am and " + f + " usually avoids early mornings, but " + f + " likes this: ask " + f + " before saying yes or no for them.");
     return out;
+  }
+  function bedtimeQuestions(p, a, time) {
+    // an evening ending 7:30pm or later is a question for a parent: young kids' bedtime (matchmaker.bedtime_questions)
+    var hours = parseHours(time);
+    if (!hours || !p.kids_at_home || hours[1] < 19.5) return [];
+    var f = p.name.split(" ")[0];
+    return ["It ends at 7:30pm or later and " + f + " has kids at home: check it works with their kids' bedtime, and pick an earlier session when there is one."];
   }
   function timeTraits(a, part) {
     var hours = parseHours(fixedTime(a, part)), out = [];
@@ -207,12 +220,14 @@
       "The break rooms below were built by code: one per activity and time of day that can run that day, holding every neighbor who is free then, interested, can afford it and doesn't avoid anything about it. Each room lists the people with a strong interest as id:keenness [which of the activity's tags they like] (higher is better), then the rest of them by id, then the people only mildly interested. PEOPLE has one line per listed person, once each, with what they avoid.",
       "",
       "Plan up to " + maxGroups + " groups:",
-      "- Size each group to fit the activity and the people. You decide: two neighbors having a beer over the game is a group, and so is a bigger hike. Small groups are often where people actually meet each other.",
+      "- Size each group to fit the activity and the people, from 2 to " + DATA.groupMax + " members. Two neighbors having a beer over the game is a group. Strangers meeting for the first time talk best in a small group, about 3 or 4 adults (kids who come with their own parent don't count). When more people fit one event, make a second group with its own meeting time and spot instead of one big group; code keeps only the first " + DATA.groupMax + " members of any group.",
       "- Each person in at most one group. Use only people in that break room.",
       "- Members need a strong interest. People listed as mild can be alternates, never members.",
       "- Prefer groups whose members share more than the activity (overlapping likes, similar stage of life), so they'd enjoy each other.",
       "- Spread plans across many people rather than stacking the keenest into one group.",
       "- Pick a specific time inside the day part (morning " + PART_HOURS.morning + ", afternoon " + PART_HOURS.afternoon + ", evening " + PART_HOURS.evening + "). A room marked FIXED is a real event (a game, a concert): use exactly that time.",
+      "- A room marked DROP-IN is a real event people wander through (a market, an open house): its hours are not a meeting time. Pick one meeting time inside them and name a meeting spot in every proposal (for example the front entrance at 10am, then coffee after one lap), or people come and go without ever meeting.",
+      "- A room marked AT A NEIGHBOR'S HOME happens at someone's house. These people have never met, and strangers meet first in a public place: name a public spot nearby (the Black Diamond Library, the Bakery) in the proposal, and leave the home for a group that has met and wants a second meetup.",
       "- Name up to 2 alternates per group from the same break room, in case someone declines.",
       "- Write a short, personal proposal to each member's agent: what, when, where, how many others, and why it fits this person. Don't name the other people yet.",
       "- In the why and the proposals, describe only interests people actually have: someone in a trivia room for the craft beer isn't a trivia fan. Check what a person avoids against a FIXED time.",
@@ -229,9 +244,15 @@
       var split = splitRoom(s);
       // no group can form without two members who really want it
       if (split.strong.length < 2) continue;
-      var header = "[" + a.id + " | " + s.part + "] " + a.name + " at " + a.where + ", cost " + a.cost + ", about: " + a.tags.map(words).join(", ");
+      var cost = a.cost;
+      if (a.family) cost += " a person, a family outing (kids come along and pay too)";
+      var header = "[" + a.id + " | " + s.part + "] " + a.name + " at " + a.where + ", cost " + cost + ", about: " + a.tags.map(words).join(", ");
       var fixed = fixedTime(a, s.part);
       if (fixed) header += ", FIXED " + fixed;
+      var dropin = dropinWindow(a, s.part);
+      if (dropin) header += ", DROP-IN " + dropin + " (set one meeting time and spot inside it)";
+      // a neighbor's house: strangers meet first in public (matchmaker.HOME_NOTE, Nov 20 Example #57)
+      if (a.home) header += ", AT A NEIGHBOR'S HOME (strangers meet first in public: for a first meetup name a public spot nearby, like the Black Diamond Library or Bakery, and save the home for a group that has met)";
       lines.push("", header + " (" + s.candidates.length + " in the room)");
       // the keenest with keenness (profiles once, below); everyone else by id, so nobody is left out
       var top = [], rest = [], mild = [];
@@ -289,6 +310,33 @@
   }
   var LEVELS = [[3, "Loves"], [2, "Really likes"], [1, "Is up for"]];
   var BUDGET_WORDS = { free: "free things only", low: "free or low-cost things", any: "any cost" };
+  function dropinWindow(a, part) {
+    // the hours a drop-in event (a market, an open house) is open in that day part, or null
+    var w = a.dropin || {};
+    return w[part] || null;
+  }
+  function clock(h) {
+    // 9.5 -> "9:30am", 12 -> "12pm"
+    var hour = Math.floor(h), minutes = Math.round((h - hour) * 60), half = hour >= 12 ? "pm" : "am", shown = hour % 12;
+    if (shown === 0) shown = 12;
+    return minutes ? shown + ":" + (minutes < 10 ? "0" : "") + minutes + half : shown + half;
+  }
+  function meetHours(a, part) {
+    // the day part, narrowed to a drop-in event's open hours (a market open 9am-2pm meets 9am-12pm in the morning)
+    var w = dropinWindow(a, part);
+    if (!w) return PART_HOURS[part];
+    var open = parseHours(w), bounds = parseHours(PART_HOURS[part]);
+    if (!open) return PART_HOURS[part];
+    var start = Math.max(open[0], bounds[0]), end = Math.min(open[1], bounds[1]);
+    if (end <= start) return PART_HOURS[part];
+    return clock(start) + "-" + clock(end);
+  }
+  function insideMeetHours(text, a, part) {
+    if (!insidePart(text, part)) return false;
+    var hours = parseHours(text), w = parseHours(meetHours(a, part));
+    if (!hours || !w) return true;
+    return hours[0] >= w[0] && hours[1] <= w[1];
+  }
   function fixedTime(a, part) {
     // the real time of a game, concert or event in that day part, or null when the time is free to pick
     var f = a.fixed || {};
@@ -347,7 +395,10 @@
       if (has(p.avoid, a.traits[i]) && !covered) out.push("It involves " + words(a.traits[i]) + ", which " + f + " avoids.");
     }
     for (var j = 0; j < a.tags.length; j++) { if (has(p.dislikes, a.tags[j])) out.push("It's " + words(a.tags[j]) + ", which " + f + " is not into."); }
-    if (!has(BUDGET_OK[p.budget], a.cost)) out.push("It costs more than " + f + "'s budget (" + BUDGET_WORDS[p.budget] + ").");
+    if (!has(BUDGET_OK[p.budget], costFor(p, a))) {
+      if (costFor(p, a) !== a.cost) out.push("It's priced per person and " + f + " would bring kids, so it costs more than " + f + "'s budget (" + BUDGET_WORDS[p.budget] + ").");
+      else out.push("It costs more than " + f + "'s budget (" + BUDGET_WORDS[p.budget] + ").");
+    }
     return out;
   }
   function planChecks(p, a, part, time, iso) {
@@ -355,6 +406,7 @@
     var f = p.name.split(" ")[0], out = conflicts(p, a, part, time, iso);
     var keen = keenness(p, a);
     out = out.concat(timeQuestions(p, a, time));
+    out = out.concat(bedtimeQuestions(p, a, time));
     if (keen === 0) out.push(f + " never said they like this.");
     if (keen === 1) out.push("Interest is mild: " + f + " is only up for it.");
     return out;
@@ -493,8 +545,12 @@
         members.push(id);
       }
       if (members.length < DATA.groupMin) { rejected.push(ACTS[slot.activity].name + ": fewer than " + DATA.groupMin + " valid people"); continue; }
-      // the plan's own alternates first, then anyone it named as a member who is only mildly interested
-      var alternates = [], alts = listOr(r.alternates).concat(mild);
+      // strangers meeting for the first time need a small group (matchmaker.FIRST_MEETUP_MAX, Nov 18 Example #47)
+      var extra = members.slice(DATA.groupMax);
+      members = members.slice(0, DATA.groupMax);
+      if (extra.length) rejected.push(ACTS[slot.activity].name + ": " + (members.length + extra.length) + " members is too big for a first meetup (up to " + DATA.groupMax + "), so " + extra.map(nameOf).join(", ") + " can be alternates or a second group");
+      // the plan's own alternates first, then anyone it named as a member who is only mildly interested, then anyone past the size limit
+      var alternates = [], alts = listOr(r.alternates).concat(mild).concat(extra);
       for (var k = 0; k < alts.length && alternates.length < 2; k++) {
         var aid = String(alts[k]);
         if (inSlot(slot, aid) && !taken[aid] && !has(members, aid) && !has(alternates, aid)) alternates.push(aid);
@@ -506,9 +562,9 @@
       if (fixed) {
         g.fixed = true;
         if (g.time !== fixed) { g.plannedTime = g.time; g.time = fixed; }
-      } else if (!insidePart(g.time, slot.part)) {
+      } else if (!insideMeetHours(g.time, ACTS[slot.activity], slot.part)) {
         g.plannedTime = g.time;
-        g.time = PART_HOURS[slot.part];
+        g.time = meetHours(ACTS[slot.activity], slot.part);
       }
       var proposals = r.proposals || {};
       for (var m = 0; m < members.length; m++) {
@@ -632,6 +688,7 @@
       if (dec.time && String(dec.time) !== grp.time) {
         if (grp.fixed) log("code", "check", "Kept " + grp.id + " at " + grp.time + ": " + ACTS[grp.activity].name + " is a real event, so the matchmaker can't move it to " + dec.time + ".", grp.id);
         else if (!insidePart(String(dec.time), grp.part)) log("code", "check", "Kept " + grp.id + " at " + grp.time + ": " + dec.time + " is outside the " + grp.part + " (" + PART_HOURS[grp.part] + "), when nobody's calendar was checked.", grp.id);
+        else if (!insideMeetHours(String(dec.time), ACTS[grp.activity], grp.part)) log("code", "check", "Kept " + grp.id + " at " + grp.time + ": " + dec.time + " is outside " + ACTS[grp.activity].name + "'s open hours (" + dropinWindow(ACTS[grp.activity], grp.part) + ").", grp.id);
         else { log("hub", "decision", grp.id + " moves to " + dec.time + ".", grp.id); grp.time = String(dec.time); moved = true; }
       }
       var asks = listOr(dec.ask);

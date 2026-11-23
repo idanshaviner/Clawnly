@@ -145,3 +145,31 @@ def test_a_family_outing_costs_a_parent_a_ticket_per_kid():
     # a free family event stays free, and a grown-ups' outing isn't priced for the kids
     assert demand.cost_for(parent, dict(swim, cost="free")) == "free"
     assert demand.cost_for(parent, catalog.get("cribbage")) == "low"
+
+
+def test_a_pause_keeps_someone_out_of_every_room_until_the_date():
+    # Nov 20 review (Example #59): "swamped with work until January" is a pause, not a no and not
+    # a maybe, so code offers nothing before then, and the person is back in play on the date
+    kayak = catalog.get("sawyer-paddle")
+    paused = person(paused_until="2026-10-01")
+    assert demand.fit(paused, kayak, SUNDAY, "afternoon") == (0, "paused until 2026-10-01")
+    assert demand.paused_until(paused, SUNDAY) == "2026-10-01"
+    back = datetime.date(2026, 10, 4)
+    paused["calendar"] = {back.isoformat(): ["afternoon"]}
+    assert demand.paused_until(paused, back) is None
+    assert demand.fit(paused, kayak, back, "afternoon")[1] is None
+    assert demand.fit(person(paused_until=""), kayak, SUNDAY, "afternoon")[1] is None
+
+
+def test_a_paused_neighbor_is_never_proposed_while_the_rest_of_the_town_is_unchanged():
+    people = population.generate(200, seed=7, start=SUNDAY)
+    before = demand.propose_groups(people, catalog.ACTIVITIES, SUNDAY)
+    busiest = before["groups"][0]["members"][0]["id"]
+    for p in people:
+        if p["id"] == busiest:
+            p["paused_until"] = "2027-01-04"
+    after = demand.propose_groups(people, catalog.ACTIVITIES, SUNDAY)
+    placed = [m["id"] for g in after["groups"] for m in g["members"]]
+    assert busiest not in placed and busiest in after["unplaced"]
+    rooms = demand.break_room(people, catalog.ACTIVITIES, SUNDAY)
+    assert not any(c["id"] == busiest for r in rooms for c in r["candidates"])

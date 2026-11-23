@@ -402,6 +402,8 @@ def agent_profile(person):
     if len(avoid) > 0:
         lines.append("Avoids: " + ", ".join(avoid) + ".")
     lines.append("Budget: " + BUDGET_WORDS[person["budget"]] + ".")
+    if person.get("paused_until"):
+        lines.append("Asked for a break from plans until " + pause_label(person["paused_until"]) + ".")
     days = sorted(person["calendar"].keys())
     week = []
     d = 0
@@ -414,6 +416,11 @@ def agent_profile(person):
         d += 1
     lines.append("This week: " + "; ".join(week) + ".")
     return "\n".join(lines)
+
+
+def pause_label(iso):
+    day = datetime.date.fromisoformat(iso)
+    return WEEKDAY[day.weekday()] + " " + str(day.day) + " " + day.strftime("%B")
 
 
 def keenness(person, activity):
@@ -431,6 +438,9 @@ def conflicts(person, activity, part, time_text, day):
     # what in the profile rules this plan out: code refuses a yes that runs into any of it
     first = _first(person)
     out = []
+    if demand.paused_until(person, day) is not None:
+        # "not until January" is a pause: code refuses any yes before then (Nov 20 Example #59)
+        out.append(first + " asked for a break from plans until " + pause_label(person["paused_until"]) + ".")
     if part not in person["calendar"].get(day.isoformat(), []):
         out.append(first + " is busy that " + part + ".")
     hours = parse_hours(time_text)

@@ -64,6 +64,7 @@
   function fit(p, a, iso, part) {
     if (!has(a.months, monthOf(iso))) return { score: 0, why: "out of season" };
     if (!has(a.days, weekday(iso)) || !has(a.parts, part)) return { score: 0, why: "not running then" };
+    if (pausedUntil(p, iso)) return { score: 0, why: "paused until " + p.paused_until };
     if (!has(listOr(p.calendar[iso]), part)) return { score: 0, why: "busy" };
     if (!has(BUDGET_OK[p.budget], costFor(p, a))) return { score: 0, why: "over budget" };
     for (var i = 0; i < a.tags.length; i++) { if (has(p.dislikes, a.tags[i])) return { score: 0, why: "dislikes " + words(a.tags[i]) }; }
@@ -75,6 +76,12 @@
     for (var k = 0; k < p.likes.length; k++) { if (has(a.tags, p.likes[k].tag)) score += p.likes[k].weight; }
     if (score === 0) return { score: 0, why: "not interested" };
     return { score: score, why: null };
+  }
+  function pausedUntil(p, iso) {
+    // someone who asked for a break ("swamped until January") gets no offers before that date
+    // (same as demand.paused_until, Nov 20 Example #59); ISO dates compare as text
+    if (!p.paused_until || iso >= p.paused_until) return null;
+    return p.paused_until;
   }
   var COST_LEVELS = ["free", "low", "mid"];
   function costFor(p, a) {
@@ -373,6 +380,7 @@
     if (p.dislikes.length > 0) lines.push("Not into: " + p.dislikes.map(words).join(", ") + ".");
     if (p.avoid.length > 0) lines.push("Avoids: " + p.avoid.map(words).join(", ") + ".");
     lines.push("Budget: " + BUDGET_WORDS[p.budget] + ".");
+    if (p.paused_until) lines.push("Asked for a break from plans until " + dayLabel(p.paused_until) + ".");
     var days = Object.keys(p.calendar).sort(), week = [];
     for (var d = 0; d < days.length; d++) {
       var free = listOr(p.calendar[days[d]]), txt = "busy";
@@ -385,6 +393,7 @@
   function conflicts(p, a, part, time, iso) {
     // what in the profile rules this plan out: code refuses a yes that runs into any of it
     var f = p.name.split(" ")[0], out = [];
+    if (pausedUntil(p, iso)) out.push(f + " asked for a break from plans until " + dayLabel(p.paused_until) + ".");
     if (!has(listOr(p.calendar[iso]), part)) out.push(f + " is busy that " + part + ".");
     var hours = parseHours(time), soft = wants(p, a);
     if (hours && has(p.avoid, "early_mornings") && hours[0] < 9 && !soft) out.push("It starts before 9am, and " + f + " avoids early mornings.");

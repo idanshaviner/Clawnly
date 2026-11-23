@@ -1032,3 +1032,26 @@ def test_a_home_activity_tells_the_planner_strangers_meet_in_public_first():
     trivia = {"activity": "trivia", "part": "evening", "candidates": room["candidates"]}
     payload = matchmaker._plan_payload([trivia], people)
     assert "Trivia night" in payload and "NEIGHBOR'S HOME" not in payload
+
+
+def test_a_pause_is_in_the_agent_profile_and_code_refuses_a_yes_before_it_ends():
+    # Nov 20 review (Example #59): Ben is swamped until January, so a December plan is refused in
+    # code and his agent knows about the break; on the date he is back in play
+    club = catalog.get("book-club")
+    day = datetime.date(2026, 12, 3)
+    person = dict(town()[0], avoid=[], dislikes=[], budget="any", kids_at_home=False,
+                  likes=[{"tag": "book_club", "weight": 3}], paused_until="2027-01-04")
+    person["calendar"] = {day.isoformat(): ["evening"]}
+    found = matchmaker.conflicts(person, club, "evening", "6pm-8pm", day)
+    assert any("break from plans until Monday 4 January" in c for c in found)
+    assert "Asked for a break from plans until Monday 4 January." in matchmaker.agent_profile(person)
+    back = datetime.date(2027, 1, 4)
+    person["calendar"] = {back.isoformat(): ["evening"]}
+    assert not any("break from plans" in c for c in matchmaker.conflicts(person, club, "evening", "6pm-8pm", back))
+    assert "break from plans" not in matchmaker.agent_profile(dict(person, paused_until=None))
+
+
+def test_the_browser_copy_checks_a_pause_too():
+    js = open("src/web/run-clawnly.js").read()
+    assert 'if (pausedUntil(p, iso)) return { score: 0, why: "paused until "' in js
+    assert "asked for a break from plans until" in js

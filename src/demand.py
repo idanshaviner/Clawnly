@@ -78,6 +78,18 @@ def wants(person, activity):
     return False
 
 
+def paused_until(person, day):
+    # the date someone asked for a break until ("swamped with work until January"), when that break
+    # still covers this day, else None. A pause is not a no and not a maybe: no offers at all until
+    # then, and code keeps them out of every break room (Nov 20 review, Example #59)
+    until = person.get("paused_until")
+    if not until:
+        return None
+    if day < datetime.date.fromisoformat(until):
+        return until
+    return None
+
+
 def fit(person, activity, day, part):
     # (score, None) if this person could join this activity in this day part,
     # else (0, the reason they can't). The score says how much they'd want to.
@@ -85,6 +97,8 @@ def fit(person, activity, day, part):
         return 0, "out of season"
     if day.weekday() not in activity["days"] or part not in activity["parts"]:
         return 0, "not running then"
+    if paused_until(person, day) is not None:
+        return 0, "paused until " + person["paused_until"]
     if part not in person["calendar"].get(day.isoformat(), []):
         return 0, "busy"
     if cost_for(person, activity) not in BUDGET_OK[person["budget"]]:

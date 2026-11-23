@@ -36,6 +36,8 @@ it and avoids nothing about it.
   still be placed with other neighbors.
 - When someone declines an activity, ask whether the activity was wrong before deciding the
   people were wrong.
+- "Not until January" is a pause, not a no and not a maybe. Code keeps a paused person out of
+  every group until the date they gave; after it, ask once, with something they love.
 
 ## Big groups of interested people
 

@@ -9,7 +9,7 @@ import os
 from types import SimpleNamespace
 
 import anthropic
-import httpx2
+import httpx
 import pytest
 
 import catalog
@@ -265,7 +265,7 @@ class UsageFake:
         self.sent.append(kwargs)
         if self.fail_first:
             self.fail_first = False
-            raise anthropic.APIConnectionError(request=httpx2.Request("POST", "https://api.anthropic.com/v1/messages"))
+            raise anthropic.APIConnectionError(request=httpx.Request("POST", "https://api.anthropic.com/v1/messages"))
         reply = await self.inner.messages.create(**kwargs)
         return usage_reply(reply.content[0].text, kwargs["model"])
 

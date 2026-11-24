@@ -969,3 +969,90 @@ def test_api_admin_set_spots_rejects_bad_input_and_unknown_neighborhoods():
         assert db.get_public_spots(nb["id"]) == []
     finally:
         client.cookies.clear()
+
+
+# ----- the next-morning check-in routes (journey step 12) ------------------------------
+
+def _sealed_pair_with_sessions():
+    # two consented residents of one neighborhood whose invitation both said yes to
+    nb = db.get_or_create_neighborhood("ballard", "Ballard", 100)
+    people = []
+    tokens = []
+    emails = ["a@example.com", "b@example.com"]
+    i = 0
+    while i < len(emails):
+        resident = db.get_or_create_resident(nb["id"], emails[i], "magic_link")
+        db.record_consent(resident["id"])
+        people.append(db.get_resident(resident["id"]))
+        tokens.append(auth.start_session(emails[i], "resident", resident["id"], nb["id"]))
+        i += 1
+    run_id = db.create_run(nb["id"])
+    members = ["r" + str(people[0]["id"]), "r" + str(people[1]["id"])]
+    details = {"pitches": {}, "invite": {"activity": "walk", "when": "Sunday 8am", "where": "The Commons",
+                                         "starts_at": "2026-12-06T08:00:00-08:00"}}
+    match_id = db.create_invitation(run_id, members, "headline", 9, details)
+    db.create_pending_acceptances(match_id, [people[0]["id"], people[1]["id"]])
+    db.respond_to_acceptance(match_id, people[0]["id"], "accepted")
+    db.respond_to_acceptance(match_id, people[1]["id"], "accepted")
+    db.mark_match_sealed(match_id)
+    return match_id, tokens
+
+
+def _as(token, method, url, **kwargs):
+    client.cookies.set(auth.SESSION_COOKIE_NAME, token)
+    try:
+        return getattr(client, method)(url, **kwargs)
+    finally:
+        client.cookies.clear()
+
+
+def test_checkin_routes_need_a_login():
+    reset_state()
+    assert client.get("/api/my-match/checkin").status_code == 401
+    assert client.post("/api/my-match/checkin", json={"match_id": 1, "met": True, "would_meet_again": True}).status_code == 401
+
+
+def test_checkin_routes_walk_through_not_yet_ask_and_done(monkeypatch):
+    import datetime
+    import checkin
+    reset_state()
+    match_id, tokens = _sealed_pair_with_sessions()
+    early = datetime.datetime(2026, 12, 6, 12, 0, tzinfo=checkin._zone())
+    monkeypatch.setattr(checkin, "_now", lambda: early)
+    assert _as(tokens[0], "get", "/api/my-match/checkin").json() == {"state": "not_yet", "match_id": match_id}
+    answer = {"match_id": match_id, "met": True, "would_meet_again": True}
+    refused = _as(tokens[0], "post", "/api/my-match/checkin", json=answer)
+    assert refused.status_code == 400 and "isn't open yet" in refused.json()["error"]
+
+    later = datetime.datetime(2026, 12, 7, 9, 0, tzinfo=checkin._zone())
+    monkeypatch.setattr(checkin, "_now", lambda: later)
+    assert _as(tokens[0], "get", "/api/my-match/checkin").json() == {"state": "ask", "match_id": match_id}
+    done = _as(tokens[0], "post", "/api/my-match/checkin", json=answer)
+    assert done.status_code == 200
+    assert done.json() == {"state": "done", "match_id": match_id, "met": True, "would_meet_again": True, "mutual": False}
+    # the other person has not answered, and sees nothing of the first answer
+    other = _as(tokens[1], "get", "/api/my-match/checkin").json()
+    assert other == {"state": "ask", "match_id": match_id}
+    mutual = _as(tokens[1], "post", "/api/my-match/checkin", json=answer).json()
+    assert mutual["mutual"] is True
+    assert _as(tokens[0], "get", "/api/my-match/checkin").json()["mutual"] is True
+
+
+def test_checkin_post_rejects_bad_bodies_and_outsiders(monkeypatch):
+    import datetime
+    import checkin
+    reset_state()
+    match_id, tokens = _sealed_pair_with_sessions()
+    monkeypatch.setattr(checkin, "_now", lambda: datetime.datetime(2026, 12, 7, 9, 0, tzinfo=checkin._zone()))
+    url = "/api/my-match/checkin"
+    assert _as(tokens[0], "post", url, json={"met": True, "would_meet_again": True}).status_code == 400
+    assert _as(tokens[0], "post", url, json={"match_id": match_id, "met": "yes", "would_meet_again": True}).status_code == 400
+    assert _as(tokens[0], "post", url, json={"match_id": match_id, "met": True}).status_code == 400
+    # a resident who is not in the match cannot answer for it, whatever match id they send
+    nb = db.get_or_create_neighborhood("ballard", "Ballard", 100)
+    stranger = db.get_or_create_resident(nb["id"], "stranger@example.com", "magic_link")
+    db.record_consent(stranger["id"])
+    stranger_token = auth.start_session("stranger@example.com", "resident", stranger["id"], stranger["neighborhood_id"])
+    r = _as(stranger_token, "post", url, json={"match_id": match_id, "met": True, "would_meet_again": True})
+    assert r.status_code == 400 and "not a member" in r.json()["error"]
+    assert db.list_checkins(match_id) == []

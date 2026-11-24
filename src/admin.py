@@ -9,6 +9,7 @@ Gated entirely by auth.is_admin(email) via app.py's _require_admin -- the
 same plain email-allowlist pattern login already uses.
 """
 
+import checkin
 import db
 
 
@@ -20,6 +21,7 @@ def neighborhood_progress(neighborhood):
         "batch_threshold": neighborhood["batch_threshold"], "complete_count": complete,
         "resident_count": total, "batch_triggered_at": neighborhood["batch_triggered_at"],
         "public_spots": neighborhood["public_spots"],
+        "would_meet_again_count": checkin.mutual_count(neighborhood["id"]),
     }
 
 

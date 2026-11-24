@@ -44,7 +44,7 @@
   .meetup .field { font-size:14px; margin:4px 0; }
   .meetup .field b { color:var(--accent-dark); }
   #status { font-size:14px; margin-top:12px; color:var(--muted); }
-  #status.err { color:#a44a3f; }
+  #status.err, #checkin-status.err { color:#a44a3f; }
   .ack { display:none; background:var(--green); color:#fff; font-weight:600; font-size:13px;
     text-align:center; padding:10px; border-radius:10px; margin-top:14px; }
 </style>
@@ -113,6 +113,27 @@
     </div>
 
     <p class="sub" id="no-meetup-note" style="display:none"></p>
+
+    <div class="meetup" id="checkin-block" style="display:none">
+      <p class="event">How did it go?</p>
+      <p class="field" id="checkin-wait" style="display:none;color:var(--muted)">After your meetup we'll ask how it went, right here. Only you see your answers.</p>
+      <div id="checkin-q1" style="display:none">
+        <p class="field"><b>Did you two meet?</b></p>
+        <div class="row">
+          <button id="met-yes-btn">Yes, we met</button>
+          <button id="met-no-btn" class="secondary">No, it didn't happen</button>
+        </div>
+      </div>
+      <div id="checkin-q2" style="display:none">
+        <p class="field"><b>Would you meet them again?</b></p>
+        <div class="row">
+          <button id="again-yes-btn">Yes</button>
+          <button id="again-no-btn" class="secondary">Not really</button>
+        </div>
+      </div>
+      <p class="field" id="checkin-done" style="display:none"></p>
+      <div id="checkin-status"></div>
+    </div>
   </div>
 
   <div class="card" id="dissolved" style="display:none">
@@ -180,6 +201,7 @@ function renderState(data){
       noteEl.style.display = "block";
     }
     show("sealed");
+    loadCheckin();
     return;
   }
 
@@ -260,6 +282,77 @@ document.getElementById("there-btn").addEventListener("click", function(){
 });
 document.getElementById("different-time-btn").addEventListener("click", function(){
   answerMeetup(this, "different_time", "Thanks -- noted. We'll follow up about timing.");
+});
+
+// ----- the check-in after the meetup: only the caller's own answers ever come back -----
+var checkinMatchId = null;
+function showCheckinParts(wait, q1, q2, done){
+  document.getElementById("checkin-wait").style.display = wait;
+  document.getElementById("checkin-q1").style.display = q1;
+  document.getElementById("checkin-q2").style.display = q2;
+  document.getElementById("checkin-done").style.display = done;
+}
+function renderCheckin(data){
+  var block = document.getElementById("checkin-block");
+  var status = document.getElementById("checkin-status");
+  status.textContent = "";
+  status.className = "";
+  if (data.state === "none") { block.style.display = "none"; return; }
+  block.style.display = "block";
+  checkinMatchId = data.match_id;
+  if (data.state === "not_yet") { showCheckinParts("block", "none", "none", "none"); return; }
+  if (data.state === "ask") { showCheckinParts("none", "block", "none", "none"); return; }
+  var done = document.getElementById("checkin-done");
+  done.textContent = "Thanks -- noted. Only you can see your answers.";
+  if (data.mutual) { done.textContent = "You both want to meet again. We'll help set up a second meetup."; }
+  showCheckinParts("none", "none", "none", "block");
+}
+function loadCheckin(){
+  return fetch("/api/my-match/checkin").then(function(r){
+    if (!r.ok) { return null; }
+    return r.json();
+  }).then(function(data){
+    if (data != null) { renderCheckin(data); }
+  }).catch(function(){});
+}
+function sendCheckin(met, again){
+  var status = document.getElementById("checkin-status");
+  var ids = ["met-yes-btn", "met-no-btn", "again-yes-btn", "again-no-btn"];
+  var i = 0;
+  while (i < ids.length) { document.getElementById(ids[i]).disabled = true; i++; }
+  fetch("/api/my-match/checkin", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ match_id: Number(checkinMatchId), met: met, would_meet_again: again }),
+  }).then(function(r){
+    return r.json().then(function(data){ return { ok: r.ok, data: data }; });
+  }).then(function(res){
+    var j = 0;
+    while (j < ids.length) { document.getElementById(ids[j]).disabled = false; j++; }
+    if (res.ok) {
+      renderCheckin(res.data);
+    } else {
+      status.className = "err";
+      status.textContent = res.data.error || "Something went wrong.";
+    }
+  }).catch(function(){
+    var k = 0;
+    while (k < ids.length) { document.getElementById(ids[k]).disabled = false; k++; }
+    status.className = "err";
+    status.textContent = "Something went wrong. Try again.";
+  });
+}
+document.getElementById("met-yes-btn").addEventListener("click", function(){
+  showCheckinParts("none", "none", "block", "none");
+});
+document.getElementById("met-no-btn").addEventListener("click", function(){
+  sendCheckin(false, null);
+});
+document.getElementById("again-yes-btn").addEventListener("click", function(){
+  sendCheckin(true, true);
+});
+document.getElementById("again-no-btn").addEventListener("click", function(){
+  sendCheckin(true, false);
 });
 
 fetch("/api/me").then(function(r){

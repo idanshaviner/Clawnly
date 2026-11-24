@@ -102,7 +102,9 @@ async def run_neighborhood_round(neighborhood_id, people, client):
         details = {
             "conversation_id": conversation["id"],
             "invite": {"activity": str(invite.get("activity", "")), "when": str(invite.get("when", "")),
-                       "where": str(invite.get("where", ""))},
+                       "where": str(invite.get("where", "")),
+                       # already validated by checkin.clean_starts_at (None when unusable)
+                       "starts_at": invite.get("starts_at")},
             "pitches": {a: _blind(invite.get("to_a"), names[b]), b: _blind(invite.get("to_b"), names[a])},
         }
         match_id = db.create_invitation(run_id, [a, b], verdict["headline"], verdict["depth"], details)

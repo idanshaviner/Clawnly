@@ -2,8 +2,11 @@
 its invitations into the mutual yes/no gate."""
 
 import asyncio
+import datetime
+import json
 
 import batch
+import checkin
 import db
 from conftest import FakeClient, json_body, make_joined_resident, reset_db, run
 
@@ -237,3 +240,23 @@ def test_invitations_name_a_listed_public_spot():
     runs = db.list_runs_for_neighborhood(nb["id"])
     texts = [e["text"] for e in db.list_events(runs[0]["id"])]
     assert any('Meetup place "Ten Trails" is not a listed public spot' in t for t in texts)
+
+
+def test_the_invitation_stores_the_validated_start_time_for_the_check_in():
+    reset_db()
+    nb = neighborhood(threshold=2)
+    noa = make_joined_resident(nb, "a@example.com", "Noa")
+    marcus = make_joined_resident(nb, "b@example.com", "Marcus")
+    base = verdict_fn({"Noa+Marcus": 9})
+    when = (checkin._now() + datetime.timedelta(days=2)).strftime("%Y-%m-%dT08:15")
+
+    def with_time(system, content):
+        body = json.loads(base(system, content))
+        body["invite"]["starts_at"] = when
+        return json.dumps(body)
+    client = FakeClient(agent_fn=speaker_fn,
+                        pairing_queue=[pairing([{"a": rid(noa), "b": rid(marcus), "why": "x"}])],
+                        verdict_fn=with_time)
+    run(batch.check_and_trigger_batch(nb["id"], client=client))
+    match = db.get_match(db.latest_match_acceptance(noa["id"])["match_id"])
+    assert match["details"]["invite"]["starts_at"].startswith(when)

@@ -27,6 +27,7 @@ import asyncio
 import re
 
 import ai_log
+import checkin
 import config
 import db
 import dossier
@@ -276,6 +277,7 @@ def _verdict_system(a, b, spots=None):
         ' "evidence": [{"quote": "words copied EXACTLY from the transcript, 6-25 words", "why": "what it shows"}],',
         ' "tensions": ["honest risks"],',
         ' "invite": {"activity": "a specific low-pressure activity that fits both", "when": "a time both are free",',
+        '   "starts_at": "that same time as local ISO 8601, like 2026-12-05T08:15, within the next 14 days",',
         where_line,
         '   "to_a": "2 sentences to ' + a["name"] + ' on why meet this person (only what ' + b["name"] + '\'s agent shared)",',
         '   "to_b": "2 sentences to ' + b["name"] + ' on why meet this person (only what ' + a["name"] + '\'s agent shared)"}}',
@@ -299,7 +301,9 @@ async def judge(a, b, turns, client, record, ref=None, spots=None):
         # thinking is always on for the premium model and counts toward this cap
         max_tokens=16000,
         system=_verdict_system(a, b, spots),
-        messages=[{"role": "user", "content": "Logistics from their cards:\n" + logistics + "\n\nTRANSCRIPT:\n" + transcript}],
+        # the model has no clock: today's date is what lets it write a usable starts_at
+        messages=[{"role": "user", "content": "Today is " + checkin.today_text() + " (local time).\n\nLogistics from their cards:\n"
+                   + logistics + "\n\nTRANSCRIPT:\n" + transcript}],
         output_config={"effort": config.HUB_EFFORT},
     )
     raw = extract_json(join_text(message))
@@ -330,6 +334,10 @@ async def judge(a, b, turns, client, record, ref=None, spots=None):
         verdict["invite"], spot_note = meetup_spots.check_spot(verdict["invite"], spots)
         if spot_note is not None:
             record("code", "check", spot_note + " (" + label + ")", ref)
+        # the check-in opens from this time; a bad one is dropped and the fallback is logged
+        verdict["invite"]["starts_at"], time_note = checkin.clean_starts_at(verdict["invite"].get("starts_at"))
+        if time_note is not None:
+            record("code", "check", time_note + " (" + label + ")", ref)
         record("hub", "decision", "Invite " + label + " to meet: " + verdict["headline"], ref)
     else:
         record("code", "check", "No invitation for " + label + ": " + "; ".join(reasons) + ".", ref)

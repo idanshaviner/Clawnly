@@ -303,7 +303,8 @@ function loadDetail(id){
     document.getElementById("detail-slug").textContent = nb.slug;
     document.getElementById("detail-bar").style.width = percentJoined(nb) + "%";
     document.getElementById("detail-progress-label").textContent =
-      nb.complete_count + " / " + nb.batch_threshold + " joined (" + nb.resident_count + " registered)";
+      nb.complete_count + " / " + nb.batch_threshold + " joined (" + nb.resident_count + " registered) -- "
+      + nb.would_meet_again_count + " meetup(s) where everyone would meet again";
     var triggered = document.getElementById("detail-triggered");
     if (nb.batch_triggered_at) {
       triggered.style.display = "block";

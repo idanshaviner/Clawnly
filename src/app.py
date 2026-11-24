@@ -22,6 +22,7 @@ import batch
 import bring_agent
 import config
 import db
+import checkin
 import judge
 import my_match
 import nightly
@@ -373,6 +374,30 @@ async def api_my_match_meetup(body: dict, request: Request):
     if error is not None:
         return JSONResponse(status_code=400, content={"error": error})
     return result
+
+
+@app.get("/api/my-match/checkin")
+async def api_my_match_checkin(request: Request):
+    # the next-morning check-in for the caller's own latest match (checkin.py)
+    resident, error_response = _require_consented_resident(request)
+    if error_response is not None:
+        return error_response
+    return checkin.state_for(resident)
+
+
+@app.post("/api/my-match/checkin")
+async def api_my_match_checkin_answer(body: dict, request: Request):
+    resident, error_response = _require_consented_resident(request)
+    if error_response is not None:
+        return error_response
+    try:
+        match_id = int(body.get("match_id"))
+    except (TypeError, ValueError):
+        return JSONResponse(status_code=400, content={"error": "match_id is required."})
+    state, error = checkin.answer(resident, match_id, body.get("met"), body.get("would_meet_again"))
+    if error is not None:
+        return JSONResponse(status_code=400, content={"error": error})
+    return state
 
 
 # ============================================================================

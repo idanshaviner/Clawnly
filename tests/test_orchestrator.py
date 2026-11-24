@@ -1,8 +1,10 @@
 """Tests for orchestrator.py -- the hub: pick pairs, run agent conversations,
 judge them, and gate invitations in code."""
 
+import datetime
 import json
 
+import checkin
 import db
 import orchestrator
 from conftest import FakeClient, json_body, run
@@ -297,3 +299,60 @@ def test_a_round_with_no_spots_keeps_the_place_and_warns_in_the_log():
     assert result["invitations"][0]["verdict"]["invite"]["where"] == "Seattle"
     texts = [e["text"] for e in db.list_events(result["run_id"])]
     assert any("No public meetup spots are set" in t and "(Noa + Marcus)" in t for t in texts)
+
+
+# ----- next-morning check-in: the hub's start time (journey step 12) ----------------
+
+def _with_starts_at(starts_at):
+    # the same verdicts as verdict_for, plus a starts_at on the invitation
+    base = verdict_for("Noa\nand Marcus")
+
+    def fn(system, content):
+        body = json.loads(base(system, content))
+        body["invite"]["starts_at"] = starts_at
+        return json.dumps(body)
+    return fn
+
+
+def _tomorrow_morning():
+    return (checkin._now() + datetime.timedelta(days=2)).strftime("%Y-%m-%dT08:15")
+
+
+def test_the_verdict_prompt_asks_for_a_start_time_and_tells_the_hub_the_date():
+    assert "starts_at" in orchestrator._verdict_system({"name": "Noa"}, {"name": "Marcus"})
+    reset()
+    client = FakeClient(
+        card_fn=card_fn, agent_fn=speaker_fn,
+        pairing_queue=[pairing([{"a": "s1", "b": "s2", "why": "tables"}])],
+        verdict_fn=verdict_for("Noa\nand Marcus"),
+    )
+    run(orchestrator.run_round(people(), client=client))
+    verdict_calls = [kwargs for kind, kwargs in client.calls if kind == "verdict"]
+    assert verdict_calls[0]["messages"][0]["content"].startswith("Today is " + checkin.today_text())
+
+
+def test_a_good_start_time_goes_on_the_invitation_without_a_log_complaint():
+    reset()
+    client = FakeClient(
+        card_fn=card_fn, agent_fn=speaker_fn,
+        pairing_queue=[pairing([{"a": "s1", "b": "s2", "why": "tables"}])],
+        verdict_fn=_with_starts_at(_tomorrow_morning()),
+    )
+    result = run(orchestrator.run_round(people(), client=client))
+    starts_at = result["invitations"][0]["verdict"]["invite"]["starts_at"]
+    assert starts_at is not None and starts_at.endswith(("-08:00", "-07:00"))
+    texts = [e["text"] for e in db.list_events(result["run_id"])]
+    assert not any("start time" in t for t in texts)
+
+
+def test_a_bad_start_time_is_dropped_and_the_fallback_is_logged():
+    reset()
+    client = FakeClient(
+        card_fn=card_fn, agent_fn=speaker_fn,
+        pairing_queue=[pairing([{"a": "s1", "b": "s2", "why": "tables"}])],
+        verdict_fn=_with_starts_at("Sunday around 8"),
+    )
+    result = run(orchestrator.run_round(people(), client=client))
+    assert result["invitations"][0]["verdict"]["invite"]["starts_at"] is None
+    texts = [e["text"] for e in db.list_events(result["run_id"])]
+    assert any("\"Sunday around 8\" is not a date and time" in t and "(Noa + Marcus)" in t for t in texts)

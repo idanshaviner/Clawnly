@@ -25,6 +25,8 @@ Tables:
                        meetup, the conversation it came from) + sealed_at /
                        dissolved_at
   match_acceptances -- one row per invited resident (the mutual yes/no gate)
+  checkins          -- one row per resident per sealed match: did you meet, would
+                       you meet again (checkin.py). Never shown to the other person.
 
   matchmaker_runs   -- one Run Clawnly day (matchmaker.run_day): the whole run
                        as JSON -- break rooms, plan, every hub<->agent message,
@@ -115,6 +117,11 @@ def init_db():
     conn.execute("""CREATE TABLE IF NOT EXISTS match_acceptances (
         id INTEGER PRIMARY KEY AUTOINCREMENT, match_id INTEGER, resident_id INTEGER,
         status TEXT, created_at TEXT, responded_at TEXT,
+        UNIQUE(match_id, resident_id)
+    )""")
+    conn.execute("""CREATE TABLE IF NOT EXISTS checkins (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, match_id INTEGER, resident_id INTEGER,
+        met INTEGER, would_meet_again INTEGER, created_at TEXT,
         UNIQUE(match_id, resident_id)
     )""")
 
@@ -758,6 +765,63 @@ def mark_match_sealed(match_id):
     conn = _get_conn()
     conn.execute("UPDATE matches SET sealed_at = ? WHERE id = ? AND sealed_at IS NULL", (_now(), match_id))
     conn.commit()
+
+
+def _row_to_checkin(row):
+    again = None
+    if row["would_meet_again"] is not None:
+        again = row["would_meet_again"] == 1
+    return {"id": row["id"], "match_id": row["match_id"], "resident_id": row["resident_id"],
+            "met": row["met"] == 1, "would_meet_again": again, "created_at": row["created_at"]}
+
+
+def save_checkin(match_id, resident_id, met, would_meet_again):
+    # first answer wins (same idea as respond_to_acceptance): returns True only when this
+    # call stored it. would_meet_again is None when they did not meet.
+    again = None
+    if would_meet_again is not None:
+        again = 0
+        if would_meet_again:
+            again = 1
+    met_value = 0
+    if met:
+        met_value = 1
+    conn = _get_conn()
+    cur = conn.execute(
+        "INSERT OR IGNORE INTO checkins (match_id, resident_id, met, would_meet_again, created_at) "
+        "VALUES (?, ?, ?, ?, ?)",
+        (match_id, resident_id, met_value, again, _now()),
+    )
+    conn.commit()
+    return cur.rowcount == 1
+
+
+def list_checkins(match_id):
+    conn = _get_conn()
+    rows = conn.execute("SELECT * FROM checkins WHERE match_id = ? ORDER BY id", (match_id,)).fetchall()
+    out = []
+    i = 0
+    while i < len(rows):
+        out.append(_row_to_checkin(rows[i]))
+        i += 1
+    return out
+
+
+def list_sealed_match_ids(neighborhood_id):
+    # the revealed (sealed, not dissolved) invitations of one neighborhood, for the admin tile
+    conn = _get_conn()
+    rows = conn.execute(
+        "SELECT matches.id FROM matches JOIN runs ON runs.id = matches.run_id "
+        "WHERE runs.neighborhood_id = ? AND matches.sealed_at IS NOT NULL AND matches.dissolved_at IS NULL "
+        "ORDER BY matches.id",
+        (neighborhood_id,),
+    ).fetchall()
+    out = []
+    i = 0
+    while i < len(rows):
+        out.append(rows[i]["id"])
+        i += 1
+    return out
 
 
 def mark_match_dissolved(match_id):

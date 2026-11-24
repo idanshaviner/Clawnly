@@ -173,3 +173,79 @@ def test_a_paused_neighbor_is_never_proposed_while_the_rest_of_the_town_is_uncha
     assert busiest not in placed and busiest in after["unplaced"]
     rooms = demand.break_room(people, catalog.ACTIVITIES, SUNDAY)
     assert not any(c["id"] == busiest for r in rooms for c in r["candidates"])
+
+
+# Nov 24 review (Idan): each of these crashed the whole run; now each is no pause, logged once
+BAD_PAUSES = ["January", "2027-1-4", "01/04/2027", "2027-02-30", "2027-01-04 junk", 20270104,
+              ["2027-01-04"], True, ""]
+
+
+def test_a_bad_pause_is_no_pause_and_never_stops_the_run(caplog):
+    kayak = catalog.get("sawyer-paddle")
+    i = 0
+    while i < len(BAD_PAUSES):
+        bad = person(id="bad" + str(i), paused_until=BAD_PAUSES[i])
+        assert demand.pause_date(bad) is None
+        assert demand.paused_until(bad, SUNDAY) is None
+        assert demand.fit(bad, kayak, SUNDAY, "afternoon") == (3, None)
+        i += 1
+    # one warning per bad value, naming the person, however many activities fit checks
+    messages = [r.getMessage() for r in caplog.records if r.levelname == "WARNING"]
+    assert len(messages) == len(BAD_PAUSES) - 1   # an empty value is simply no pause, no warning
+    assert "bad0" in messages[0] and "'January'" in messages[0]
+    people = population.generate(40, seed=7, start=SUNDAY)
+    people[0]["paused_until"] = "January"
+    caplog.clear()
+    demand.propose_groups(people, catalog.ACTIVITIES, SUNDAY)
+    warned = [r for r in caplog.records if r.levelname == "WARNING"]
+    assert len(warned) == 1 and people[0]["id"] in warned[0].getMessage()
+
+
+def test_a_clean_date_or_date_time_still_pauses_and_a_past_one_does_not():
+    kayak = catalog.get("sawyer-paddle")
+    future = person(paused_until="2027-01-04")
+    assert demand.fit(future, kayak, SUNDAY, "afternoon") == (0, "paused until 2027-01-04")
+    timed = person(paused_until="2027-01-04T09:00")
+    assert demand.pause_date(timed) == datetime.date(2027, 1, 4)
+    assert demand.fit(timed, kayak, SUNDAY, "afternoon") == (0, "paused until 2027-01-04")
+    assert demand.pause_date(person(paused_until="2027-01-04T09:00:30")) == datetime.date(2027, 1, 4)
+    past = person(paused_until="2026-09-01")
+    assert demand.paused_until(past, SUNDAY) is None
+    assert demand.fit(past, kayak, SUNDAY, "afternoon") == (3, None)
+
+
+def _js_pause_dates(values):
+    # run the browser copy's pauseDate on each value in node, so both copies are held to one rule
+    import json
+    import os
+    import shutil
+    import subprocess
+    import pytest
+    node = shutil.which("node")
+    if node is None:
+        pytest.skip("node is not installed")
+    here = os.path.dirname(os.path.abspath(__file__))
+    js = open(os.path.join(here, "..", "src", "web", "run-clawnly.js")).read()
+    start = js.index("  var PAUSE_PATTERN")
+    end = js.index("  var COST_LEVELS")
+    script = (js[start:end] + "\nvar values = " + json.dumps(values) + ";\n" +
+              "var out = []; for (var i = 0; i < values.length; i++) {\n" +
+              "  var p = { id: 'p' + i, paused_until: values[i] };\n" +
+              "  out.push([pauseDate(p), pausedUntil(p, '2026-09-27')]); }\n" +
+              "process.stdout.write(JSON.stringify(out));\n")
+    done = subprocess.run([node, "-e", script], capture_output=True, text=True, check=True)
+    return json.loads(done.stdout)
+
+
+def test_the_browser_copy_reads_every_pause_the_same_way():
+    values = BAD_PAUSES + [None, "2027-01-04", "2027-01-04T09:00", "2027-01-04T09:00:30", "2026-09-01"]
+    found = _js_pause_dates(values)
+    i = 0
+    while i < len(values):
+        p = person(paused_until=values[i])
+        date = demand.pause_date(p)
+        expected = None
+        if date is not None:
+            expected = date.isoformat()
+        assert found[i] == [expected, demand.paused_until(p, SUNDAY)], values[i]
+        i += 1

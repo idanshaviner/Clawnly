@@ -64,7 +64,8 @@
   function fit(p, a, iso, part) {
     if (!has(a.months, monthOf(iso))) return { score: 0, why: "out of season" };
     if (!has(a.days, weekday(iso)) || !has(a.parts, part)) return { score: 0, why: "not running then" };
-    if (pausedUntil(p, iso)) return { score: 0, why: "paused until " + p.paused_until };
+    var until = pausedUntil(p, iso);
+    if (until) return { score: 0, why: "paused until " + until };
     if (!has(listOr(p.calendar[iso]), part)) return { score: 0, why: "busy" };
     if (!has(BUDGET_OK[p.budget], costFor(p, a))) return { score: 0, why: "over budget" };
     for (var i = 0; i < a.tags.length; i++) { if (has(p.dislikes, a.tags[i])) return { score: 0, why: "dislikes " + words(a.tags[i]) }; }
@@ -77,11 +78,36 @@
     if (score === 0) return { score: 0, why: "not interested" };
     return { score: score, why: null };
   }
+  // a full ISO date, or an ISO date-time whose date part we take: the same pattern as demand.PAUSE_PATTERN
+  var PAUSE_PATTERN = /^([0-9]{4}-[0-9]{2}-[0-9]{2})(T[0-9]{2}:[0-9]{2}(:[0-9]{2})?)?$/;
+  var pauseWarned = {};
+  function pauseDate(p) {
+    // the ISO day someone's break ends, or null. A bad value ("January", "01/04/2027", a number) is
+    // no pause, warned once, so the two copies agree (demand.pause_date, Nov 24 review)
+    var until = p.paused_until;
+    if (until === undefined || until === null || until === "") return null;
+    if (typeof until === "string") {
+      var found = PAUSE_PATTERN.exec(until);
+      if (found) {
+        var parts = found[1].split("-"), y = Number(parts[0]), m = Number(parts[1]), d = Number(parts[2]);
+        var day = new Date(Date.UTC(y, m - 1, d));
+        // a real calendar day only: 2027-02-30 is as bad as "January"
+        if (y >= 1 && day.getUTCFullYear() === y && day.getUTCMonth() === m - 1 && day.getUTCDate() === d) return found[1];
+      }
+    }
+    var key = p.id + "|" + String(until);
+    if (!pauseWarned[key]) {
+      pauseWarned[key] = true;
+      if (typeof console !== "undefined") console.warn("ignoring bad paused_until " + JSON.stringify(until) + " for person " + p.id + ": treated as no pause");
+    }
+    return null;
+  }
   function pausedUntil(p, iso) {
     // someone who asked for a break ("swamped until January") gets no offers before that date
-    // (same as demand.paused_until, Nov 20 Example #59); ISO dates compare as text
-    if (!p.paused_until || iso >= p.paused_until) return null;
-    return p.paused_until;
+    // (same as demand.paused_until, Nov 20 Example #59); clean ISO dates compare as text
+    var until = pauseDate(p);
+    if (!until || iso >= until) return null;
+    return until;
   }
   var COST_LEVELS = ["free", "low", "mid"];
   function costFor(p, a) {
@@ -380,7 +406,8 @@
     if (p.dislikes.length > 0) lines.push("Not into: " + p.dislikes.map(words).join(", ") + ".");
     if (p.avoid.length > 0) lines.push("Avoids: " + p.avoid.map(words).join(", ") + ".");
     lines.push("Budget: " + BUDGET_WORDS[p.budget] + ".");
-    if (p.paused_until) lines.push("Asked for a break from plans until " + dayLabel(p.paused_until) + ".");
+    var until = pauseDate(p);
+    if (until) lines.push("Asked for a break from plans until " + dayLabel(until) + ".");
     var days = Object.keys(p.calendar).sort(), week = [];
     for (var d = 0; d < days.length; d++) {
       var free = listOr(p.calendar[days[d]]), txt = "busy";
@@ -393,7 +420,8 @@
   function conflicts(p, a, part, time, iso) {
     // what in the profile rules this plan out: code refuses a yes that runs into any of it
     var f = p.name.split(" ")[0], out = [];
-    if (pausedUntil(p, iso)) out.push(f + " asked for a break from plans until " + dayLabel(p.paused_until) + ".");
+    var until = pausedUntil(p, iso);
+    if (until) out.push(f + " asked for a break from plans until " + dayLabel(until) + ".");
     if (!has(listOr(p.calendar[iso]), part)) out.push(f + " is busy that " + part + ".");
     var hours = parseHours(time), soft = wants(p, a);
     if (hours && has(p.avoid, "early_mornings") && hours[0] < 9 && !soft) out.push("It starts before 9am, and " + f + " avoids early mornings.");

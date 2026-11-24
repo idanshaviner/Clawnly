@@ -13,11 +13,15 @@ Run it:  .venv/bin/python src/demand.py [YYYY-MM-DD]   (default: tomorrow)
 """
 
 import datetime
+import logging
+import re
 import sys
 
 import catalog
 import population
 
+
+log = logging.getLogger(__name__)
 
 BUDGET_OK = {"free": ["free"], "low": ["free", "low"], "any": ["free", "low", "mid"]}
 
@@ -78,15 +82,40 @@ def wants(person, activity):
     return False
 
 
+# a full ISO date, or an ISO date-time whose date part we take ("2027-01-04T09:00");
+# src/web/run-clawnly.js uses the same pattern so both copies agree on what counts
+PAUSE_PATTERN = re.compile(r"^([0-9]{4}-[0-9]{2}-[0-9]{2})(T[0-9]{2}:[0-9]{2}(:[0-9]{2})?)?$")
+_warned = set()
+
+
+def pause_date(person):
+    # the day someone's break ends, or None. A bad value ("January", "01/04/2027", a number) is
+    # treated as no pause and logged once, so one bad profile never stops matching for everyone
+    # (Nov 24 review, Idan: a malformed date crashed the whole run)
+    until = person.get("paused_until")
+    if until is None or until == "":
+        return None
+    if isinstance(until, str):
+        found = PAUSE_PATTERN.match(until)
+        if found is not None:
+            try:
+                return datetime.date.fromisoformat(found.group(1))
+            except ValueError:
+                pass
+    key = (person.get("id"), repr(until))
+    if key not in _warned:
+        _warned.add(key)
+        log.warning("ignoring bad paused_until %r for person %s: treated as no pause", until, person.get("id"))
+    return None
+
+
 def paused_until(person, day):
     # the date someone asked for a break until ("swamped with work until January"), when that break
     # still covers this day, else None. A pause is not a no and not a maybe: no offers at all until
     # then, and code keeps them out of every break room (Nov 20 review, Example #59)
-    until = person.get("paused_until")
-    if not until:
-        return None
-    if day < datetime.date.fromisoformat(until):
-        return until
+    until = pause_date(person)
+    if until is not None and day < until:
+        return until.isoformat()
     return None
 
 
@@ -97,8 +126,9 @@ def fit(person, activity, day, part):
         return 0, "out of season"
     if day.weekday() not in activity["days"] or part not in activity["parts"]:
         return 0, "not running then"
-    if paused_until(person, day) is not None:
-        return 0, "paused until " + person["paused_until"]
+    until = paused_until(person, day)
+    if until is not None:
+        return 0, "paused until " + until
     if part not in person["calendar"].get(day.isoformat(), []):
         return 0, "busy"
     if cost_for(person, activity) not in BUDGET_OK[person["budget"]]:

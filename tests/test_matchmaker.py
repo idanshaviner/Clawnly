@@ -1049,9 +1049,14 @@ def test_a_pause_is_in_the_agent_profile_and_code_refuses_a_yes_before_it_ends()
     person["calendar"] = {back.isoformat(): ["evening"]}
     assert not any("break from plans" in c for c in matchmaker.conflicts(person, club, "evening", "6pm-8pm", back))
     assert "break from plans" not in matchmaker.agent_profile(dict(person, paused_until=None))
+    # Nov 24 review: a bad date in the profile is no pause, not a crash, in the profile and in conflicts
+    assert "break from plans" not in matchmaker.agent_profile(dict(person, paused_until="January"))
+    assert not any("break from plans" in c for c in matchmaker.conflicts(dict(person, paused_until="01/04/2027"), club, "evening", "6pm-8pm", day))
+    timed = dict(person, paused_until="2027-01-04T09:00")
+    assert "Asked for a break from plans until Monday 4 January." in matchmaker.agent_profile(timed)
 
 
 def test_the_browser_copy_checks_a_pause_too():
     js = open("src/web/run-clawnly.js").read()
-    assert 'if (pausedUntil(p, iso)) return { score: 0, why: "paused until "' in js
+    assert 'var until = pausedUntil(p, iso);' in js and 'if (until) return { score: 0, why: "paused until " + until };' in js
     assert "asked for a break from plans until" in js

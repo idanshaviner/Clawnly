@@ -218,3 +218,22 @@ def test_an_admin_run_says_who_ran_it():
     texts = [e["text"] for e in db.list_neighborhood_events(nb["id"])]
     assert texts[0] == "Admin boss@example.com ran a round now with 2 neighbors."
     assert "Round started with 2 people. No human is involved until the invitations." in texts
+
+
+def test_invitations_name_a_listed_public_spot():
+    reset_db()
+    nb = neighborhood(threshold=2)
+    db.set_public_spots(nb["id"], ["The Commons", "Ten Trails trailhead"])
+    noa = make_joined_resident(nb, "a@example.com", "Noa")
+    marcus = make_joined_resident(nb, "b@example.com", "Marcus")
+    client = FakeClient(agent_fn=speaker_fn,
+                        pairing_queue=[pairing([{"a": rid(noa), "b": rid(marcus), "why": "x"}])],
+                        verdict_fn=verdict_fn({"Noa+Marcus": 9}))
+    run(batch.check_and_trigger_batch(nb["id"], client=client))
+
+    # the model said "Ten Trails" (not listed): the stored invitation, which the resident sees on reveal, has a listed spot
+    match = db.get_match(db.latest_match_acceptance(noa["id"])["match_id"])
+    assert match["details"]["invite"]["where"] == "The Commons"
+    runs = db.list_runs_for_neighborhood(nb["id"])
+    texts = [e["text"] for e in db.list_events(runs[0]["id"])]
+    assert any('Meetup place "Ten Trails" is not a listed public spot' in t for t in texts)

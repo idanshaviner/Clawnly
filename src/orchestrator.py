@@ -30,6 +30,7 @@ import ai_log
 import config
 import db
 import dossier
+import spots as meetup_spots
 from agent_talk import converse, transcript_text
 from llm_io import join_text, extract_json
 
@@ -255,8 +256,12 @@ async def choose_pairs(people, done_keys, client, record):
     return pairs
 
 
-def _verdict_system(a, b):
+def _verdict_system(a, b, spots=None):
     # "should be invited to meet" doubles as the FakeClient routing marker.
+    where_line = '   "where": "an area that works for both",'
+    if spots:
+        # first meetups are always public; code still checks the pick (spots.check_spot)
+        where_line = '   "where": "ONE of these public places, copied exactly: ' + " | ".join(spots) + '",'
     lines = [
         "You are the Master Claw, Clawnly's hub. Two agents just talked privately on behalf of " + a["name"],
         "and " + b["name"] + ". Decide whether these two humans should be invited to meet.",
@@ -271,7 +276,7 @@ def _verdict_system(a, b):
         ' "evidence": [{"quote": "words copied EXACTLY from the transcript, 6-25 words", "why": "what it shows"}],',
         ' "tensions": ["honest risks"],',
         ' "invite": {"activity": "a specific low-pressure activity that fits both", "when": "a time both are free",',
-        '   "where": "an area that works for both",',
+        where_line,
         '   "to_a": "2 sentences to ' + a["name"] + ' on why meet this person (only what ' + b["name"] + '\'s agent shared)",',
         '   "to_b": "2 sentences to ' + b["name"] + ' on why meet this person (only what ' + a["name"] + '\'s agent shared)"}}',
         "Give 2-4 evidence items. Quotes must be verbatim or code will discard them.",
@@ -281,7 +286,10 @@ def _verdict_system(a, b):
     return "\n".join(lines)
 
 
-async def judge(a, b, turns, client, record, ref=None):
+async def judge(a, b, turns, client, record, ref=None, spots=None):
+    # spots: the neighborhood's public meetup spots (None or [] when none are set)
+    if spots is None:
+        spots = []
     names = {a["id"]: a["name"], b["id"]: b["name"]}
     transcript = transcript_text(turns, names)
     logistics = (a["name"] + ": free " + _card_field(a, "free") + "; area " + _card_field(a, "area") + "\n"
@@ -290,7 +298,7 @@ async def judge(a, b, turns, client, record, ref=None):
         model=config.MODEL_HUB_VERDICT,
         # thinking is always on for the premium model and counts toward this cap
         max_tokens=16000,
-        system=_verdict_system(a, b),
+        system=_verdict_system(a, b, spots),
         messages=[{"role": "user", "content": "Logistics from their cards:\n" + logistics + "\n\nTRANSCRIPT:\n" + transcript}],
         output_config={"effort": config.HUB_EFFORT},
     )
@@ -318,6 +326,10 @@ async def judge(a, b, turns, client, record, ref=None):
     if verdict["invited"]:
         record("code", "check", "Gate passed for " + label + ": depth " + str(depth) + "/10, "
                + str(len(kept)) + " verified quotes.", ref)
+        # a first meetup is always in a listed public spot; only invitations that go out need it
+        verdict["invite"], spot_note = meetup_spots.check_spot(verdict["invite"], spots)
+        if spot_note is not None:
+            record("code", "check", spot_note + " (" + label + ")", ref)
         record("hub", "decision", "Invite " + label + " to meet: " + verdict["headline"], ref)
     else:
         record("code", "check", "No invitation for " + label + ": " + "; ".join(reasons) + ".", ref)
@@ -333,7 +345,7 @@ def _card_field(person, key):
 
 # ----- one full round ------------------------------------------------------------
 
-async def _talk_and_judge(pair, people_by_id, run_id, client, record, limiter):
+async def _talk_and_judge(pair, people_by_id, run_id, client, record, limiter, spots=None):
     a = people_by_id[pair["a"]]
     b = people_by_id[pair["b"]]
     async with limiter:
@@ -343,7 +355,7 @@ async def _talk_and_judge(pair, people_by_id, run_id, client, record, limiter):
         try:
             turns = await converse(a, b, client=client, record=record, ref=ref)
             db.set_agent_turns(conversation_id, turns)
-            verdict = await judge(a, b, turns, client, record, ref)
+            verdict = await judge(a, b, turns, client, record, ref, spots)
             db.set_agent_verdict(conversation_id, verdict, verdict["invited"])
             return {"id": conversation_id, "a": a["id"], "b": b["id"], "turns": turns, "verdict": verdict}
         except Exception as error:
@@ -363,8 +375,12 @@ async def run_round(people, client=None, on_event=None, neighborhood_id=None):
     logged = ai_log.LoggedClient(client, run_id=run_id, neighborhood_id=neighborhood_id)
     record = Recorder(run_id, on_event, neighborhood_id)
     record("system", "system", "Round started with " + str(len(people)) + " people. No human is involved until the invitations.")
+    # the neighborhood's public meetup spots (a round with no neighborhood has none)
+    spots = []
+    if neighborhood_id is not None:
+        spots = db.get_public_spots(neighborhood_id)
     try:
-        result = await _run_round_body(people, logged, run_id, record)
+        result = await _run_round_body(people, logged, run_id, record, spots)
     except Exception as error:
         # a crash mid-round still leaves a record of how far it got and why it stopped
         record("system", "system", "Round failed: " + str(error))
@@ -375,7 +391,7 @@ async def run_round(people, client=None, on_event=None, neighborhood_id=None):
     return result
 
 
-async def _run_round_body(people, client, run_id, record):
+async def _run_round_body(people, client, run_id, record, spots=None):
     people_by_id = {}
     i = 0
     while i < len(people):
@@ -415,7 +431,7 @@ async def _run_round_body(people, client, run_id, record):
         pairs = await choose_pairs(ready, done_keys, client, record)
         limiter = asyncio.Semaphore(CONCURRENT_CONVERSATIONS)
         conversations = await asyncio.gather(*[
-            _talk_and_judge(pairs[i], people_by_id, run_id, client, record, limiter) for i in range(len(pairs))])
+            _talk_and_judge(pairs[i], people_by_id, run_id, client, record, limiter, spots) for i in range(len(pairs))])
     else:
         record("code", "check", "Fewer than 2 people have a card. Nothing to pair.")
 

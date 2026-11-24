@@ -918,3 +918,54 @@ def test_a_preview_failure_shows_a_plain_message_not_internals(monkeypatch):
         assert "secret internal detail" not in r.text and "sk-ant" not in r.text
     finally:
         client.cookies.clear()
+
+
+# ----- admin: public meetup spots (journey step 11) -----------------------------------
+
+def test_api_admin_set_spots_requires_login_and_admin_role():
+    reset_state()
+    nb = db.get_or_create_neighborhood("ballard", "Ballard", 10)
+    url = "/api/admin/neighborhoods/" + str(nb["id"]) + "/spots"
+    assert client.post(url, json={"spots": ["The Commons"]}).status_code == 401
+    resident, token = _consented_resident_session()
+    client.cookies.set(auth.SESSION_COOKIE_NAME, token)
+    try:
+        assert client.post(url, json={"spots": ["The Commons"]}).status_code == 403
+    finally:
+        client.cookies.clear()
+    assert db.get_public_spots(nb["id"]) == []
+
+
+def test_api_admin_set_spots_saves_cleaned_spots_shows_them_and_logs_it():
+    reset_state()
+    nb = db.get_or_create_neighborhood("ballard", "Ballard", 10)
+    token = _admin_session()
+    client.cookies.set(auth.SESSION_COOKIE_NAME, token)
+    try:
+        r = client.post("/api/admin/neighborhoods/" + str(nb["id"]) + "/spots",
+                        json={"spots": ["  The Commons ", "the commons", "Trail loop", ""]})
+        assert r.status_code == 200
+        assert r.json() == {"public_spots": ["The Commons", "Trail loop"]}
+        assert db.get_public_spots(nb["id"]) == ["The Commons", "Trail loop"]
+        detail = client.get("/api/admin/neighborhoods/" + str(nb["id"])).json()
+        assert detail["neighborhood"]["public_spots"] == ["The Commons", "Trail loop"]
+        texts = [e["text"] for e in detail["activity"]["events"]]
+        assert "Admin boss@example.com set the public meetup spots: The Commons; Trail loop." in texts
+    finally:
+        client.cookies.clear()
+
+
+def test_api_admin_set_spots_rejects_bad_input_and_unknown_neighborhoods():
+    reset_state()
+    nb = db.get_or_create_neighborhood("ballard", "Ballard", 10)
+    token = _admin_session()
+    client.cookies.set(auth.SESSION_COOKIE_NAME, token)
+    try:
+        url = "/api/admin/neighborhoods/" + str(nb["id"]) + "/spots"
+        assert client.post(url, json={"spots": []}).status_code == 400
+        assert client.post(url, json={"spots": "The Commons"}).status_code == 400
+        assert client.post(url, json={}).status_code == 400
+        assert client.post("/api/admin/neighborhoods/999999/spots", json={"spots": ["x"]}).status_code == 404
+        assert db.get_public_spots(nb["id"]) == []
+    finally:
+        client.cookies.clear()

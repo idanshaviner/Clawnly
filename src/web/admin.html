@@ -109,6 +109,13 @@
         <b>Secret invite link</b> (share it only with people you're inviting):
         <div id="detail-invite" style="font-family:ui-monospace,Menlo,monospace;overflow-wrap:anywhere;margin-top:4px"></div>
       </div>
+      <div style="margin-top:12px;font-size:13.5px">
+        <b>Public meetup spots</b> (first meetups happen only here; one per line, up to 10; the first is used when the hub names a place that isn't listed):
+        <div class="err" id="spots-warning" style="display:none">No spots set yet. Invitations will go out with an unchecked meetup place.</div>
+        <textarea id="spots-input" rows="4" style="width:100%;margin-top:6px;font:inherit;border:1px solid var(--line);border-radius:10px;padding:8px;box-sizing:border-box"></textarea>
+        <button id="spots-btn" style="margin-top:6px">Save spots</button>
+        <span id="spots-status"></span>
+      </div>
       <div style="margin-top:12px">
         <button class="primary" id="trigger-btn">Run a hub round now</button>
         <span id="trigger-status"></span>
@@ -349,6 +356,45 @@ function loadDetail(id){
           triggerBtn.disabled = false;
           triggerStatus.className = "err";
           triggerStatus.textContent = "Something went wrong. Try again.";
+        });
+    };
+
+    var spotsInput = document.getElementById("spots-input");
+    var spotsBtn = document.getElementById("spots-btn");
+    var spotsStatus = document.getElementById("spots-status");
+    var spotsWarning = document.getElementById("spots-warning");
+    var savedSpots = nb.public_spots || [];
+    spotsInput.value = savedSpots.join("\n");
+    spotsWarning.style.display = "none";
+    if (savedSpots.length === 0) { spotsWarning.style.display = "block"; }
+    spotsStatus.textContent = "";
+    spotsStatus.className = "";
+    spotsBtn.onclick = function(){
+      spotsBtn.disabled = true;
+      spotsStatus.className = "";
+      spotsStatus.textContent = "Saving...";
+      fetch("/api/admin/neighborhoods/" + id + "/spots", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ spots: spotsInput.value.split("\n") })
+      })
+        .then(function(r){ return r.json().then(function(d){ return { ok: r.ok, data: d }; }); })
+        .then(function(res){
+          spotsBtn.disabled = false;
+          if (res.ok) {
+            spotsInput.value = res.data.public_spots.join("\n");
+            spotsWarning.style.display = "none";
+            spotsStatus.className = "ok";
+            spotsStatus.textContent = "Saved.";
+          } else {
+            spotsStatus.className = "err";
+            spotsStatus.textContent = res.data.error || "Something went wrong.";
+          }
+        })
+        .catch(function(){
+          spotsBtn.disabled = false;
+          spotsStatus.className = "err";
+          spotsStatus.textContent = "Something went wrong. Try again.";
         });
     };
 

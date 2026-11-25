@@ -249,3 +249,50 @@ def test_the_browser_copy_reads_every_pause_the_same_way():
             expected = date.isoformat()
         assert found[i] == [expected, demand.paused_until(p, SUNDAY)], values[i]
         i += 1
+
+
+# Nov 25: what writes the pause date (Review #17, from Idan's question on PR #17). The agent turns
+# what someone said into a date; anything unclear is None, so the agent asks instead of guessing.
+NOV20 = datetime.date(2026, 11, 20)
+
+
+def test_a_month_with_no_day_means_the_first_of_that_month():
+    assert demand.pause_from_words("I'm swamped with work until January", NOV20) == "2027-01-01"
+    assert demand.pause_from_words("busy till Feb", NOV20) == "2027-02-01"
+    assert demand.pause_from_words("until early January", NOV20) == "2027-01-01"
+    assert demand.pause_from_words("until December", NOV20) == "2026-12-01"
+
+
+def test_a_day_is_kept_and_a_past_day_means_next_year():
+    assert demand.pause_from_words("travelling until Jan 15", NOV20) == "2027-01-15"
+    assert demand.pause_from_words("out until December 3rd", NOV20) == "2026-12-03"
+    assert demand.pause_from_words("out until November 10", NOV20) == "2027-11-10"
+    assert demand.pause_from_words("until January 4, 2027", NOV20) == "2027-01-04"
+    assert demand.pause_from_words("until mid-January", NOV20) == "2027-01-15"
+
+
+def test_through_after_or_late_in_a_month_means_the_whole_month():
+    assert demand.pause_from_words("slammed through January", NOV20) == "2027-02-01"
+    assert demand.pause_from_words("let's talk after January", NOV20) == "2027-02-01"
+    assert demand.pause_from_words("until late January", NOV20) == "2027-02-01"
+    assert demand.pause_from_words("until the end of December", NOV20) == "2027-01-01"
+    assert demand.pause_from_words("through November", NOV20) == "2026-12-01"
+
+
+def test_vague_or_unreadable_words_set_no_pause_so_the_agent_asks():
+    for words in ["after the holidays", "for a while", "until next month", "I may be busy",
+                  "until November", "until February 30", "until January 4, 2025", "", None, 42]:
+        assert demand.pause_from_words(words, NOV20) is None, words
+
+
+def test_an_iso_date_in_the_words_is_used_when_it_is_still_ahead():
+    assert demand.pause_from_words("paused until 2027-01-04", NOV20) == "2027-01-04"
+    assert demand.pause_from_words("until 2026-11-01", NOV20) is None
+    assert demand.pause_from_words("until 2027-13-01", NOV20) is None
+
+
+def test_the_written_date_is_what_keeps_ben_out_until_january():
+    # Example #59: Ben K. tells his agent on Nov 20 he's swamped until January
+    ben = {"id": "ben", "paused_until": demand.pause_from_words("swamped with work until January", NOV20)}
+    assert demand.paused_until(ben, datetime.date(2026, 12, 15)) == "2027-01-01"
+    assert demand.paused_until(ben, datetime.date(2027, 1, 1)) is None

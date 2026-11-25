@@ -109,6 +109,78 @@ def pause_date(person):
     return None
 
 
+MONTHS = {"jan": 1, "feb": 2, "mar": 3, "apr": 4, "may": 5, "jun": 6, "jul": 7, "aug": 8,
+          "sep": 9, "oct": 10, "nov": 11, "dec": 12}
+# a month only counts after a word that sets an end ("until", "through", "after", "end of"), so
+# "I may be busy" is not May. Month names may be full or short ("January", "Jan", "Sept").
+PAUSE_WORDS = re.compile(
+    r"\b(until|till|til|through|thru|after|end of)\s+(?:the\s+)?(early|mid|late|end of)?[\s-]*"
+    r"(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?"
+    r"(?:\s+([0-9]{1,2})(?:st|nd|rd|th)?\b)?(?:,?\s+([0-9]{4}))?",
+    re.IGNORECASE)
+ISO_IN_TEXT = re.compile(r"\b([0-9]{4}-[0-9]{2}-[0-9]{2})\b")
+
+
+def _first_of_next_month(d):
+    if d.month == 12:
+        return datetime.date(d.year + 1, 1, 1)
+    return datetime.date(d.year, d.month + 1, 1)
+
+
+def pause_from_words(text, today):
+    # what the person's agent writes into paused_until when someone says they need a break
+    # (Nov 24 Review #17, from Idan's question on PR #17: nothing set the date). Returns an ISO
+    # date, or None when the words don't give a clear end date: then the agent asks for one
+    # instead of guessing, and no pause is set.
+    #   "swamped until January"   -> the 1st of the next January
+    #   "busy until Jan 15"       -> that day
+    #   "through January", "until late January", "until the end of January" -> Feb 1
+    #   "until mid-January"       -> Jan 15
+    #   "after the holidays", "for a while", "until next month" -> None (ask)
+    # A day that has already passed this year means next year. A month equal to this month with
+    # no day ("until November", said in November) is unclear, so the agent asks.
+    if not isinstance(text, str) or not isinstance(today, datetime.date):
+        return None
+    iso = ISO_IN_TEXT.search(text)
+    if iso is not None:
+        try:
+            found = datetime.date.fromisoformat(iso.group(1))
+        except ValueError:
+            return None
+        return found.isoformat() if found > today else None
+    m = PAUSE_WORDS.search(text)
+    if m is None:
+        return None
+    word = m.group(1).lower()
+    part = (m.group(2) or "").lower()
+    month = MONTHS[m.group(3).lower()[:3]]
+    day_of = int(m.group(4)) if m.group(4) else None
+    year = int(m.group(5)) if m.group(5) else None
+    whole_month = day_of is None and (word in ("through", "thru", "after", "end of") or part in ("late", "end of"))
+    if day_of is None:
+        day_of = 15 if part == "mid" else 1
+    if year is None:
+        year = today.year
+        if month < today.month or (month == today.month and m.group(4) is None and not whole_month):
+            if month == today.month:
+                return None
+            year += 1
+    try:
+        found = datetime.date(year, month, day_of)
+    except ValueError:
+        return None
+    if whole_month:
+        found = _first_of_next_month(found)
+    if found <= today:
+        if m.group(5):
+            return None
+        try:
+            found = found.replace(year=found.year + 1)
+        except ValueError:
+            return None
+    return found.isoformat()
+
+
 def paused_until(person, day):
     # the date someone asked for a break until ("swamped with work until January"), when that break
     # still covers this day, else None. A pause is not a no and not a maybe: no offers at all until

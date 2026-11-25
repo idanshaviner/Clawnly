@@ -38,6 +38,10 @@ it and avoids nothing about it.
   people were wrong.
 - "Not until January" is a pause, not a no and not a maybe. Code keeps a paused person out of
   every group until the date they gave; after it, ask once, with something they love.
+- The person's own agent writes that date (demand.pause_from_words): a month with no day means
+  the 1st ("until January" is Jan 1); "through January" or "late January" means Feb 1. When the
+  end is vague ("after the holidays", "for a while"), the agent asks for a date instead of
+  guessing; until they give one, no pause is set.
 
 ## Big groups of interested people
 

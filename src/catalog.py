@@ -32,6 +32,12 @@ Each activity:
                 matchmaker is told to name a public spot nearby for a first meetup
                 and save the home for a group that has met (Nov 20 review, Example #57).
 
+SUNSET is roughly when it gets dark in Black Diamond in each month (local time, mid-month,
+in hours: 16.25 is 4:15pm). In December it's dark by about 4:15pm, so "doesn't drive after dark"
+and "outdoors in the evening" mean much more than in July (Nov 24 review, Examples #68 and #72).
+WET_MONTHS are the months an outdoor evening is cold, dark and likely wet. The matchmaker puts
+both in each break room it shows the AI; who that rules out stays the AI's judgment.
+
 GROUP_MIN is the smallest group anywhere. GROUP_MAX is the biggest: it sizes the
 code-only preview in demand.py, and the matchmaker keeps only the first GROUP_MAX
 members of a group, because strangers meeting for the first time need a small
@@ -42,6 +48,11 @@ GROUP_MIN = 2
 GROUP_MAX = 5
 
 NEIGHBORHOOD = "Black Diamond, WA"
+
+# about when it's dark, by month (Black Diamond, mid-month, rounded to a quarter hour)
+SUNSET = {1: 16.75, 2: 17.5, 3: 19.25, 4: 20.0, 5: 20.5, 6: 21.0, 7: 21.0, 8: 20.5, 9: 19.5, 10: 18.25,
+          11: 16.5, 12: 16.25}
+WET_MONTHS = [11, 12, 1, 2, 3]
 
 # where people live inside Black Diamond
 AREAS = ["Ten Trails", "Lawson Hills", "Lake Sawyer", "Morgan Creek", "Downtown", "Black Diamond Ridge"]

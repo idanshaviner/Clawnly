@@ -168,6 +168,7 @@ def _plan_system(day, max_groups):
         "- Pick a specific time inside the day part (morning " + PART_HOURS["morning"] + ", afternoon " + PART_HOURS["afternoon"] + ", evening " + PART_HOURS["evening"] + "). A room marked FIXED is a real event (a game, a concert): use exactly that time.",
         "- A room marked DROP-IN is a real event people wander through (a market, an open house): its hours are not a meeting time. Pick one meeting time inside them and name a meeting spot in every proposal (for example the front entrance at 10am, then coffee after one lap), or people come and go without ever meeting.",
         "- A room marked AT A NEIGHBOR'S HOME happens at someone's house. These people have never met, and strangers meet first in a public place: name a public spot nearby (the Black Diamond Library, the Bakery) in the proposal, and leave the home for a group that has met and wants a second meetup.",
+        "- AFTER DARK, ENDS AFTER DARK and DARK BY say when it gets dark that day: check it against what each person told their agent (no driving after dark), and pick an earlier time or have their agent ask first. COLD AND WET OUTSIDE: say so in every proposal.",
         "- Name up to 2 alternates per group from the same break room, in case someone declines.",
         "- Write a short, personal proposal to each member's agent: what, when, where, how many others, and why it fits this person. Don't name the other people yet.",
         "- In the why and the proposals, describe only interests people actually have: someone in a trivia room for the craft beer isn't a trivia fan. Check what a person avoids against a FIXED time.",
@@ -202,7 +203,7 @@ def _fewest_plans_first(rooms, plans):
         i += 1
 
 
-def _plan_payload(rooms, people, plans=None):
+def _plan_payload(rooms, people, plans=None, day=None):
     if plans is None:
         plans = {}
     lines = ["BREAK ROOMS:"]
@@ -234,6 +235,9 @@ def _plan_payload(rooms, people, plans=None):
             header = header + ", DROP-IN " + window + " (set one meeting time and spot inside it)"
         if a.get("home"):
             header = header + ", " + HOME_NOTE
+        dark = dark_note(a, room["part"], day)
+        if dark is not None:
+            header = header + ", " + dark
         lines.append("")
         lines.append(header + " (" + str(len(room["candidates"])) + " in the room)")
         top = []
@@ -300,6 +304,32 @@ def _clock(hours):
     if minutes:
         return str(shown) + ":" + ("%02d" % minutes) + half
     return str(shown) + half
+
+
+def dark_note(activity, part, day):
+    # a room whose time runs past dark says so, so the AI can check it against what each person told
+    # their agent (no driving after dark, no cold wet evenings outside). In December it's dark by
+    # about 4:15pm (Nov 24 review, Examples #68 and #72). None when it's light the whole time.
+    if day is None:
+        return None
+    sunset = catalog.SUNSET[day.month]
+    fixed = fixed_time(activity, part)
+    if fixed is not None:
+        hours = parse_hours(fixed)
+    else:
+        hours = parse_hours(meet_hours(activity, part))
+    if hours is None or hours[1] <= sunset:
+        return None
+    if hours[0] >= sunset:
+        # an evening that starts after dark can't be moved into the light: ask first
+        note = "AFTER DARK (dark by " + _clock(sunset) + ")"
+    elif fixed is not None:
+        note = "ENDS AFTER DARK (dark by " + _clock(sunset) + ")"
+    else:
+        note = "DARK BY " + _clock(sunset)
+    if activity.get("outdoor") and day.month in catalog.WET_MONTHS:
+        note = note + ", COLD AND WET OUTSIDE"
+    return note
 
 
 def meet_hours(activity, part):
@@ -1040,7 +1070,7 @@ async def run_day(day, max_groups=10, people_list=None, client=None, on_progress
 
         # 2. the plan
         raw = await run.ask("orchestrator plan", config.MODEL_PREMIUM, _plan_system(day, max_groups),
-                            _plan_payload(rooms, people, plans), 16000, config.HUB_EFFORT)
+                            _plan_payload(rooms, people, plans, day), 16000, config.HUB_EFFORT)
         thoughts = ""
         if isinstance(raw, dict):
             thoughts = str(raw.get("thoughts") or "")

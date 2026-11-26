@@ -1060,3 +1060,97 @@ def test_the_browser_copy_checks_a_pause_too():
     js = open("src/web/run-clawnly.js").read()
     assert 'var until = pausedUntil(p, iso);' in js and 'if (until) return { score: 0, why: "paused until " + until };' in js
     assert "asked for a break from plans until" in js
+
+
+# Nov 26: in December it's dark by about 4:15pm, so "doesn't drive after dark" and "outdoors in
+# the evening" rule out far more than in summer (Nov 24 review, Examples #68 and #72). Each break
+# room says when it gets dark; who that rules out stays the AI's judgment.
+DECEMBER_WED = datetime.date(2026, 12, 9)
+JULY_SAT = datetime.date(2026, 7, 11)
+
+
+def test_a_room_says_when_it_gets_dark_and_whether_it_is_outside_in_the_cold():
+    trivia = catalog.get("trivia")
+    # a fixed 7-9pm trivia night in December starts after dark: ask first, it can't move
+    note = matchmaker.dark_note(trivia, "evening", DECEMBER_WED)
+    assert note == "AFTER DARK (dark by 4:15pm)"
+    assert "COLD" not in note
+    # an outdoor evening walk in December is also cold and likely wet
+    walk = catalog.get("ten-trails-walk")
+    assert "COLD AND WET OUTSIDE" in matchmaker.dark_note(walk, "evening", DECEMBER_WED)
+    # a free-to-pick afternoon (12-5pm) can still end before dark: pick an earlier time
+    museum = catalog.get("museum")
+    assert matchmaker.dark_note(museum, "afternoon", DECEMBER_WED) == "DARK BY 4:15pm"
+    # mornings are light, and a July evening walk is light until about 9pm
+    assert matchmaker.dark_note(museum, "morning", DECEMBER_WED) is None
+    assert matchmaker.dark_note(walk, "afternoon", JULY_SAT) is None
+    assert matchmaker.dark_note(walk, "evening", JULY_SAT) == "DARK BY 9pm"
+    assert "COLD" not in matchmaker.dark_note(walk, "evening", JULY_SAT)
+    # a fixed event that starts in the light and ends after dark
+    seahawks = catalog.get("seahawks")
+    assert matchmaker.dark_note(seahawks, "afternoon", DECEMBER_WED) == "ENDS AFTER DARK (dark by 4:15pm)"
+    # no day, no note (old callers)
+    assert matchmaker.dark_note(trivia, "evening", None) is None
+
+
+def test_the_planner_sees_the_dark_note_in_the_room_and_is_told_what_to_do_with_it():
+    person = dict(town()[0], avoid=[], dislikes=[], budget="any", likes=[{"tag": "trivia", "weight": 3}])
+    people = {"a": dict(person, id="a"), "b": dict(person, id="b", name="Bea B.")}
+    room = {"activity": "trivia", "part": "evening", "candidates": [{"id": "a", "score": 3}, {"id": "b", "score": 3}]}
+    assert "AFTER DARK (dark by 4:15pm)" in matchmaker._plan_payload([room], people, None, DECEMBER_WED)
+    assert "DARK" not in matchmaker._plan_payload([room], people)
+    system = matchmaker._plan_system(DECEMBER_WED, 5)
+    assert "AFTER DARK, ENDS AFTER DARK and DARK BY say when it gets dark" in system
+
+
+def test_every_month_has_a_sunset_and_the_browser_copy_marks_rooms_the_same_way():
+    import shutil
+    import subprocess
+    import pytest
+    assert sorted(catalog.SUNSET) == list(range(1, 13))
+    assert catalog.SUNSET[12] < catalog.SUNSET[6]
+    node = shutil.which("node")
+    if node is None:
+        pytest.skip("node is not installed")
+    js = open("src/web/run-clawnly.js").read()
+    helpers = ["function dateOf", "function dropinWindow", "function clock", "function meetHours",
+               "function darkNote", "function fixedTime", "function toHours", "function parseHours"]
+    parts = []
+    i = 0
+    while i < len(helpers):
+        start = js.index("  " + helpers[i])
+        end = js.index("\n  }\n", start) + 5
+        if helpers[i] == "function dateOf":
+            end = js.index("\n", start) + 1
+        parts.append(js[start:end])
+        i += 1
+    cases = []
+    ids = ["trivia", "ten-trails-walk", "museum", "seahawks", "farmers-market", "kraken"]
+    days = [DECEMBER_WED, JULY_SAT, datetime.date(2026, 3, 14), datetime.date(2026, 10, 3)]
+    a = 0
+    while a < len(ids):
+        d = 0
+        while d < len(days):
+            p = 0
+            while p < len(matchmaker.PART_HOURS):
+                cases.append([ids[a], list(matchmaker.PART_HOURS)[p], days[d].isoformat()])
+                p += 1
+            d += 1
+        a += 1
+    data = json.loads(json.dumps({"sunset": catalog.SUNSET, "wetMonths": catalog.WET_MONTHS}))
+    acts = {}
+    a = 0
+    while a < len(ids):
+        acts[ids[a]] = catalog.get(ids[a])
+        a += 1
+    script = ("var PART_HOURS = " + json.dumps(matchmaker.PART_HOURS) + ";\nvar DATA = " + json.dumps(data) +
+              ";\n" + "".join(parts) + "\nvar ACTS = " + json.dumps(acts) + ";\nvar cases = " + json.dumps(cases) +
+              ";\nvar out = []; for (var i = 0; i < cases.length; i++) out.push(darkNote(ACTS[cases[i][0]], cases[i][1], cases[i][2]));\n" +
+              "process.stdout.write(JSON.stringify(out));\n")
+    done = subprocess.run([node, "-e", script], capture_output=True, text=True, check=True)
+    found = json.loads(done.stdout)
+    i = 0
+    while i < len(cases):
+        expected = matchmaker.dark_note(catalog.get(cases[i][0]), cases[i][1], datetime.date.fromisoformat(cases[i][2]))
+        assert found[i] == expected, cases[i]
+        i += 1

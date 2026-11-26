@@ -1054,7 +1054,7 @@ def estimate(people, days, max_groups):
         reasks = int(round(asks * REASK_SHARE))
         third = int(round(asks * ROUND_THREE_SHARE))
         locked = int(round(groups * LOCK_SHARE))
-        plan_in = (len(matchmaker._plan_system(day, max_groups)) + len(matchmaker._plan_payload(rooms, by_id))) / CHARS_PER_TOKEN
+        plan_in = (len(matchmaker._plan_system(day, max_groups)) + len(matchmaker._plan_payload(rooms, by_id, None, day))) / CHARS_PER_TOKEN
         resolve_in = (len(matchmaker._resolve_system(day)) + 120 * asks) / CHARS_PER_TOKEN
         message_in = (len(matchmaker._message_system()) + 300 * ASSUMED_GROUP_SIZE) / CHARS_PER_TOKEN
         day_low = 0.0

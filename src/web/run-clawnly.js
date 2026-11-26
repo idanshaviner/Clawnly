@@ -261,6 +261,7 @@
       "- Pick a specific time inside the day part (morning " + PART_HOURS.morning + ", afternoon " + PART_HOURS.afternoon + ", evening " + PART_HOURS.evening + "). A room marked FIXED is a real event (a game, a concert): use exactly that time.",
       "- A room marked DROP-IN is a real event people wander through (a market, an open house): its hours are not a meeting time. Pick one meeting time inside them and name a meeting spot in every proposal (for example the front entrance at 10am, then coffee after one lap), or people come and go without ever meeting.",
       "- A room marked AT A NEIGHBOR'S HOME happens at someone's house. These people have never met, and strangers meet first in a public place: name a public spot nearby (the Black Diamond Library, the Bakery) in the proposal, and leave the home for a group that has met and wants a second meetup.",
+      "- AFTER DARK, ENDS AFTER DARK and DARK BY say when it gets dark that day: check it against what each person told their agent (no driving after dark), and pick an earlier time or have their agent ask first. COLD AND WET OUTSIDE: say so in every proposal.",
       "- Name up to 2 alternates per group from the same break room, in case someone declines.",
       "- Write a short, personal proposal to each member's agent: what, when, where, how many others, and why it fits this person. Don't name the other people yet.",
       "- In the why and the proposals, describe only interests people actually have: someone in a trivia room for the craft beer isn't a trivia fan. Check what a person avoids against a FIXED time.",
@@ -286,6 +287,8 @@
       if (dropin) header += ", DROP-IN " + dropin + " (set one meeting time and spot inside it)";
       // a neighbor's house: strangers meet first in public (matchmaker.HOME_NOTE, Nov 20 Example #57)
       if (a.home) header += ", AT A NEIGHBOR'S HOME (strangers meet first in public: for a first meetup name a public spot nearby, like the Black Diamond Library or Bakery, and save the home for a group that has met)";
+      var dark = darkNote(a, s.part, iso);
+      if (dark) header += ", " + dark;
       lines.push("", header + " (" + s.candidates.length + " in the room)");
       // the keenest with keenness (profiles once, below); everyone else by id, so nobody is left out
       var top = [], rest = [], mild = [];
@@ -369,6 +372,21 @@
     var hours = parseHours(text), w = parseHours(meetHours(a, part));
     if (!hours || !w) return true;
     return hours[0] >= w[0] && hours[1] <= w[1];
+  }
+  function darkNote(a, part, iso) {
+    // a room whose time runs past dark says so (matchmaker.dark_note, Nov 24 Examples #68 and #72)
+    if (!iso || !DATA.sunset) return null;
+    var month = dateOf(iso).getMonth() + 1, sunset = DATA.sunset[String(month)];
+    if (sunset === undefined) return null;
+    var fixed = fixedTime(a, part);
+    var hours = parseHours(fixed || meetHours(a, part));
+    if (!hours || hours[1] <= sunset) return null;
+    var note;
+    if (hours[0] >= sunset) note = "AFTER DARK (dark by " + clock(sunset) + ")";
+    else if (fixed) note = "ENDS AFTER DARK (dark by " + clock(sunset) + ")";
+    else note = "DARK BY " + clock(sunset);
+    if (a.outdoor && (DATA.wetMonths || []).indexOf(month) >= 0) note += ", COLD AND WET OUTSIDE";
+    return note;
   }
   function fixedTime(a, part) {
     // the real time of a game, concert or event in that day part, or null when the time is free to pick

@@ -43,6 +43,18 @@ it and avoids nothing about it.
   end is vague ("after the holidays", "for a while"), the agent asks for a date instead of
   guessing; until they give one, no pause is set.
 
+## Dark, weather and who an event is for
+
+From open examples #62, #67, #68 and #72 (Nov 23-24), still waiting for Keep marks:
+- Each room says when it gets dark that day (in December, about 4:15pm). Someone who doesn't drive
+  after dark needs an event that ends well before it, or their agent asks first.
+- An outdoor winter evening is cold, dark and likely wet: say so in the invite, and check each
+  person's tolerance for it the same way you would a late night.
+- Read who an event is for, not just what it is: a library teen program is the teens' space, so
+  adults with no kid there don't belong, and an adults-only class is no place for kids.
+- Read what comes with an event (dozens of dogs at a dog run, drinks at a winery) and check it
+  against what someone can't be around. An allergy is a hard limit, like an avoid.
+
 ## Big groups of interested people
 
 - When the people who like an activity span two generations, make two groups in their own

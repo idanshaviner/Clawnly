@@ -122,10 +122,14 @@ def _person_line(p, plans=0):
             i += 1
         # the hub can't see the profile otherwise, and a fixed late event can still reach a late-night avoider
         avoid = "; avoids " + ", ".join(words)
+    sleeps = ""
+    if sleep_hours(p) is not None:
+        # a night-shift worker's free daytime is often their sleep (Nov 27 Example #85)
+        sleeps = "; sleeps " + p["sleeps"] + " (works nights)"
     already = ""
     if plans > 0:
         already = "; plans this week: " + str(plans)
-    return "  " + p["id"] + " " + p["name"] + ", " + str(p["age"]) + ", " + p["archetype"] + kids + ", " + p["area"] + ": " + ", ".join(likes) + avoid + already
+    return "  " + p["id"] + " " + p["name"] + ", " + str(p["age"]) + ", " + p["archetype"] + kids + ", " + p["area"] + ": " + ", ".join(likes) + avoid + sleeps + already
 
 
 def _liked_here(person, activity):
@@ -168,6 +172,7 @@ def _plan_system(day, max_groups):
         "- Pick a specific time inside the day part (morning " + PART_HOURS["morning"] + ", afternoon " + PART_HOURS["afternoon"] + ", evening " + PART_HOURS["evening"] + "). A room marked FIXED is a real event (a game, a concert): use exactly that time.",
         "- A room marked DROP-IN is a real event people wander through (a market, an open house): its hours are not a meeting time. Pick one meeting time inside them and name a meeting spot in every proposal (for example the front entrance at 10am, then coffee after one lap), or people come and go without ever meeting.",
         "- A room marked AT A NEIGHBOR'S HOME happens at someone's house. These people have never met, and strangers meet first in a public place: name a public spot nearby (the Black Diamond Library, the Bakery) in the proposal, and leave the home for a group that has met and wants a second meetup.",
+        "- AFTER DARK, ENDS AFTER DARK and DARK BY say when it gets dark that day: check it against what each person told their agent (no driving after dark), and pick an earlier time or have their agent ask first. COLD AND WET OUTSIDE: say so in every proposal.",
         "- Name up to 2 alternates per group from the same break room, in case someone declines.",
         "- Write a short, personal proposal to each member's agent: what, when, where, how many others, and why it fits this person. Don't name the other people yet.",
         "- In the why and the proposals, describe only interests people actually have: someone in a trivia room for the craft beer isn't a trivia fan. Check what a person avoids against a FIXED time.",
@@ -202,7 +207,7 @@ def _fewest_plans_first(rooms, plans):
         i += 1
 
 
-def _plan_payload(rooms, people, plans=None):
+def _plan_payload(rooms, people, plans=None, day=None):
     if plans is None:
         plans = {}
     lines = ["BREAK ROOMS:"]
@@ -234,6 +239,9 @@ def _plan_payload(rooms, people, plans=None):
             header = header + ", DROP-IN " + window + " (set one meeting time and spot inside it)"
         if a.get("home"):
             header = header + ", " + HOME_NOTE
+        dark = dark_note(a, room["part"], day)
+        if dark is not None:
+            header = header + ", " + dark
         lines.append("")
         lines.append(header + " (" + str(len(room["candidates"])) + " in the room)")
         top = []
@@ -300,6 +308,32 @@ def _clock(hours):
     if minutes:
         return str(shown) + ":" + ("%02d" % minutes) + half
     return str(shown) + half
+
+
+def dark_note(activity, part, day):
+    # a room whose time runs past dark says so, so the AI can check it against what each person told
+    # their agent (no driving after dark, no cold wet evenings outside). In December it's dark by
+    # about 4:15pm (Nov 24 review, Examples #68 and #72). None when it's light the whole time.
+    if day is None:
+        return None
+    sunset = catalog.SUNSET[day.month]
+    fixed = fixed_time(activity, part)
+    if fixed is not None:
+        hours = parse_hours(fixed)
+    else:
+        hours = parse_hours(meet_hours(activity, part))
+    if hours is None or hours[1] <= sunset:
+        return None
+    if hours[0] >= sunset:
+        # an evening that starts after dark can't be moved into the light: ask first
+        note = "AFTER DARK (dark by " + _clock(sunset) + ")"
+    elif fixed is not None:
+        note = "ENDS AFTER DARK (dark by " + _clock(sunset) + ")"
+    else:
+        note = "DARK BY " + _clock(sunset)
+    if activity.get("outdoor") and day.month in catalog.WET_MONTHS:
+        note = note + ", COLD AND WET OUTSIDE"
+    return note
 
 
 def meet_hours(activity, part):
@@ -402,6 +436,11 @@ def agent_profile(person):
     if len(avoid) > 0:
         lines.append("Avoids: " + ", ".join(avoid) + ".")
     lines.append("Budget: " + BUDGET_WORDS[person["budget"]] + ".")
+    if sleep_hours(person) is not None:
+        lines.append("Works nights and usually sleeps " + person["sleeps"] + ": a free slot then may still be sleep.")
+    until = demand.pause_date(person)
+    if until is not None:
+        lines.append("Asked for a break from plans until " + pause_label(until) + ".")
     days = sorted(person["calendar"].keys())
     week = []
     d = 0
@@ -414,6 +453,10 @@ def agent_profile(person):
         d += 1
     lines.append("This week: " + "; ".join(week) + ".")
     return "\n".join(lines)
+
+
+def pause_label(day):
+    return WEEKDAY[day.weekday()] + " " + str(day.day) + " " + day.strftime("%B")
 
 
 def keenness(person, activity):
@@ -431,6 +474,9 @@ def conflicts(person, activity, part, time_text, day):
     # what in the profile rules this plan out: code refuses a yes that runs into any of it
     first = _first(person)
     out = []
+    if demand.paused_until(person, day) is not None:
+        # "not until January" is a pause: code refuses any yes before then (Nov 20 Example #59)
+        out.append(first + " asked for a break from plans until " + pause_label(demand.pause_date(person)) + ".")
     if part not in person["calendar"].get(day.isoformat(), []):
         out.append(first + " is busy that " + part + ".")
     hours = parse_hours(time_text)
@@ -489,6 +535,39 @@ def bedtime_questions(person, activity, time_text):
             " kids' bedtime, and pick an earlier session when there is one."]
 
 
+def sleep_hours(person):
+    # when someone who works nights sleeps, as they told their agent ("8am-3pm"); None when they
+    # didn't say, or when it can't be read (no crash, no guess)
+    sleeps = person.get("sleeps")
+    if not isinstance(sleeps, str):
+        return None
+    return parse_hours(sleeps)
+
+
+def _overlaps(hours, window):
+    # do two clock spans overlap? a span past midnight (10pm-6am) is read as 22-30, so check the
+    # window a day earlier and later too
+    shift = -24
+    while shift <= 24:
+        if hours[0] < window[1] + shift and window[0] + shift < hours[1]:
+            return True
+        shift += 24
+    return False
+
+
+def sleep_questions(person, activity, time_text):
+    # free on the calendar isn't the same as awake (Nov 27 Example #85): a night-shift nurse who
+    # sleeps 8am-3pm shows a free Saturday morning. A plan inside their sleep is a question for
+    # them, not a yes their agent gives for them, and not a no code makes for them.
+    sleep = sleep_hours(person)
+    hours = parse_hours(time_text)
+    if sleep is None or hours is None or not _overlaps(hours, sleep):
+        return []
+    first = _first(person)
+    return ["It's during the hours " + first + " usually sleeps (" + person["sleeps"] + ", works nights): a free"
+            " slot on the calendar isn't the same as awake. Ask " + first + " before saying yes or no for them."]
+
+
 def plan_checks(person, activity, part, time_text, day):
     # what code can see in the profile that argues against this plan; the agent weighs it
     first = _first(person)
@@ -496,6 +575,7 @@ def plan_checks(person, activity, part, time_text, day):
     keen = keenness(person, activity)
     out += time_questions(person, activity, time_text)
     out += bedtime_questions(person, activity, time_text)
+    out += sleep_questions(person, activity, time_text)
     if keen == 0:
         out.append(first + " never said they like this.")
     if keen == 1:
@@ -1030,7 +1110,7 @@ async def run_day(day, max_groups=10, people_list=None, client=None, on_progress
 
         # 2. the plan
         raw = await run.ask("orchestrator plan", config.MODEL_PREMIUM, _plan_system(day, max_groups),
-                            _plan_payload(rooms, people, plans), 16000, config.HUB_EFFORT)
+                            _plan_payload(rooms, people, plans, day), 16000, config.HUB_EFFORT)
         thoughts = ""
         if isinstance(raw, dict):
             thoughts = str(raw.get("thoughts") or "")

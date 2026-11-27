@@ -64,6 +64,8 @@
   function fit(p, a, iso, part) {
     if (!has(a.months, monthOf(iso))) return { score: 0, why: "out of season" };
     if (!has(a.days, weekday(iso)) || !has(a.parts, part)) return { score: 0, why: "not running then" };
+    var until = pausedUntil(p, iso);
+    if (until) return { score: 0, why: "paused until " + until };
     if (!has(listOr(p.calendar[iso]), part)) return { score: 0, why: "busy" };
     if (!has(BUDGET_OK[p.budget], costFor(p, a))) return { score: 0, why: "over budget" };
     for (var i = 0; i < a.tags.length; i++) { if (has(p.dislikes, a.tags[i])) return { score: 0, why: "dislikes " + words(a.tags[i]) }; }
@@ -75,6 +77,37 @@
     for (var k = 0; k < p.likes.length; k++) { if (has(a.tags, p.likes[k].tag)) score += p.likes[k].weight; }
     if (score === 0) return { score: 0, why: "not interested" };
     return { score: score, why: null };
+  }
+  // a full ISO date, or an ISO date-time whose date part we take: the same pattern as demand.PAUSE_PATTERN
+  var PAUSE_PATTERN = /^([0-9]{4}-[0-9]{2}-[0-9]{2})(T[0-9]{2}:[0-9]{2}(:[0-9]{2})?)?$/;
+  var pauseWarned = {};
+  function pauseDate(p) {
+    // the ISO day someone's break ends, or null. A bad value ("January", "01/04/2027", a number) is
+    // no pause, warned once, so the two copies agree (demand.pause_date, Nov 24 review)
+    var until = p.paused_until;
+    if (until === undefined || until === null || until === "") return null;
+    if (typeof until === "string") {
+      var found = PAUSE_PATTERN.exec(until);
+      if (found) {
+        var parts = found[1].split("-"), y = Number(parts[0]), m = Number(parts[1]), d = Number(parts[2]);
+        var day = new Date(Date.UTC(y, m - 1, d));
+        // a real calendar day only: 2027-02-30 is as bad as "January"
+        if (y >= 1 && day.getUTCFullYear() === y && day.getUTCMonth() === m - 1 && day.getUTCDate() === d) return found[1];
+      }
+    }
+    var key = p.id + "|" + String(until);
+    if (!pauseWarned[key]) {
+      pauseWarned[key] = true;
+      if (typeof console !== "undefined") console.warn("ignoring bad paused_until " + JSON.stringify(until) + " for person " + p.id + ": treated as no pause");
+    }
+    return null;
+  }
+  function pausedUntil(p, iso) {
+    // someone who asked for a break ("swamped until January") gets no offers before that date
+    // (same as demand.paused_until, Nov 20 Example #59); clean ISO dates compare as text
+    var until = pauseDate(p);
+    if (!until || iso >= until) return null;
+    return until;
   }
   var COST_LEVELS = ["free", "low", "mid"];
   function costFor(p, a) {
@@ -103,6 +136,25 @@
     if (!hours || !p.kids_at_home || hours[1] < 19.5) return [];
     var f = p.name.split(" ")[0];
     return ["It ends at 7:30pm or later and " + f + " has kids at home: check it works with their kids' bedtime, and pick an earlier session when there is one."];
+  }
+  function sleepHours(p) {
+    // when someone who works nights sleeps ("8am-3pm"), or null (matchmaker.sleep_hours)
+    if (typeof p.sleeps !== "string") return null;
+    return parseHours(p.sleeps);
+  }
+  function overlaps(hours, w) {
+    // two clock spans overlap; a span past midnight reads as 22-30, so check a day either side
+    for (var shift = -24; shift <= 24; shift += 24) {
+      if (hours[0] < w[1] + shift && w[0] + shift < hours[1]) return true;
+    }
+    return false;
+  }
+  function sleepQuestions(p, a, time) {
+    // free on the calendar isn't the same as awake: ask first (matchmaker.sleep_questions, Nov 27 Example #85)
+    var sleep = sleepHours(p), hours = parseHours(time);
+    if (!sleep || !hours || !overlaps(hours, sleep)) return [];
+    var f = p.name.split(" ")[0];
+    return ["It's during the hours " + f + " usually sleeps (" + p.sleeps + ", works nights): a free slot on the calendar isn't the same as awake. Ask " + f + " before saying yes or no for them."];
   }
   function timeTraits(a, part) {
     var hours = parseHours(fixedTime(a, part)), out = [];
@@ -205,7 +257,10 @@
     // the hub can't see the profile otherwise, and a fixed late event can still reach a late-night avoider
     var avoid = "";
     if (p.avoid.length > 0) avoid = "; avoids " + p.avoid.map(words).join(", ");
-    return "  " + id + " " + p.name + ", " + p.age + ", " + p.archetype + kids + ", " + p.area + ": " + likes.join(", ") + avoid;
+    // a night-shift worker's free daytime is often their sleep (matchmaker._person_line, Nov 27 Example #85)
+    var sleeps = "";
+    if (sleepHours(p)) sleeps = "; sleeps " + p.sleeps + " (works nights)";
+    return "  " + id + " " + p.name + ", " + p.age + ", " + p.archetype + kids + ", " + p.area + ": " + likes.join(", ") + avoid + sleeps;
   }
   // the team's skill file (src/matchmaker_skill.md), handed over by the page so it matches the server
   function skillLines() {
@@ -228,6 +283,7 @@
       "- Pick a specific time inside the day part (morning " + PART_HOURS.morning + ", afternoon " + PART_HOURS.afternoon + ", evening " + PART_HOURS.evening + "). A room marked FIXED is a real event (a game, a concert): use exactly that time.",
       "- A room marked DROP-IN is a real event people wander through (a market, an open house): its hours are not a meeting time. Pick one meeting time inside them and name a meeting spot in every proposal (for example the front entrance at 10am, then coffee after one lap), or people come and go without ever meeting.",
       "- A room marked AT A NEIGHBOR'S HOME happens at someone's house. These people have never met, and strangers meet first in a public place: name a public spot nearby (the Black Diamond Library, the Bakery) in the proposal, and leave the home for a group that has met and wants a second meetup.",
+      "- AFTER DARK, ENDS AFTER DARK and DARK BY say when it gets dark that day: check it against what each person told their agent (no driving after dark), and pick an earlier time or have their agent ask first. COLD AND WET OUTSIDE: say so in every proposal.",
       "- Name up to 2 alternates per group from the same break room, in case someone declines.",
       "- Write a short, personal proposal to each member's agent: what, when, where, how many others, and why it fits this person. Don't name the other people yet.",
       "- In the why and the proposals, describe only interests people actually have: someone in a trivia room for the craft beer isn't a trivia fan. Check what a person avoids against a FIXED time.",
@@ -253,6 +309,8 @@
       if (dropin) header += ", DROP-IN " + dropin + " (set one meeting time and spot inside it)";
       // a neighbor's house: strangers meet first in public (matchmaker.HOME_NOTE, Nov 20 Example #57)
       if (a.home) header += ", AT A NEIGHBOR'S HOME (strangers meet first in public: for a first meetup name a public spot nearby, like the Black Diamond Library or Bakery, and save the home for a group that has met)";
+      var dark = darkNote(a, s.part, iso);
+      if (dark) header += ", " + dark;
       lines.push("", header + " (" + s.candidates.length + " in the room)");
       // the keenest with keenness (profiles once, below); everyone else by id, so nobody is left out
       var top = [], rest = [], mild = [];
@@ -337,6 +395,21 @@
     if (!hours || !w) return true;
     return hours[0] >= w[0] && hours[1] <= w[1];
   }
+  function darkNote(a, part, iso) {
+    // a room whose time runs past dark says so (matchmaker.dark_note, Nov 24 Examples #68 and #72)
+    if (!iso || !DATA.sunset) return null;
+    var month = dateOf(iso).getMonth() + 1, sunset = DATA.sunset[String(month)];
+    if (sunset === undefined) return null;
+    var fixed = fixedTime(a, part);
+    var hours = parseHours(fixed || meetHours(a, part));
+    if (!hours || hours[1] <= sunset) return null;
+    var note;
+    if (hours[0] >= sunset) note = "AFTER DARK (dark by " + clock(sunset) + ")";
+    else if (fixed) note = "ENDS AFTER DARK (dark by " + clock(sunset) + ")";
+    else note = "DARK BY " + clock(sunset);
+    if (a.outdoor && (DATA.wetMonths || []).indexOf(month) >= 0) note += ", COLD AND WET OUTSIDE";
+    return note;
+  }
   function fixedTime(a, part) {
     // the real time of a game, concert or event in that day part, or null when the time is free to pick
     var f = a.fixed || {};
@@ -373,6 +446,9 @@
     if (p.dislikes.length > 0) lines.push("Not into: " + p.dislikes.map(words).join(", ") + ".");
     if (p.avoid.length > 0) lines.push("Avoids: " + p.avoid.map(words).join(", ") + ".");
     lines.push("Budget: " + BUDGET_WORDS[p.budget] + ".");
+    if (sleepHours(p)) lines.push("Works nights and usually sleeps " + p.sleeps + ": a free slot then may still be sleep.");
+    var until = pauseDate(p);
+    if (until) lines.push("Asked for a break from plans until " + dayLabel(until) + ".");
     var days = Object.keys(p.calendar).sort(), week = [];
     for (var d = 0; d < days.length; d++) {
       var free = listOr(p.calendar[days[d]]), txt = "busy";
@@ -385,6 +461,8 @@
   function conflicts(p, a, part, time, iso) {
     // what in the profile rules this plan out: code refuses a yes that runs into any of it
     var f = p.name.split(" ")[0], out = [];
+    var until = pausedUntil(p, iso);
+    if (until) out.push(f + " asked for a break from plans until " + dayLabel(until) + ".");
     if (!has(listOr(p.calendar[iso]), part)) out.push(f + " is busy that " + part + ".");
     var hours = parseHours(time), soft = wants(p, a);
     if (hours && has(p.avoid, "early_mornings") && hours[0] < 9 && !soft) out.push("It starts before 9am, and " + f + " avoids early mornings.");
@@ -407,6 +485,7 @@
     var keen = keenness(p, a);
     out = out.concat(timeQuestions(p, a, time));
     out = out.concat(bedtimeQuestions(p, a, time));
+    out = out.concat(sleepQuestions(p, a, time));
     if (keen === 0) out.push(f + " never said they like this.");
     if (keen === 1) out.push("Interest is mild: " + f + " is only up for it.");
     return out;

@@ -68,6 +68,8 @@ def page_html(listed=None, server=True):
         listed = days()
     data = {"neighborhood": catalog.NEIGHBORHOOD, "people": town(listed[0]), "activities": catalog.ACTIVITIES,
             "days": listed, "groupMin": catalog.GROUP_MIN, "groupMax": catalog.GROUP_MAX,
+            # when it's dark each month, so the browser marks after-dark rooms like the server
+            "sunset": catalog.SUNSET, "wetMonths": catalog.WET_MONTHS,
             # the same skill file the server's matchmaker reads, so the browser prompts can't drift
             "skill": matchmaker.skill()}
     head = _read("run-clawnly-head.html")

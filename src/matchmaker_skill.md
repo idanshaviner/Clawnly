@@ -36,6 +36,33 @@ it and avoids nothing about it.
   still be placed with other neighbors.
 - When someone declines an activity, ask whether the activity was wrong before deciding the
   people were wrong.
+- "Not until January" is a pause, not a no and not a maybe. Code keeps a paused person out of
+  every group until the date they gave; after it, ask once, with something they love.
+- The person's own agent writes that date (demand.pause_from_words): a month with no day means
+  the 1st ("until January" is Jan 1); "through January" or "late January" means Feb 1. When the
+  end is vague ("after the holidays", "for a while"), the agent asks for a date instead of
+  guessing; until they give one, no pause is set.
+
+## Free isn't the same as awake
+
+From open example #85 (Nov 27), still waiting for a Keep mark:
+- Someone who works nights (a nurse, a warehouse shift) shows free daytime that is really their
+  sleep. When a profile says when they sleep, code flags any plan inside it, and their agent asks
+  them first; it is a question, not a yes the agent gives for them and not a no code makes for them.
+- Better first offer for them: something after they wake (a late afternoon or early evening), with
+  people who like the same main thing.
+
+## Dark, weather and who an event is for
+
+From open examples #62, #67, #68 and #72 (Nov 23-24), still waiting for Keep marks:
+- Each room says when it gets dark that day (in December, about 4:15pm). Someone who doesn't drive
+  after dark needs an event that ends well before it, or their agent asks first.
+- An outdoor winter evening is cold, dark and likely wet: say so in the invite, and check each
+  person's tolerance for it the same way you would a late night.
+- Read who an event is for, not just what it is: a library teen program is the teens' space, so
+  adults with no kid there don't belong, and an adults-only class is no place for kids.
+- Read what comes with an event (dozens of dogs at a dog run, drinks at a winery) and check it
+  against what someone can't be around. An allergy is a hard limit, like an avoid.
 
 ## Big groups of interested people
 

@@ -145,3 +145,154 @@ def test_a_family_outing_costs_a_parent_a_ticket_per_kid():
     # a free family event stays free, and a grown-ups' outing isn't priced for the kids
     assert demand.cost_for(parent, dict(swim, cost="free")) == "free"
     assert demand.cost_for(parent, catalog.get("cribbage")) == "low"
+
+
+def test_a_pause_keeps_someone_out_of_every_room_until_the_date():
+    # Nov 20 review (Example #59): "swamped with work until January" is a pause, not a no and not
+    # a maybe, so code offers nothing before then, and the person is back in play on the date
+    kayak = catalog.get("sawyer-paddle")
+    paused = person(paused_until="2026-10-01")
+    assert demand.fit(paused, kayak, SUNDAY, "afternoon") == (0, "paused until 2026-10-01")
+    assert demand.paused_until(paused, SUNDAY) == "2026-10-01"
+    back = datetime.date(2026, 10, 4)
+    paused["calendar"] = {back.isoformat(): ["afternoon"]}
+    assert demand.paused_until(paused, back) is None
+    assert demand.fit(paused, kayak, back, "afternoon")[1] is None
+    assert demand.fit(person(paused_until=""), kayak, SUNDAY, "afternoon")[1] is None
+
+
+def test_a_paused_neighbor_is_never_proposed_while_the_rest_of_the_town_is_unchanged():
+    people = population.generate(200, seed=7, start=SUNDAY)
+    before = demand.propose_groups(people, catalog.ACTIVITIES, SUNDAY)
+    busiest = before["groups"][0]["members"][0]["id"]
+    for p in people:
+        if p["id"] == busiest:
+            p["paused_until"] = "2027-01-04"
+    after = demand.propose_groups(people, catalog.ACTIVITIES, SUNDAY)
+    placed = [m["id"] for g in after["groups"] for m in g["members"]]
+    assert busiest not in placed and busiest in after["unplaced"]
+    rooms = demand.break_room(people, catalog.ACTIVITIES, SUNDAY)
+    assert not any(c["id"] == busiest for r in rooms for c in r["candidates"])
+
+
+# Nov 24 review (Idan): each of these crashed the whole run; now each is no pause, logged once
+BAD_PAUSES = ["January", "2027-1-4", "01/04/2027", "2027-02-30", "2027-01-04 junk", 20270104,
+              ["2027-01-04"], True, ""]
+
+
+def test_a_bad_pause_is_no_pause_and_never_stops_the_run(caplog):
+    kayak = catalog.get("sawyer-paddle")
+    i = 0
+    while i < len(BAD_PAUSES):
+        bad = person(id="bad" + str(i), paused_until=BAD_PAUSES[i])
+        assert demand.pause_date(bad) is None
+        assert demand.paused_until(bad, SUNDAY) is None
+        assert demand.fit(bad, kayak, SUNDAY, "afternoon") == (3, None)
+        i += 1
+    # one warning per bad value, naming the person, however many activities fit checks
+    messages = [r.getMessage() for r in caplog.records if r.levelname == "WARNING"]
+    assert len(messages) == len(BAD_PAUSES) - 1   # an empty value is simply no pause, no warning
+    assert "bad0" in messages[0] and "'January'" in messages[0]
+    people = population.generate(40, seed=7, start=SUNDAY)
+    people[0]["paused_until"] = "January"
+    caplog.clear()
+    demand.propose_groups(people, catalog.ACTIVITIES, SUNDAY)
+    warned = [r for r in caplog.records if r.levelname == "WARNING"]
+    assert len(warned) == 1 and people[0]["id"] in warned[0].getMessage()
+
+
+def test_a_clean_date_or_date_time_still_pauses_and_a_past_one_does_not():
+    kayak = catalog.get("sawyer-paddle")
+    future = person(paused_until="2027-01-04")
+    assert demand.fit(future, kayak, SUNDAY, "afternoon") == (0, "paused until 2027-01-04")
+    timed = person(paused_until="2027-01-04T09:00")
+    assert demand.pause_date(timed) == datetime.date(2027, 1, 4)
+    assert demand.fit(timed, kayak, SUNDAY, "afternoon") == (0, "paused until 2027-01-04")
+    assert demand.pause_date(person(paused_until="2027-01-04T09:00:30")) == datetime.date(2027, 1, 4)
+    past = person(paused_until="2026-09-01")
+    assert demand.paused_until(past, SUNDAY) is None
+    assert demand.fit(past, kayak, SUNDAY, "afternoon") == (3, None)
+
+
+def _js_pause_dates(values):
+    # run the browser copy's pauseDate on each value in node, so both copies are held to one rule
+    import json
+    import os
+    import shutil
+    import subprocess
+    import pytest
+    node = shutil.which("node")
+    if node is None:
+        pytest.skip("node is not installed")
+    here = os.path.dirname(os.path.abspath(__file__))
+    js = open(os.path.join(here, "..", "src", "web", "run-clawnly.js")).read()
+    start = js.index("  var PAUSE_PATTERN")
+    end = js.index("  var COST_LEVELS")
+    script = (js[start:end] + "\nvar values = " + json.dumps(values) + ";\n" +
+              "var out = []; for (var i = 0; i < values.length; i++) {\n" +
+              "  var p = { id: 'p' + i, paused_until: values[i] };\n" +
+              "  out.push([pauseDate(p), pausedUntil(p, '2026-09-27')]); }\n" +
+              "process.stdout.write(JSON.stringify(out));\n")
+    done = subprocess.run([node, "-e", script], capture_output=True, text=True, check=True)
+    return json.loads(done.stdout)
+
+
+def test_the_browser_copy_reads_every_pause_the_same_way():
+    values = BAD_PAUSES + [None, "2027-01-04", "2027-01-04T09:00", "2027-01-04T09:00:30", "2026-09-01"]
+    found = _js_pause_dates(values)
+    i = 0
+    while i < len(values):
+        p = person(paused_until=values[i])
+        date = demand.pause_date(p)
+        expected = None
+        if date is not None:
+            expected = date.isoformat()
+        assert found[i] == [expected, demand.paused_until(p, SUNDAY)], values[i]
+        i += 1
+
+
+# Nov 25: what writes the pause date (Review #17, from Idan's question on PR #17). The agent turns
+# what someone said into a date; anything unclear is None, so the agent asks instead of guessing.
+NOV20 = datetime.date(2026, 11, 20)
+
+
+def test_a_month_with_no_day_means_the_first_of_that_month():
+    assert demand.pause_from_words("I'm swamped with work until January", NOV20) == "2027-01-01"
+    assert demand.pause_from_words("busy till Feb", NOV20) == "2027-02-01"
+    assert demand.pause_from_words("until early January", NOV20) == "2027-01-01"
+    assert demand.pause_from_words("until December", NOV20) == "2026-12-01"
+
+
+def test_a_day_is_kept_and_a_past_day_means_next_year():
+    assert demand.pause_from_words("travelling until Jan 15", NOV20) == "2027-01-15"
+    assert demand.pause_from_words("out until December 3rd", NOV20) == "2026-12-03"
+    assert demand.pause_from_words("out until November 10", NOV20) == "2027-11-10"
+    assert demand.pause_from_words("until January 4, 2027", NOV20) == "2027-01-04"
+    assert demand.pause_from_words("until mid-January", NOV20) == "2027-01-15"
+
+
+def test_through_after_or_late_in_a_month_means_the_whole_month():
+    assert demand.pause_from_words("slammed through January", NOV20) == "2027-02-01"
+    assert demand.pause_from_words("let's talk after January", NOV20) == "2027-02-01"
+    assert demand.pause_from_words("until late January", NOV20) == "2027-02-01"
+    assert demand.pause_from_words("until the end of December", NOV20) == "2027-01-01"
+    assert demand.pause_from_words("through November", NOV20) == "2026-12-01"
+
+
+def test_vague_or_unreadable_words_set_no_pause_so_the_agent_asks():
+    for words in ["after the holidays", "for a while", "until next month", "I may be busy",
+                  "until November", "until February 30", "until January 4, 2025", "", None, 42]:
+        assert demand.pause_from_words(words, NOV20) is None, words
+
+
+def test_an_iso_date_in_the_words_is_used_when_it_is_still_ahead():
+    assert demand.pause_from_words("paused until 2027-01-04", NOV20) == "2027-01-04"
+    assert demand.pause_from_words("until 2026-11-01", NOV20) is None
+    assert demand.pause_from_words("until 2027-13-01", NOV20) is None
+
+
+def test_the_written_date_is_what_keeps_ben_out_until_january():
+    # Example #59: Ben K. tells his agent on Nov 20 he's swamped until January
+    ben = {"id": "ben", "paused_until": demand.pause_from_words("swamped with work until January", NOV20)}
+    assert demand.paused_until(ben, datetime.date(2026, 12, 15)) == "2027-01-01"
+    assert demand.paused_until(ben, datetime.date(2027, 1, 1)) is None

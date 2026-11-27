@@ -43,6 +43,15 @@ it and avoids nothing about it.
   end is vague ("after the holidays", "for a while"), the agent asks for a date instead of
   guessing; until they give one, no pause is set.
 
+## Free isn't the same as awake
+
+From open example #85 (Nov 27), still waiting for a Keep mark:
+- Someone who works nights (a nurse, a warehouse shift) shows free daytime that is really their
+  sleep. When a profile says when they sleep, code flags any plan inside it, and their agent asks
+  them first; it is a question, not a yes the agent gives for them and not a no code makes for them.
+- Better first offer for them: something after they wake (a late afternoon or early evening), with
+  people who like the same main thing.
+
 ## Dark, weather and who an event is for
 
 From open examples #62, #67, #68 and #72 (Nov 23-24), still waiting for Keep marks:

@@ -137,6 +137,25 @@
     var f = p.name.split(" ")[0];
     return ["It ends at 7:30pm or later and " + f + " has kids at home: check it works with their kids' bedtime, and pick an earlier session when there is one."];
   }
+  function sleepHours(p) {
+    // when someone who works nights sleeps ("8am-3pm"), or null (matchmaker.sleep_hours)
+    if (typeof p.sleeps !== "string") return null;
+    return parseHours(p.sleeps);
+  }
+  function overlaps(hours, w) {
+    // two clock spans overlap; a span past midnight reads as 22-30, so check a day either side
+    for (var shift = -24; shift <= 24; shift += 24) {
+      if (hours[0] < w[1] + shift && w[0] + shift < hours[1]) return true;
+    }
+    return false;
+  }
+  function sleepQuestions(p, a, time) {
+    // free on the calendar isn't the same as awake: ask first (matchmaker.sleep_questions, Nov 27 Example #85)
+    var sleep = sleepHours(p), hours = parseHours(time);
+    if (!sleep || !hours || !overlaps(hours, sleep)) return [];
+    var f = p.name.split(" ")[0];
+    return ["It's during the hours " + f + " usually sleeps (" + p.sleeps + ", works nights): a free slot on the calendar isn't the same as awake. Ask " + f + " before saying yes or no for them."];
+  }
   function timeTraits(a, part) {
     var hours = parseHours(fixedTime(a, part)), out = [];
     if (!hours) return out;
@@ -238,7 +257,10 @@
     // the hub can't see the profile otherwise, and a fixed late event can still reach a late-night avoider
     var avoid = "";
     if (p.avoid.length > 0) avoid = "; avoids " + p.avoid.map(words).join(", ");
-    return "  " + id + " " + p.name + ", " + p.age + ", " + p.archetype + kids + ", " + p.area + ": " + likes.join(", ") + avoid;
+    // a night-shift worker's free daytime is often their sleep (matchmaker._person_line, Nov 27 Example #85)
+    var sleeps = "";
+    if (sleepHours(p)) sleeps = "; sleeps " + p.sleeps + " (works nights)";
+    return "  " + id + " " + p.name + ", " + p.age + ", " + p.archetype + kids + ", " + p.area + ": " + likes.join(", ") + avoid + sleeps;
   }
   // the team's skill file (src/matchmaker_skill.md), handed over by the page so it matches the server
   function skillLines() {
@@ -424,6 +446,7 @@
     if (p.dislikes.length > 0) lines.push("Not into: " + p.dislikes.map(words).join(", ") + ".");
     if (p.avoid.length > 0) lines.push("Avoids: " + p.avoid.map(words).join(", ") + ".");
     lines.push("Budget: " + BUDGET_WORDS[p.budget] + ".");
+    if (sleepHours(p)) lines.push("Works nights and usually sleeps " + p.sleeps + ": a free slot then may still be sleep.");
     var until = pauseDate(p);
     if (until) lines.push("Asked for a break from plans until " + dayLabel(until) + ".");
     var days = Object.keys(p.calendar).sort(), week = [];
@@ -462,6 +485,7 @@
     var keen = keenness(p, a);
     out = out.concat(timeQuestions(p, a, time));
     out = out.concat(bedtimeQuestions(p, a, time));
+    out = out.concat(sleepQuestions(p, a, time));
     if (keen === 0) out.push(f + " never said they like this.");
     if (keen === 1) out.push("Interest is mild: " + f + " is only up for it.");
     return out;

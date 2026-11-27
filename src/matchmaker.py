@@ -122,10 +122,14 @@ def _person_line(p, plans=0):
             i += 1
         # the hub can't see the profile otherwise, and a fixed late event can still reach a late-night avoider
         avoid = "; avoids " + ", ".join(words)
+    sleeps = ""
+    if sleep_hours(p) is not None:
+        # a night-shift worker's free daytime is often their sleep (Nov 27 Example #85)
+        sleeps = "; sleeps " + p["sleeps"] + " (works nights)"
     already = ""
     if plans > 0:
         already = "; plans this week: " + str(plans)
-    return "  " + p["id"] + " " + p["name"] + ", " + str(p["age"]) + ", " + p["archetype"] + kids + ", " + p["area"] + ": " + ", ".join(likes) + avoid + already
+    return "  " + p["id"] + " " + p["name"] + ", " + str(p["age"]) + ", " + p["archetype"] + kids + ", " + p["area"] + ": " + ", ".join(likes) + avoid + sleeps + already
 
 
 def _liked_here(person, activity):
@@ -432,6 +436,8 @@ def agent_profile(person):
     if len(avoid) > 0:
         lines.append("Avoids: " + ", ".join(avoid) + ".")
     lines.append("Budget: " + BUDGET_WORDS[person["budget"]] + ".")
+    if sleep_hours(person) is not None:
+        lines.append("Works nights and usually sleeps " + person["sleeps"] + ": a free slot then may still be sleep.")
     until = demand.pause_date(person)
     if until is not None:
         lines.append("Asked for a break from plans until " + pause_label(until) + ".")
@@ -529,6 +535,39 @@ def bedtime_questions(person, activity, time_text):
             " kids' bedtime, and pick an earlier session when there is one."]
 
 
+def sleep_hours(person):
+    # when someone who works nights sleeps, as they told their agent ("8am-3pm"); None when they
+    # didn't say, or when it can't be read (no crash, no guess)
+    sleeps = person.get("sleeps")
+    if not isinstance(sleeps, str):
+        return None
+    return parse_hours(sleeps)
+
+
+def _overlaps(hours, window):
+    # do two clock spans overlap? a span past midnight (10pm-6am) is read as 22-30, so check the
+    # window a day earlier and later too
+    shift = -24
+    while shift <= 24:
+        if hours[0] < window[1] + shift and window[0] + shift < hours[1]:
+            return True
+        shift += 24
+    return False
+
+
+def sleep_questions(person, activity, time_text):
+    # free on the calendar isn't the same as awake (Nov 27 Example #85): a night-shift nurse who
+    # sleeps 8am-3pm shows a free Saturday morning. A plan inside their sleep is a question for
+    # them, not a yes their agent gives for them, and not a no code makes for them.
+    sleep = sleep_hours(person)
+    hours = parse_hours(time_text)
+    if sleep is None or hours is None or not _overlaps(hours, sleep):
+        return []
+    first = _first(person)
+    return ["It's during the hours " + first + " usually sleeps (" + person["sleeps"] + ", works nights): a free"
+            " slot on the calendar isn't the same as awake. Ask " + first + " before saying yes or no for them."]
+
+
 def plan_checks(person, activity, part, time_text, day):
     # what code can see in the profile that argues against this plan; the agent weighs it
     first = _first(person)
@@ -536,6 +575,7 @@ def plan_checks(person, activity, part, time_text, day):
     keen = keenness(person, activity)
     out += time_questions(person, activity, time_text)
     out += bedtime_questions(person, activity, time_text)
+    out += sleep_questions(person, activity, time_text)
     if keen == 0:
         out.append(first + " never said they like this.")
     if keen == 1:

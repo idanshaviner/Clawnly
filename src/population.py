@@ -17,6 +17,8 @@ A person is what they'd tell their own bot:
   budget    -- free / low / any
   age, area, archetype, kids_at_home -- who they are and the shape of their week
   calendar  -- the next 7 days: date -> the day parts they're free
+  sleeps    -- optional, for someone who works nights: when they sleep ("8am-3pm"), since a free
+               slot then may still be sleep (the matcher asks first, Nov 27 Example #85)
   brief     -- the same thing in plain words, as they'd say it to their bot
 """
 

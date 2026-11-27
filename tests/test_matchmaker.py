@@ -1154,3 +1154,98 @@ def test_every_month_has_a_sunset_and_the_browser_copy_marks_rooms_the_same_way(
         expected = matchmaker.dark_note(catalog.get(cases[i][0]), cases[i][1], datetime.date.fromisoformat(cases[i][2]))
         assert found[i] == expected, cases[i]
         i += 1
+
+
+# Nov 27: free on the calendar isn't the same as awake (Example #85). A night-shift nurse who
+# sleeps 8am-3pm shows a free Saturday morning; a plan inside her sleep is a question for her,
+# never a yes her agent gives for her, and not a no code makes for her.
+def _night_nurse(**extra):
+    person = dict(town()[0], id="n", name="Nina R.", avoid=[], dislikes=[], budget="any",
+                  likes=[{"tag": "trivia", "weight": 3}], sleeps="8am-3pm")
+    person.update(extra)
+    return person
+
+
+def test_a_plan_inside_someones_sleep_is_a_question_not_a_yes_or_a_no():
+    trivia = catalog.get("trivia")
+    nurse = _night_nurse()
+    asked = matchmaker.sleep_questions(nurse, trivia, "10am-12pm")
+    assert len(asked) == 1
+    assert "usually sleeps (8am-3pm, works nights)" in asked[0] and "Ask Nina" in asked[0]
+    # it's a question in the plan checks, not a conflict code refuses
+    assert asked[0] in matchmaker.plan_checks(nurse, trivia, "morning", "10am-12pm", DECEMBER_WED)
+    assert matchmaker.conflicts(nurse, trivia, "morning", "10am-12pm", DECEMBER_WED) == \
+        matchmaker.conflicts(dict(nurse, sleeps=None), trivia, "morning", "10am-12pm", DECEMBER_WED)
+    # awake after 3pm: nothing to ask; touching the edge doesn't count
+    assert matchmaker.sleep_questions(nurse, trivia, "3pm-5pm") == []
+    assert matchmaker.sleep_questions(nurse, trivia, "6am-8am") == []
+    assert len(matchmaker.sleep_questions(nurse, trivia, "2pm-4pm")) == 1
+
+
+def test_sleep_that_runs_past_midnight_and_bad_or_missing_sleep_hours():
+    trivia = catalog.get("trivia")
+    # a late sleeper (2am-10am) is asked about a 9am start, not about a 7pm game
+    late = _night_nurse(sleeps="2am-10am")
+    assert len(matchmaker.sleep_questions(late, trivia, "9am-11am")) == 1
+    assert matchmaker.sleep_questions(late, trivia, "7pm-9pm") == []
+    # someone who sleeps 11pm-7am is asked about a game that runs to midnight
+    night = _night_nurse(sleeps="11pm-7am")
+    assert len(matchmaker.sleep_questions(night, trivia, "10pm-12am")) == 1
+    assert len(matchmaker.sleep_questions(night, trivia, "6am-8am")) == 1
+    assert matchmaker.sleep_questions(night, trivia, "7pm-9pm") == []
+    # no sleep hours, or ones code can't read, means nothing to ask (no crash, no guess)
+    for bad in [None, "", "nights", 5, ["8am", "3pm"]]:
+        assert matchmaker.sleep_questions(_night_nurse(sleeps=bad), trivia, "10am-12pm") == []
+    plain = dict(town()[0])
+    plain.pop("sleeps", None)
+    assert matchmaker.sleep_questions(plain, trivia, "10am-12pm") == []
+
+
+def test_the_planner_and_the_agent_see_when_a_night_worker_sleeps():
+    nurse = _night_nurse()
+    assert "; sleeps 8am-3pm (works nights)" in matchmaker._person_line(nurse)
+    assert "sleeps" not in matchmaker._person_line(_night_nurse(sleeps=None))
+    assert "Works nights and usually sleeps 8am-3pm" in matchmaker.agent_profile(nurse)
+    assert "Free isn't the same as awake" in matchmaker.skill()
+
+
+def test_the_browser_copy_asks_about_sleep_the_same_way():
+    import shutil
+    import subprocess
+    import pytest
+    node = shutil.which("node")
+    if node is None:
+        pytest.skip("node is not installed")
+    js = open("src/web/run-clawnly.js").read()
+    helpers = ["function toHours", "function parseHours", "function sleepHours", "function overlaps",
+               "function sleepQuestions"]
+    parts = []
+    i = 0
+    while i < len(helpers):
+        start = js.index("  " + helpers[i])
+        end = js.index("\n  }\n", start) + 5
+        parts.append(js[start:end])
+        i += 1
+    sleeps = ["8am-3pm", "2am-10am", "11pm-7am", None, "", "nights", 5]
+    times = ["10am-12pm", "3pm-5pm", "6am-8am", "2pm-4pm", "9am-11am", "7pm-9pm", "10pm-12am"]
+    cases = []
+    s = 0
+    while s < len(sleeps):
+        t = 0
+        while t < len(times):
+            cases.append([sleeps[s], times[t]])
+            t += 1
+        s += 1
+    script = ("".join(parts) + "\nvar cases = " + json.dumps(cases) +
+              ";\nvar out = []; for (var i = 0; i < cases.length; i++) out.push(sleepQuestions({name: 'Nina R.', sleeps: cases[i][0]}, {}, cases[i][1]));\n" +
+              "process.stdout.write(JSON.stringify(out));\n")
+    done = subprocess.run([node, "-e", script], capture_output=True, text=True, check=True)
+    found = json.loads(done.stdout)
+    trivia = catalog.get("trivia")
+    i = 0
+    while i < len(cases):
+        expected = matchmaker.sleep_questions(_night_nurse(sleeps=cases[i][0]), trivia, cases[i][1])
+        assert found[i] == expected, cases[i]
+        i += 1
+    assert "out = out.concat(sleepQuestions(p, a, time));" in js
+    assert 'lines.push("Works nights and usually sleeps "' in js
